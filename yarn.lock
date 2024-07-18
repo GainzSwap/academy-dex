@@ -5,6 +5,92 @@ __metadata:
   version: 6
   cacheKey: 8
 
+"@academy-dex/academy-dex-ui@workspace:packages/academy-dex-ui":
+  version: 0.0.0-use.local
+  resolution: "@academy-dex/academy-dex-ui@workspace:packages/academy-dex-ui"
+  dependencies:
+    "@heroicons/react": ~2.0.11
+    "@rainbow-me/rainbowkit": 2.1.2
+    "@tanstack/react-query": ~5.28.6
+    "@trivago/prettier-plugin-sort-imports": ~4.3.0
+    "@types/node": ^17.0.45
+    "@types/nprogress": ^0
+    "@types/react": ^18.0.21
+    "@types/react-copy-to-clipboard": ^5.0.4
+    "@typescript-eslint/eslint-plugin": ~5.40.0
+    "@uniswap/sdk-core": ~4.0.1
+    "@uniswap/v2-sdk": ~3.0.1
+    abitype: 1.0.5
+    autoprefixer: ~10.4.12
+    blo: ~1.0.1
+    burner-connector: ~0.0.8
+    daisyui: 4.5.0
+    eslint: ~8.24.0
+    eslint-config-next: ~14.0.4
+    eslint-config-prettier: ~9.1.0
+    eslint-plugin-prettier: ~5.1.3
+    next: ~14.0.4
+    next-themes: ~0.2.1
+    nprogress: ~0.2.0
+    postcss: ~8.4.16
+    prettier: ~3.3.2
+    qrcode.react: ~3.1.0
+    react: ~18.2.0
+    react-copy-to-clipboard: ~5.1.0
+    react-dom: ~18.2.0
+    react-hot-toast: ~2.4.0
+    tailwindcss: ~3.4.3
+    type-fest: ~4.6.0
+    typescript: 5.5.3
+    use-debounce: ~8.0.4
+    usehooks-ts: 2.13.0
+    vercel: ~32.4.1
+    viem: 2.17.4
+    wagmi: 2.10.10
+    zustand: ~4.1.2
+  languageName: unknown
+  linkType: soft
+
+"@academy-dex/backend-sol@workspace:packages/backend-sol":
+  version: 0.0.0-use.local
+  resolution: "@academy-dex/backend-sol@workspace:packages/backend-sol"
+  dependencies:
+    "@ethersproject/abi": ~5.7.0
+    "@ethersproject/providers": ~5.7.1
+    "@nomicfoundation/hardhat-chai-matchers": ~2.0.3
+    "@nomicfoundation/hardhat-ethers": ~3.0.5
+    "@nomicfoundation/hardhat-network-helpers": ~1.0.6
+    "@nomicfoundation/hardhat-verify": ~2.0.3
+    "@openzeppelin/contracts": ~4.8.1
+    "@typechain/ethers-v5": ~10.1.0
+    "@typechain/ethers-v6": ~0.5.1
+    "@typechain/hardhat": ~9.1.0
+    "@types/eslint": ~8
+    "@types/mocha": ~9.1.1
+    "@types/prettier": ~2
+    "@types/qrcode": ~1
+    "@typescript-eslint/eslint-plugin": ~6.7.3
+    "@typescript-eslint/parser": ~6.7.3
+    chai: ~4.3.6
+    dotenv: ~16.0.3
+    envfile: ~6.18.0
+    eslint: ~8.26.0
+    eslint-config-prettier: ~9.1.0
+    eslint-plugin-prettier: ~5.1.3
+    ethers: ~6.10.0
+    hardhat: ~2.19.4
+    hardhat-deploy: ~0.11.45
+    hardhat-deploy-ethers: ~0.4.1
+    hardhat-gas-reporter: ~1.0.9
+    prettier: ~3.3.2
+    qrcode: ~1.5.1
+    solidity-coverage: ~0.8.5
+    ts-node: ~10.9.1
+    typechain: ~8.1.0
+    typescript: ~5.1.6
+  languageName: unknown
+  linkType: soft
+
 "@adraffy/ens-normalize@npm:1.10.0":
   version: 1.10.0
   resolution: "@adraffy/ens-normalize@npm:1.10.0"
@@ -2080,92 +2166,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@se-2/hardhat@workspace:packages/hardhat":
-  version: 0.0.0-use.local
-  resolution: "@se-2/hardhat@workspace:packages/hardhat"
-  dependencies:
-    "@ethersproject/abi": ~5.7.0
-    "@ethersproject/providers": ~5.7.1
-    "@nomicfoundation/hardhat-chai-matchers": ~2.0.3
-    "@nomicfoundation/hardhat-ethers": ~3.0.5
-    "@nomicfoundation/hardhat-network-helpers": ~1.0.6
-    "@nomicfoundation/hardhat-verify": ~2.0.3
-    "@openzeppelin/contracts": ~4.8.1
-    "@typechain/ethers-v5": ~10.1.0
-    "@typechain/ethers-v6": ~0.5.1
-    "@typechain/hardhat": ~9.1.0
-    "@types/eslint": ~8
-    "@types/mocha": ~9.1.1
-    "@types/prettier": ~2
-    "@types/qrcode": ~1
-    "@typescript-eslint/eslint-plugin": ~6.7.3
-    "@typescript-eslint/parser": ~6.7.3
-    chai: ~4.3.6
-    dotenv: ~16.0.3
-    envfile: ~6.18.0
-    eslint: ~8.26.0
-    eslint-config-prettier: ~9.1.0
-    eslint-plugin-prettier: ~5.1.3
-    ethers: ~6.10.0
-    hardhat: ~2.19.4
-    hardhat-deploy: ~0.11.45
-    hardhat-deploy-ethers: ~0.4.1
-    hardhat-gas-reporter: ~1.0.9
-    prettier: ~3.3.2
-    qrcode: ~1.5.1
-    solidity-coverage: ~0.8.5
-    ts-node: ~10.9.1
-    typechain: ~8.1.0
-    typescript: ~5.1.6
-  languageName: unknown
-  linkType: soft
-
-"@se-2/nextjs@workspace:packages/nextjs":
-  version: 0.0.0-use.local
-  resolution: "@se-2/nextjs@workspace:packages/nextjs"
-  dependencies:
-    "@heroicons/react": ~2.0.11
-    "@rainbow-me/rainbowkit": 2.1.2
-    "@tanstack/react-query": ~5.28.6
-    "@trivago/prettier-plugin-sort-imports": ~4.3.0
-    "@types/node": ^17.0.45
-    "@types/nprogress": ^0
-    "@types/react": ^18.0.21
-    "@types/react-copy-to-clipboard": ^5.0.4
-    "@typescript-eslint/eslint-plugin": ~5.40.0
-    "@uniswap/sdk-core": ~4.0.1
-    "@uniswap/v2-sdk": ~3.0.1
-    abitype: 1.0.5
-    autoprefixer: ~10.4.12
-    blo: ~1.0.1
-    burner-connector: ~0.0.8
-    daisyui: 4.5.0
-    eslint: ~8.24.0
-    eslint-config-next: ~14.0.4
-    eslint-config-prettier: ~9.1.0
-    eslint-plugin-prettier: ~5.1.3
-    next: ~14.0.4
-    next-themes: ~0.2.1
-    nprogress: ~0.2.0
-    postcss: ~8.4.16
-    prettier: ~3.3.2
-    qrcode.react: ~3.1.0
-    react: ~18.2.0
-    react-copy-to-clipboard: ~5.1.0
-    react-dom: ~18.2.0
-    react-hot-toast: ~2.4.0
-    tailwindcss: ~3.4.3
-    type-fest: ~4.6.0
-    typescript: 5.5.3
-    use-debounce: ~8.0.4
-    usehooks-ts: 2.13.0
-    vercel: ~32.4.1
-    viem: 2.17.4
-    wagmi: 2.10.10
-    zustand: ~4.1.2
-  languageName: unknown
-  linkType: soft
-
 "@sentry/core@npm:5.30.0":
   version: 5.30.0
   resolution: "@sentry/core@npm:5.30.0"
@@ -3917,6 +3917,15 @@ __metadata:
   checksum: 5b70d08926f5234c3c23ffca848542af4def780dc96d6ca35a81659af80e6439c46f5106bd14a5ea37465173d7dcc8294317048b0194fdf6480103edc4aa9e63
   languageName: node
   linkType: hard
+
+"academy-dex@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "academy-dex@workspace:."
+  dependencies:
+    husky: ~8.0.3
+    lint-staged: ~13.2.2
+  languageName: unknown
+  linkType: soft
 
 "acorn-jsx@npm:^5.3.2":
   version: 5.3.2
@@ -12207,15 +12216,6 @@ __metadata:
   checksum: b7c7d1a68d6ca946f2fbb0778e0c4ec63c65501b54023b2af7d7e9f48fdb6c6580d6f7675cd53bda5944c5ebc057560d5a6365079752546865defb3b79dea454
   languageName: node
   linkType: hard
-
-"se-2@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "se-2@workspace:."
-  dependencies:
-    husky: ~8.0.3
-    lint-staged: ~13.2.2
-  languageName: unknown
-  linkType: soft
 
 "secp256k1@npm:^4.0.1":
   version: 4.0.3
