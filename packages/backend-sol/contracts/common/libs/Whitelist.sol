@@ -6,7 +6,7 @@ struct whitelist {
 }
 
 library Whitelist {
-	function add(whitelist storage list, address addrs) internal {
-		list.whitelist[addrs] = true;
+	function add(whitelist storage self, address addrs) internal {
+		self.whitelist[addrs] = true;
 	}
 }

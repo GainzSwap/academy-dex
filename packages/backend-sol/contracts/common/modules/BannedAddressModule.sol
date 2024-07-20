@@ -5,8 +5,9 @@ import "../libs/Whitelist.sol";
 
 abstract contract BannedAdddressModule {
 	whitelist internal bannedAddresses;
+	using Whitelist for whitelist;
 
 	function addBannedAddress(address addrs) internal {
-		Whitelist.add(bannedAddresses, addrs);
+		bannedAddresses.add(addrs);
 	}
 }

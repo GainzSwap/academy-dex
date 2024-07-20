@@ -21,6 +21,7 @@
     "hardhat:lint": "yarn workspace @academy-dex/backend-sol lint",
     "hardhat:lint-staged": "yarn workspace @academy-dex/backend-sol lint-staged",
     "hardhat:test": "yarn workspace @academy-dex/backend-sol test",
+    "hardhat:coverage": "yarn workspace @academy-dex/backend-sol coverage",
     "postinstall": "husky install",
     "next:build": "yarn workspace @academy-dex/academy-dex-ui build",
     "next:check-types": "yarn workspace @academy-dex/academy-dex-ui check-types",

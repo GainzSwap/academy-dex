@@ -72,6 +72,7 @@ __metadata:
     "@types/qrcode": ~1
     "@typescript-eslint/eslint-plugin": ~6.7.3
     "@typescript-eslint/parser": ~6.7.3
+    "@uniswap/lib": 4.0.1-alpha
     chai: ~4.3.6
     dotenv: ~16.0.3
     envfile: ~6.18.0
@@ -85,7 +86,7 @@ __metadata:
     hardhat-gas-reporter: ~1.0.9
     prettier: ~3.3.2
     qrcode: ~1.5.1
-    solidity-coverage: ~0.8.5
+    solidity-coverage: ^0.8.12
     ts-node: ~10.9.1
     typechain: ~8.1.0
     typescript: ~5.1.6
@@ -3178,6 +3179,13 @@ __metadata:
     "@typescript-eslint/types": 6.7.5
     eslint-visitor-keys: ^3.4.1
   checksum: 2df996742f63d89fa339b0e8ff3a3a289d36b3f584f7538a7626bed3869e9ae27f8f56ab31748519d25a63de2ae22a43dd8413610b00436ff342b0a17eb85289
+  languageName: node
+  linkType: hard
+
+"@uniswap/lib@npm:4.0.1-alpha":
+  version: 4.0.1-alpha
+  resolution: "@uniswap/lib@npm:4.0.1-alpha"
+  checksum: d7bbacccef40966af16c7e215ab085f575686d316b2802c9e1cfd03f7ad351970e547535670a28b2279c3cfcc4fb02888614c46f94efe2987af2309f3ec86127
   languageName: node
   linkType: hard
 
@@ -12561,7 +12569,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"solidity-coverage@npm:~0.8.5":
+"solidity-coverage@npm:^0.8.12":
   version: 0.8.12
   resolution: "solidity-coverage@npm:0.8.12"
   dependencies:
