@@ -2,6 +2,7 @@
 pragma solidity 0.8.26;
 
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
+import "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 import "./Types.sol";
 
@@ -18,14 +19,12 @@ library TokenPayments {
 			ERC20TokenPayment memory secondReceived
 		)
 	{
-		TransferHelper.safeTransferFrom(
-			firstPayment.tokenAddress,
+		IERC20(firstPayment.tokenAddress).transferFrom(
 			sender,
 			receipient,
 			firstPayment.amount
 		);
-		TransferHelper.safeTransferFrom(
-			secondPayment.tokenAddress,
+		IERC20(secondPayment.tokenAddress).transferFrom(
 			sender,
 			receipient,
 			secondPayment.amount

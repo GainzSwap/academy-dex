@@ -67,6 +67,10 @@ abstract contract AddLiquidityModule is
 			revert ErrorInvalidArgs();
 		}
 
+		if (!isStateActive(storageCache.contractState)) {
+			revert ErrorNotActive();
+		}
+
 		address caller = msg.sender;
 
 		// This looks like it is redundant, but the pattern is okay to prevent assumption of
@@ -85,12 +89,6 @@ abstract contract AddLiquidityModule is
 			secondReceivedPayment,
 			storageCache.secondTokenId
 		);
-
-		if (!isStateActive(storageCache.contractState)) {
-			revert ErrorNotActive();
-		}
-
-		// TODO check that lpToken for this pair is valid
 
 		if (
 			!(initialLiquidityAdder == address(0) ||

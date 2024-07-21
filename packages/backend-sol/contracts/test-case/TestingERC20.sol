@@ -7,7 +7,9 @@ contract TestingERC20 is ERC20 {
 	constructor(
 		string memory name_,
 		string memory symbol_
-	) ERC20(name_, symbol_) {}
+	) ERC20(name_, symbol_) {
+		_mint(msg.sender, 3_000_000 * 10 ** 18);
+	}
 
 	function mint(address to, uint256 amt) external {
 		_mint(to, amt);
