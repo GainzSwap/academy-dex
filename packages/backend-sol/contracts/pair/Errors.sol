@@ -36,3 +36,14 @@ error ErrorInsufficientSecondToken();
 
 /// Permission denied
 error ErrorPermissionDenied();
+
+/// Not enough LP token supply
+error ErrorNotEnoughLp();
+/// Insufficient liquidity burned
+error ErrorInsufficientLiquidityBurned();
+/// Slippage amount does not match
+error ErrorSlippageOnRemove();
+/// Not enough reserve
+error ErrorNotEnoughReserve();
+///LP token not issued
+error ErrorLpTokenNotIssued();

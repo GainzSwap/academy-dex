@@ -25,8 +25,8 @@ const deployPairContract: DeployFunction = async function (hre: HardhatRuntimeEn
     await Pair.deploy(firstToken, secondToken, routerAddress, routerOwnerAddress, 300, 50, initialLiquidityAdder)
   ).waitForDeployment();
 
-  const firstTokenSent = { amount: 1_001_000, tokenAddress: firstToken };
-  const secondTokenSent = { amount: 1_001_000, tokenAddress: secondToken };
+  const firstTokenSent = { amount: 1_001_000, token: firstTokenContract };
+  const secondTokenSent = { amount: 1_001_000, token: secondTokenContract };
 
   await firstTokenContract.approve(pairContract, firstTokenSent.amount);
   await secondTokenContract.approve(pairContract, secondTokenSent.amount);

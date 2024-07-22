@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-abstract contract AmmModule {
+library Amm {
 	function calculateKConstant(
 		uint256 firstTokenAmt,
 		uint256 secondTokenAmt

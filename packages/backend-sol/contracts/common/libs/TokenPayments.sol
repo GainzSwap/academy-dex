@@ -7,30 +7,23 @@ import "@openzeppelin/contracts/interfaces/IERC20.sol";
 import "./Types.sol";
 
 library TokenPayments {
-	function receive2(
-		address receipient,
-		address sender,
-		ERC20TokenPayment memory firstPayment,
-		ERC20TokenPayment memory secondPayment
-	)
-		internal
-		returns (
-			ERC20TokenPayment memory firstReceived,
-			ERC20TokenPayment memory secondReceived
-		)
-	{
-		IERC20(firstPayment.tokenAddress).transferFrom(
+	function receiveERC20(
+		ERC20TokenPayment calldata firstPayment,
+		ERC20TokenPayment calldata secondPayment
+	) internal {
+		address recipient = address(this);
+		address sender = msg.sender;
+
+		firstPayment.token.transferFrom(sender, recipient, firstPayment.amount);
+		secondPayment.token.transferFrom(
 			sender,
-			receipient,
-			firstPayment.amount
-		);
-		IERC20(secondPayment.tokenAddress).transferFrom(
-			sender,
-			receipient,
+			recipient,
 			secondPayment.amount
 		);
+	}
 
-		(firstReceived, secondReceived) = (firstPayment, secondPayment);
+	function receiveERC20(ERC20TokenPayment calldata payment) internal {
+		payment.token.transferFrom(msg.sender, address(this), payment.amount);
 	}
 
 	function sendMultipleTokensIfNotZero(
@@ -41,7 +34,7 @@ library TokenPayments {
 			ERC20TokenPayment memory payment = payments[index];
 			if (payment.amount > 0) {
 				TransferHelper.safeTransfer(
-					payment.tokenAddress,
+					address(payment.token),
 					destination,
 					payment.amount
 				);

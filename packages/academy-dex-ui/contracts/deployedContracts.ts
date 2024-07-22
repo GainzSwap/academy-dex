@@ -4,9 +4,9 @@
 import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 
 const deployedContracts = {
-  656476: {
+  31337: {
     Pair: {
-      address: "0xDB2F57a2F86EB603C86f19BbD80ecEa15b67a98E",
+      address: "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
       abi: [
         {
           inputs: [
@@ -81,6 +81,11 @@ const deployedContracts = {
         },
         {
           inputs: [],
+          name: "ErrorInsufficientLiquidityBurned",
+          type: "error",
+        },
+        {
+          inputs: [],
           name: "ErrorInsufficientSecondToken",
           type: "error",
         },
@@ -97,6 +102,16 @@ const deployedContracts = {
         {
           inputs: [],
           name: "ErrorNotActive",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "ErrorNotEnoughLp",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "ErrorNotEnoughReserve",
           type: "error",
         },
         {
@@ -128,6 +143,11 @@ const deployedContracts = {
         {
           inputs: [],
           name: "ErrorSameTokens",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "ErrorSlippageOnRemove",
           type: "error",
         },
         {
@@ -225,37 +245,12 @@ const deployedContracts = {
                 },
               ],
               indexed: false,
-              internalType: "struct AddLiquidityModule.AddLiquidityEvent",
+              internalType: "struct AddLiquidityUtil.AddLiquidityEvent",
               name: "addLiquidityEvent",
               type: "tuple",
             },
           ],
           name: "AddLiquidity",
-          type: "event",
-        },
-        {
-          anonymous: false,
-          inputs: [
-            {
-              indexed: true,
-              internalType: "address",
-              name: "owner",
-              type: "address",
-            },
-            {
-              indexed: true,
-              internalType: "address",
-              name: "spender",
-              type: "address",
-            },
-            {
-              indexed: false,
-              internalType: "uint256",
-              name: "value",
-              type: "uint256",
-            },
-          ],
-          name: "Approval",
           type: "event",
         },
         {
@@ -334,31 +329,6 @@ const deployedContracts = {
           type: "event",
         },
         {
-          anonymous: false,
-          inputs: [
-            {
-              indexed: true,
-              internalType: "address",
-              name: "from",
-              type: "address",
-            },
-            {
-              indexed: true,
-              internalType: "address",
-              name: "to",
-              type: "address",
-            },
-            {
-              indexed: false,
-              internalType: "uint256",
-              name: "value",
-              type: "uint256",
-            },
-          ],
-          name: "Transfer",
-          type: "event",
-        },
-        {
           inputs: [],
           name: "DEFAULT_ADMIN_ROLE",
           outputs: [
@@ -386,8 +356,8 @@ const deployedContracts = {
             {
               components: [
                 {
-                  internalType: "address",
-                  name: "tokenAddress",
+                  internalType: "contract IERC20",
+                  name: "token",
                   type: "address",
                 },
                 {
@@ -403,8 +373,8 @@ const deployedContracts = {
             {
               components: [
                 {
-                  internalType: "address",
-                  name: "tokenAddress",
+                  internalType: "contract IERC20",
+                  name: "token",
                   type: "address",
                 },
                 {
@@ -425,8 +395,8 @@ const deployedContracts = {
                 {
                   components: [
                     {
-                      internalType: "address",
-                      name: "tokenAddress",
+                      internalType: "contract IERC20",
+                      name: "token",
                       type: "address",
                     },
                     {
@@ -442,8 +412,8 @@ const deployedContracts = {
                 {
                   components: [
                     {
-                      internalType: "address",
-                      name: "tokenAddress",
+                      internalType: "contract IERC20",
+                      name: "token",
                       type: "address",
                     },
                     {
@@ -459,8 +429,8 @@ const deployedContracts = {
                 {
                   components: [
                     {
-                      internalType: "address",
-                      name: "tokenAddress",
+                      internalType: "contract IERC20",
+                      name: "token",
                       type: "address",
                     },
                     {
@@ -483,115 +453,11 @@ const deployedContracts = {
           type: "function",
         },
         {
-          inputs: [
-            {
-              internalType: "address",
-              name: "owner",
-              type: "address",
-            },
-            {
-              internalType: "address",
-              name: "spender",
-              type: "address",
-            },
-          ],
-          name: "allowance",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "address",
-              name: "spender",
-              type: "address",
-            },
-            {
-              internalType: "uint256",
-              name: "amount",
-              type: "uint256",
-            },
-          ],
-          name: "approve",
-          outputs: [
-            {
-              internalType: "bool",
-              name: "",
-              type: "bool",
-            },
-          ],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "address",
-              name: "account",
-              type: "address",
-            },
-          ],
-          name: "balanceOf",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "decimals",
-          outputs: [
-            {
-              internalType: "uint8",
-              name: "",
-              type: "uint8",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "address",
-              name: "spender",
-              type: "address",
-            },
-            {
-              internalType: "uint256",
-              name: "subtractedValue",
-              type: "uint256",
-            },
-          ],
-          name: "decreaseAllowance",
-          outputs: [
-            {
-              internalType: "bool",
-              name: "",
-              type: "bool",
-            },
-          ],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
           inputs: [],
           name: "firstToken",
           outputs: [
             {
-              internalType: "address",
+              internalType: "contract ERC20",
               name: "",
               type: "address",
             },
@@ -661,40 +527,112 @@ const deployedContracts = {
           type: "function",
         },
         {
-          inputs: [
+          inputs: [],
+          name: "lpAddress",
+          outputs: [
             {
               internalType: "address",
-              name: "spender",
+              name: "",
               type: "address",
-            },
-            {
-              internalType: "uint256",
-              name: "addedValue",
-              type: "uint256",
-            },
-          ],
-          name: "increaseAllowance",
-          outputs: [
-            {
-              internalType: "bool",
-              name: "",
-              type: "bool",
-            },
-          ],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "name",
-          outputs: [
-            {
-              internalType: "string",
-              name: "",
-              type: "string",
             },
           ],
           stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "user",
+              type: "address",
+            },
+          ],
+          name: "lpTokenBalanceOf",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "firstTokenAmountMin",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "secondTokenAmountMin",
+              type: "uint256",
+            },
+            {
+              components: [
+                {
+                  internalType: "contract IERC20",
+                  name: "token",
+                  type: "address",
+                },
+                {
+                  internalType: "uint256",
+                  name: "amount",
+                  type: "uint256",
+                },
+              ],
+              internalType: "struct ERC20TokenPayment",
+              name: "payment",
+              type: "tuple",
+            },
+          ],
+          name: "removeLiquidity",
+          outputs: [
+            {
+              components: [
+                {
+                  components: [
+                    {
+                      internalType: "contract IERC20",
+                      name: "token",
+                      type: "address",
+                    },
+                    {
+                      internalType: "uint256",
+                      name: "amount",
+                      type: "uint256",
+                    },
+                  ],
+                  internalType: "struct ERC20TokenPayment",
+                  name: "firstTokenPayment",
+                  type: "tuple",
+                },
+                {
+                  components: [
+                    {
+                      internalType: "contract IERC20",
+                      name: "token",
+                      type: "address",
+                    },
+                    {
+                      internalType: "uint256",
+                      name: "amount",
+                      type: "uint256",
+                    },
+                  ],
+                  internalType: "struct ERC20TokenPayment",
+                  name: "secondTokenPayment",
+                  type: "tuple",
+                },
+              ],
+              internalType: "struct RemoveLiquidityResultType",
+              name: "",
+              type: "tuple",
+            },
+          ],
+          stateMutability: "nonpayable",
           type: "function",
         },
         {
@@ -745,7 +683,7 @@ const deployedContracts = {
           name: "secondToken",
           outputs: [
             {
-              internalType: "address",
+              internalType: "contract ERC20",
               name: "",
               type: "address",
             },
@@ -785,433 +723,21 @@ const deployedContracts = {
           stateMutability: "view",
           type: "function",
         },
-        {
-          inputs: [],
-          name: "symbol",
-          outputs: [
-            {
-              internalType: "string",
-              name: "",
-              type: "string",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "totalSupply",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "address",
-              name: "to",
-              type: "address",
-            },
-            {
-              internalType: "uint256",
-              name: "amount",
-              type: "uint256",
-            },
-          ],
-          name: "transfer",
-          outputs: [
-            {
-              internalType: "bool",
-              name: "",
-              type: "bool",
-            },
-          ],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "address",
-              name: "from",
-              type: "address",
-            },
-            {
-              internalType: "address",
-              name: "to",
-              type: "address",
-            },
-            {
-              internalType: "uint256",
-              name: "amount",
-              type: "uint256",
-            },
-          ],
-          name: "transferFrom",
-          outputs: [
-            {
-              internalType: "bool",
-              name: "",
-              type: "bool",
-            },
-          ],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
       ],
       inheritedFunctions: {
-        firstToken: "contracts/pair/pair_actions/AddLiquidityModule.sol",
-        secondToken: "contracts/pair/pair_actions/AddLiquidityModule.sol",
-        DEFAULT_ADMIN_ROLE:
-          "contracts/pair/pair_actions/AddLiquidityModule.sol",
-        getRoleAdmin: "contracts/pair/pair_actions/AddLiquidityModule.sol",
-        grantRole: "contracts/pair/pair_actions/AddLiquidityModule.sol",
-        hasRole: "contracts/pair/pair_actions/AddLiquidityModule.sol",
-        renounceRole: "contracts/pair/pair_actions/AddLiquidityModule.sol",
-        resume: "contracts/pair/pair_actions/AddLiquidityModule.sol",
-        revokeRole: "contracts/pair/pair_actions/AddLiquidityModule.sol",
-        state: "contracts/pair/pair_actions/AddLiquidityModule.sol",
-        supportsInterface: "contracts/pair/pair_actions/AddLiquidityModule.sol",
-        addLiquidity: "contracts/pair/pair_actions/AddLiquidityModule.sol",
-        allowance: "contracts/pair/pair_actions/AddLiquidityModule.sol",
-        approve: "contracts/pair/pair_actions/AddLiquidityModule.sol",
-        balanceOf: "contracts/pair/pair_actions/AddLiquidityModule.sol",
-        decimals: "contracts/pair/pair_actions/AddLiquidityModule.sol",
-        decreaseAllowance: "contracts/pair/pair_actions/AddLiquidityModule.sol",
-        increaseAllowance: "contracts/pair/pair_actions/AddLiquidityModule.sol",
-        name: "contracts/pair/pair_actions/AddLiquidityModule.sol",
-        symbol: "contracts/pair/pair_actions/AddLiquidityModule.sol",
-        totalSupply: "contracts/pair/pair_actions/AddLiquidityModule.sol",
-        transfer: "contracts/pair/pair_actions/AddLiquidityModule.sol",
-        transferFrom: "contracts/pair/pair_actions/AddLiquidityModule.sol",
-      },
-    },
-    TestingERC20: {
-      address: "0x0a80fd491b72d3170c3163420B73E6A2d3835B5e",
-      abi: [
-        {
-          inputs: [
-            {
-              internalType: "string",
-              name: "name_",
-              type: "string",
-            },
-            {
-              internalType: "string",
-              name: "symbol_",
-              type: "string",
-            },
-          ],
-          stateMutability: "nonpayable",
-          type: "constructor",
-        },
-        {
-          anonymous: false,
-          inputs: [
-            {
-              indexed: true,
-              internalType: "address",
-              name: "owner",
-              type: "address",
-            },
-            {
-              indexed: true,
-              internalType: "address",
-              name: "spender",
-              type: "address",
-            },
-            {
-              indexed: false,
-              internalType: "uint256",
-              name: "value",
-              type: "uint256",
-            },
-          ],
-          name: "Approval",
-          type: "event",
-        },
-        {
-          anonymous: false,
-          inputs: [
-            {
-              indexed: true,
-              internalType: "address",
-              name: "from",
-              type: "address",
-            },
-            {
-              indexed: true,
-              internalType: "address",
-              name: "to",
-              type: "address",
-            },
-            {
-              indexed: false,
-              internalType: "uint256",
-              name: "value",
-              type: "uint256",
-            },
-          ],
-          name: "Transfer",
-          type: "event",
-        },
-        {
-          inputs: [
-            {
-              internalType: "address",
-              name: "owner",
-              type: "address",
-            },
-            {
-              internalType: "address",
-              name: "spender",
-              type: "address",
-            },
-          ],
-          name: "allowance",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "address",
-              name: "spender",
-              type: "address",
-            },
-            {
-              internalType: "uint256",
-              name: "amount",
-              type: "uint256",
-            },
-          ],
-          name: "approve",
-          outputs: [
-            {
-              internalType: "bool",
-              name: "",
-              type: "bool",
-            },
-          ],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "address",
-              name: "account",
-              type: "address",
-            },
-          ],
-          name: "balanceOf",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "decimals",
-          outputs: [
-            {
-              internalType: "uint8",
-              name: "",
-              type: "uint8",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "address",
-              name: "spender",
-              type: "address",
-            },
-            {
-              internalType: "uint256",
-              name: "subtractedValue",
-              type: "uint256",
-            },
-          ],
-          name: "decreaseAllowance",
-          outputs: [
-            {
-              internalType: "bool",
-              name: "",
-              type: "bool",
-            },
-          ],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "address",
-              name: "spender",
-              type: "address",
-            },
-            {
-              internalType: "uint256",
-              name: "addedValue",
-              type: "uint256",
-            },
-          ],
-          name: "increaseAllowance",
-          outputs: [
-            {
-              internalType: "bool",
-              name: "",
-              type: "bool",
-            },
-          ],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "address",
-              name: "to",
-              type: "address",
-            },
-            {
-              internalType: "uint256",
-              name: "amt",
-              type: "uint256",
-            },
-          ],
-          name: "mint",
-          outputs: [],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "name",
-          outputs: [
-            {
-              internalType: "string",
-              name: "",
-              type: "string",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "symbol",
-          outputs: [
-            {
-              internalType: "string",
-              name: "",
-              type: "string",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "totalSupply",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "address",
-              name: "to",
-              type: "address",
-            },
-            {
-              internalType: "uint256",
-              name: "amount",
-              type: "uint256",
-            },
-          ],
-          name: "transfer",
-          outputs: [
-            {
-              internalType: "bool",
-              name: "",
-              type: "bool",
-            },
-          ],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "address",
-              name: "from",
-              type: "address",
-            },
-            {
-              internalType: "address",
-              name: "to",
-              type: "address",
-            },
-            {
-              internalType: "uint256",
-              name: "amount",
-              type: "uint256",
-            },
-          ],
-          name: "transferFrom",
-          outputs: [
-            {
-              internalType: "bool",
-              name: "",
-              type: "bool",
-            },
-          ],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-      ],
-      inheritedFunctions: {
-        allowance: "@openzeppelin/contracts/token/ERC20/ERC20.sol",
-        approve: "@openzeppelin/contracts/token/ERC20/ERC20.sol",
-        balanceOf: "@openzeppelin/contracts/token/ERC20/ERC20.sol",
-        decimals: "@openzeppelin/contracts/token/ERC20/ERC20.sol",
-        decreaseAllowance: "@openzeppelin/contracts/token/ERC20/ERC20.sol",
-        increaseAllowance: "@openzeppelin/contracts/token/ERC20/ERC20.sol",
-        name: "@openzeppelin/contracts/token/ERC20/ERC20.sol",
-        symbol: "@openzeppelin/contracts/token/ERC20/ERC20.sol",
-        totalSupply: "@openzeppelin/contracts/token/ERC20/ERC20.sol",
-        transfer: "@openzeppelin/contracts/token/ERC20/ERC20.sol",
-        transferFrom: "@openzeppelin/contracts/token/ERC20/ERC20.sol",
+        firstToken: "contracts/pair/ConfigModule.sol",
+        lpAddress: "contracts/pair/ConfigModule.sol",
+        lpTokenBalanceOf: "contracts/pair/ConfigModule.sol",
+        secondToken: "contracts/pair/ConfigModule.sol",
+        DEFAULT_ADMIN_ROLE: "contracts/common/modules/PausableModule.sol",
+        getRoleAdmin: "contracts/common/modules/PausableModule.sol",
+        grantRole: "contracts/common/modules/PausableModule.sol",
+        hasRole: "contracts/common/modules/PausableModule.sol",
+        renounceRole: "contracts/common/modules/PausableModule.sol",
+        resume: "contracts/common/modules/PausableModule.sol",
+        revokeRole: "contracts/common/modules/PausableModule.sol",
+        state: "contracts/common/modules/PausableModule.sol",
+        supportsInterface: "contracts/common/modules/PausableModule.sol",
       },
     },
   },

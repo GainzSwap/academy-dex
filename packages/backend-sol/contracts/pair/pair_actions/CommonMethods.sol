@@ -3,7 +3,7 @@ pragma solidity 0.8.26;
 
 import "../../common/modules/PausableModule.sol";
 
-abstract contract CommonMethodsModule {
+library CommonMethodsUtil {
 	function isStateActive(State state) internal pure returns (bool isActive) {
 		isActive = state == State.Active || state == State.PartialActive;
 	}

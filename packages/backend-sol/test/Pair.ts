@@ -2,6 +2,7 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import { loadFixture, time } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { ZeroAddress } from "ethers";
+import { ERC20TokenPaymentStruct } from "../typechain-types/contracts/pair/Pair";
 
 const randomAddress = () => ethers.Wallet.createRandom().address;
 
@@ -24,61 +25,103 @@ describe("Pair", function () {
       initialLiquidityAdder,
     ]);
 
-    return { pairContract, firstToken, secondToken, routerOwner };
+    await pairContract.connect(routerOwner).resume();
+
+    const [owner] = await ethers.getSigners();
+    const lpAddr = await pairContract.lpAddress();
+
+    return {
+      pairContract,
+      firstToken,
+      secondToken,
+      routerOwner,
+
+      lpAddr,
+      lpToken: await ethers.getContractAt("LpToken", lpAddr),
+
+      owner,
+      addLiquidity: async (...args: Parameters<typeof pairContract.addLiquidity>) => {
+        const firstTokenSent = args[2] as ERC20TokenPaymentStruct;
+        const secondTokenSent = args[3] as ERC20TokenPaymentStruct;
+
+        await firstToken.mint(owner.address, firstTokenSent.amount);
+        await secondToken.mint(owner.address, secondTokenSent.amount);
+
+        await firstToken.approve(pairContract, firstTokenSent.amount);
+        await secondToken.approve(pairContract, secondTokenSent.amount);
+
+        return pairContract.addLiquidity(...args);
+      },
+    };
   }
 
   it("testPairSetup", async () => {
     const { pairContract } = await loadFixture(deployPairFixture);
 
-    expect(await pairContract.state()).to.equal("0");
+    expect(await pairContract.state()).to.equal("1");
   });
 
   describe("addLiquidity", function () {
     it("can add liquity", async function () {
-      const { pairContract, firstToken, secondToken, routerOwner } = await loadFixture(deployPairFixture);
-      const [owner] = await ethers.getSigners();
-
-      await pairContract.connect(routerOwner).resume();
+      const { pairContract, firstToken, secondToken, owner, lpAddr, addLiquidity } =
+        await loadFixture(deployPairFixture);
 
       const firstTokenAmtMin = 1_000_000;
       const secondTokenAmtMin = 1_000_000;
 
       const [expectedLpAmt, expectedFirstTokenAmt, expectedSecondTokenAmt] = [1_000_000, 1_001_000, 1_001_000];
 
-      const firstTokenSent = { amount: 1_001_000, tokenAddress: firstToken };
-      const secondTokenSent = { amount: 1_001_000, tokenAddress: secondToken };
+      const firstTokenSent = { amount: 1_001_000, token: firstToken };
+      const secondTokenSent = { amount: 1_001_000, token: secondToken };
 
-      const pairContractAddr = await pairContract.getAddress();
-
-      await firstToken.mint(owner.address, firstTokenSent.amount * 2);
-      await secondToken.mint(owner.address, secondTokenSent.amount * 2);
-
-      await firstToken.approve(pairContractAddr, firstTokenSent.amount * 2);
-      await secondToken.approve(pairContractAddr, secondTokenSent.amount * 2);
-
-      await expect(pairContract.addLiquidity(firstTokenAmtMin, secondTokenAmtMin, firstTokenSent, secondTokenSent))
+      await expect(addLiquidity(firstTokenAmtMin, secondTokenAmtMin, firstTokenSent, secondTokenSent))
         .to.emit(pairContract, "AddLiquidity")
         .withArgs(firstToken, secondToken, owner.address, [
           owner.address,
-          firstTokenSent.tokenAddress,
+          firstTokenSent.token,
           firstTokenSent.amount,
-          secondTokenSent.tokenAddress,
+          secondTokenSent.token,
           secondTokenSent.amount,
-          pairContractAddr,
+          lpAddr,
           expectedLpAmt,
           1001000,
           expectedFirstTokenAmt,
           expectedSecondTokenAmt,
-          (await time.latestBlock()) + 1,
-          (await time.latest()) + 1,
+          (await time.latestBlock()) + 5,
+          (await time.latest()) + 5,
         ]);
 
-      expect(await pairContract.balanceOf(owner)).to.equal(expectedLpAmt);
+      expect(await pairContract.lpTokenBalanceOf(owner)).to.equal(expectedLpAmt);
       expect(await firstToken.balanceOf(pairContract)).to.equal(firstTokenSent.amount);
       expect(await secondToken.balanceOf(pairContract)).to.equal(secondTokenSent.amount);
 
       // Add again to increase code coverage
-      await pairContract.addLiquidity(firstTokenAmtMin, secondTokenAmtMin, firstTokenSent, secondTokenSent);
+      await addLiquidity(firstTokenAmtMin, secondTokenAmtMin, firstTokenSent, secondTokenSent);
+    });
+  });
+
+  describe("removeLiquidity", function () {
+    it("can remove liquidity", async function () {
+      const { pairContract, firstToken, secondToken, lpAddr, addLiquidity, lpToken, owner } =
+        await loadFixture(deployPairFixture);
+      const firstTokenAmtMin = 1_000_000;
+      const secondTokenAmtMin = 1_000_000;
+
+      const firstTokenSent = { amount: 1_001_000, token: firstToken };
+      const secondTokenSent = { amount: 1_001_000, token: secondToken };
+
+      await addLiquidity(firstTokenAmtMin, secondTokenAmtMin, firstTokenSent, secondTokenSent);
+
+      const expectedLpAmt = 1_000_000;
+      expect(await lpToken.balanceOf(owner)).to.equal(expectedLpAmt);
+      const lpPayment = { token: lpAddr, amount: expectedLpAmt };
+
+      await lpToken.approve(pairContract, lpPayment.amount);
+      await expect(pairContract.removeLiquidity(firstTokenAmtMin, secondTokenAmtMin, lpPayment)).to.emit(
+        pairContract,
+        "RemoveLiquidity",
+      );
+      expect(await lpToken.balanceOf(owner)).to.equal(0);
     });
   });
 });

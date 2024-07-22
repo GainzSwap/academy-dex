@@ -77,13 +77,16 @@ library PriceObsVec {
 	}
 }
 
-abstract contract SafePriceModule {
+struct SafePriceData {
 	uint safePriceCurrentIndex;
-
 	priceObsvec priceObservations;
+}
+
+library SafePriceUtil {
 	using PriceObsVec for priceObsvec;
 
 	function updateSafePrice(
+		SafePriceData storage self,
 		uint256 firstTokenReserve,
 		uint256 secondTokenReserve
 	) internal {
@@ -93,18 +96,20 @@ abstract contract SafePriceModule {
 
 		uint currentRound = block.number;
 
-		if (safePriceCurrentIndex > MAX_OBSERVATIONS) {
+		if (self.safePriceCurrentIndex > MAX_OBSERVATIONS) {
 			revert ErrorSafePriceCurrentIndex(
-				safePriceCurrentIndex,
+				self.safePriceCurrentIndex,
 				MAX_OBSERVATIONS
 			);
 		}
 
 		PriceObservation memory lastPriceObservation;
 		uint newIndex = 1;
-		if (!priceObservations.isEmpty()) {
-			lastPriceObservation = priceObservations.get(safePriceCurrentIndex);
-			newIndex = (safePriceCurrentIndex % MAX_OBSERVATIONS) + 1;
+		if (!self.priceObservations.isEmpty()) {
+			lastPriceObservation = self.priceObservations.get(
+				self.safePriceCurrentIndex
+			);
+			newIndex = (self.safePriceCurrentIndex % MAX_OBSERVATIONS) + 1;
 		}
 
 		if (lastPriceObservation.recordingRound == currentRound) {
@@ -118,13 +123,13 @@ abstract contract SafePriceModule {
 			lastPriceObservation
 		);
 
-		if (priceObservations.len() == MAX_OBSERVATIONS) {
-			priceObservations.set(newIndex, newPriceObservation);
+		if (self.priceObservations.len() == MAX_OBSERVATIONS) {
+			self.priceObservations.set(newIndex, newPriceObservation);
 		} else {
-			priceObservations.push(newPriceObservation);
+			self.priceObservations.push(newPriceObservation);
 		}
 
-		safePriceCurrentIndex = newIndex;
+		self.safePriceCurrentIndex = newIndex;
 	}
 
 	function computeNewObservation(

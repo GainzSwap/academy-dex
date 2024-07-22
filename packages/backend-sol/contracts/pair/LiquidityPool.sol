@@ -3,15 +3,17 @@ pragma solidity 0.8.26;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-import "./contexts/Base.sol";
 import "../common/libs/Cmp.sol";
+
+import "./contexts/Base.sol";
 import "./Errors.sol";
-import "./contexts/AddLiquidity.sol";
 import "./Amm.sol";
+import "./contexts/AddLiquidity.sol";
+import "./contexts/RemoveLiquidity.sol";
 
 uint256 constant MINIMUM_LIQUIDITY = 1_000;
 
-abstract contract LiquidityPoolModule is AmmModule, ERC20 {
+library LiquidityPool {
 	function poolAddLiquidity(
 		uint256 firstTokenOptimalAmount,
 		uint256 secondTokenOptimalAmount,
@@ -43,7 +45,7 @@ abstract contract LiquidityPoolModule is AmmModule, ERC20 {
 		}
 
 		// localMint -> Mint liquidity to contract
-		_mint(address(this), MINIMUM_LIQUIDITY);
+		storageCache.lpToken.localMint(MINIMUM_LIQUIDITY);
 
 		storageCache.lpTokenSupply = liquidity;
 		storageCache.firstTokenReserve += firstTokenOptimalAmount;
@@ -67,7 +69,7 @@ abstract contract LiquidityPoolModule is AmmModule, ERC20 {
 			return context;
 		}
 
-		uint256 secondTokenAmountOptimal = quote(
+		uint256 secondTokenAmountOptimal = Amm.quote(
 			firstTokenAmountDesired,
 			storageCache.firstTokenReserve,
 			storageCache.secondTokenReserve
@@ -77,7 +79,7 @@ abstract contract LiquidityPoolModule is AmmModule, ERC20 {
 			context.firstTokenOptimalAmount = firstTokenAmountDesired;
 			context.secondTokenOptimalAmount = secondTokenAmountOptimal;
 		} else {
-			uint256 firstTokenAmountOptimal = quote(
+			uint256 firstTokenAmountOptimal = Amm.quote(
 				secondTokenAmountDesired,
 				storageCache.secondTokenReserve,
 				storageCache.firstTokenReserve
@@ -96,5 +98,63 @@ abstract contract LiquidityPoolModule is AmmModule, ERC20 {
 		}
 
 		return context;
+	}
+
+	function poolRemoveLiquidity(
+		RemoveLiquidityContext memory context,
+		storagecache storage storageCache
+	) internal returns (RemoveLiquidityContext memory) {
+		(
+			uint256 firstAmountRemoved,
+			uint256 secondAmountRemoved
+		) = getAmountsRemoved(context, storageCache);
+		storageCache.lpTokenSupply -= context.lpTokenPaymentAmount;
+		storageCache.firstTokenReserve -= firstAmountRemoved;
+		storageCache.secondTokenReserve -= secondAmountRemoved;
+
+		context.firstTokenAmountRemoved = firstAmountRemoved;
+		context.secondTokenAmountRemoved = secondAmountRemoved;
+
+		return context;
+	}
+
+	function getAmountsRemoved(
+		RemoveLiquidityContext memory context,
+		storagecache storage storageCache
+	) internal view returns (uint256, uint256) {
+		if (
+			storageCache.lpTokenSupply <
+			context.lpTokenPaymentAmount + MINIMUM_LIQUIDITY
+		) {
+			revert ErrorNotEnoughLp();
+		}
+
+		uint256 firstAmountRemoved = (context.lpTokenPaymentAmount *
+			storageCache.firstTokenReserve) / storageCache.lpTokenSupply;
+		if (firstAmountRemoved < 0) {
+			revert ErrorInsufficientLiquidityBurned();
+		}
+		if (firstAmountRemoved < context.firstTokenAmountMin) {
+			revert ErrorSlippageOnRemove();
+		}
+
+		if (storageCache.firstTokenReserve <= firstAmountRemoved) {
+			revert ErrorNotEnoughReserve();
+		}
+
+		uint256 secondAmountRemoved = (context.lpTokenPaymentAmount *
+			storageCache.secondTokenReserve) / storageCache.lpTokenSupply;
+		if (secondAmountRemoved < 0) {
+			revert ErrorInsufficientLiquidityBurned();
+		}
+		if (secondAmountRemoved < context.secondTokenAmountMin) {
+			revert ErrorSlippageOnRemove();
+		}
+
+		if (storageCache.secondTokenReserve <= secondAmountRemoved) {
+			revert ErrorNotEnoughReserve();
+		}
+
+		return (firstAmountRemoved, secondAmountRemoved);
 	}
 }

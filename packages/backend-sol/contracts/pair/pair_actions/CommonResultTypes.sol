@@ -8,3 +8,8 @@ struct AddLiquidityResultType {
 	ERC20TokenPayment firstTokenPayment;
 	ERC20TokenPayment secondTokenPayment;
 }
+
+struct RemoveLiquidityResultType {
+	ERC20TokenPayment firstTokenPayment;
+	ERC20TokenPayment secondTokenPayment;
+}
