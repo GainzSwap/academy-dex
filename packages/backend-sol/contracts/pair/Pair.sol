@@ -1,98 +1,152 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/interfaces/IERC20.sol";
 
-import "../common/modules/PausableModule.sol";
-import "../common/modules/BannedAddressModule.sol";
+import "../common/libs/Slippage.sol";
+import "../common/libs/TokenPayments.sol";
 
-import "./ConfigModule.sol";
+import "./Errors.sol";
+import "./SafePrice.sol";
+import "./Amm.sol";
+import "./LiquidityPool.sol";
 
-import "./pair_actions/AddLiquidity.sol";
-import "./pair_actions/RemoveLiquidity.sol";
+contract Pair {
+	using SafePriceUtil for SafePriceData;
 
-contract Pair is StorageCache, PausableModule, BannedAdddressModule, Ownable {
-	error InvalidTokenAddress();
-	error ErrorSameTokens();
+	ERC20 public immutable tradeToken;
+	uint256 public deposits;
+	uint256 public sales;
 
-	SafePriceData safePriceData;
+	uint256 public rewards;
+	uint256 public lpSupply;
+	Pair immutable basePair;
 
-	constructor(
-		address firstToken_,
-		address secondToken_,
-		address routerAddress_,
-		address routerOwnerAddress,
-		uint256 totalFeePercent_,
-		uint256 specialFeePercent_,
-		address initialLiquidityAdder_
-	) {
-		if (firstToken_ == address(0)) revert InvalidTokenAddress();
-		if (secondToken_ == address(0)) revert InvalidTokenAddress();
-		if (firstToken_ == secondToken_) revert ErrorSameTokens();
+	mapping(address => SafePriceData) safePrices;
 
-		_setFeePercents(totalFeePercent_, specialFeePercent_);
-		state = State.Inactive;
-		routerAddress = routerAddress_;
+	uint256 constant MIN_MINT_DEPOSIT = 4_000;
 
-		firstToken = ERC20(firstToken_);
-		secondToken = ERC20(secondToken_);
-		string memory lpSymbol = string.concat(
-			"LP-",
-			firstToken.symbol(),
-			"-",
-			secondToken.symbol()
+	constructor(address tradeToken_, address basePairAddr) {
+		require(tradeToken_ != address(0), "Pair: Invalid trade token address");
+		require(basePairAddr != address(0), "Pair: Invalid base pair address");
+
+		tradeToken = ERC20(tradeToken_);
+		require(
+			bytes(tradeToken.symbol()).length > 0,
+			"Pair: Invalid trade token"
 		);
-		lpToken = new LpToken(lpSymbol, lpSymbol);
 
-		initialLiquidityAdder = initialLiquidityAdder_;
-
-		_setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-
-		bytes32[] memory allPermissions = new bytes32[](3);
-		allPermissions[0] = PermissionOWNER;
-		allPermissions[1] = PermissionADMIN;
-		allPermissions[2] = PermissionPAUSE;
-
-		addRoles(allPermissions, routerAddress);
-		addRoles(allPermissions, routerOwnerAddress);
-
-		addBannedAddress(address(this));
+		basePair = Pair(basePairAddr);
+		// FIXME require(
+		// 	bytes(basePair.tradeToken().symbol()).length > 0,
+		// 	"Pair: Invalid base pair contract"
+		// );
 	}
 
-	function addLiquidity(
-		uint256 firstTokenAmountMin,
-		uint256 secondTokenAmountMin,
-		ERC20TokenPayment calldata firstPayment,
-		ERC20TokenPayment calldata secondPayment
-	) external dropCache(state) returns (AddLiquidityResultType memory output) {
-		return
-			AddLiquidityUtil.addLiquidity(
-				storageCache,
-				safePriceData,
-				firstTokenAmountMin,
-				secondTokenAmountMin,
-				firstPayment,
-				secondPayment
-			);
+	function _checkReceivedPayment(
+		ERC20TokenPayment memory payment
+	) internal view {
+		if (payment.token != tradeToken || payment.amount < MIN_MINT_DEPOSIT) {
+			revert("Pair: Bad received payment");
+		}
 	}
 
-	function removeLiquidity(
-		uint256 firstTokenAmountMin,
-		uint256 secondTokenAmountMin,
-		ERC20TokenPayment calldata payment
-	)
-		external
-		dropCache(state)
-		returns (RemoveLiquidityResultType memory output)
+	function _getReserves()
+		internal
+		view
+		returns (uint256 paymentTokenReserve, uint256 baseTokenReserve)
 	{
-		return
-			RemoveLiquidityUtil.removeLiquidity(
-				storageCache,
-				safePriceData,
-				firstTokenAmountMin,
-				secondTokenAmountMin,
-				payment
-			);
+		return (reserve(), basePair.reserve());
+	}
+
+	function _getPayments(
+		ERC20TokenPayment calldata incomingPayment
+	)
+		internal
+		view
+		returns (
+			ERC20TokenPayment memory payment,
+			ERC20TokenPayment memory basePayment
+		)
+	{
+		(
+			uint256 paymentTokenReserve,
+			uint256 baseTokenReserve
+		) = _getReserves();
+
+		payment.amount = incomingPayment.amount / 2;
+		payment.token = incomingPayment.token;
+
+		// Incase of initial liquidity
+		paymentTokenReserve = paymentTokenReserve <= 0
+			? incomingPayment.amount
+			: paymentTokenReserve;
+
+		basePayment = ERC20TokenPayment({
+			amount: Amm.quote(
+				payment.amount,
+				paymentTokenReserve,
+				baseTokenReserve
+			),
+			token: IERC20(address(basePair))
+		});
+
+		// TODO buy base pair and add the other half of payment to deposit
+	}
+
+	function addLiquidity(ERC20TokenPayment calldata payment_) external {
+		_checkReceivedPayment(payment_);
+		TokenPayments.receiveERC20(payment_);
+
+		bool isBasePair = address(this) == address(basePair);
+
+		if (isBasePair) {
+			deposits += payment_.amount / 2;
+			sales += payment_.amount / 2;
+
+			return;
+		}
+
+		(
+			ERC20TokenPayment memory payment,
+			ERC20TokenPayment memory basePayment
+		) = _getPayments(payment_);
+
+		(
+			uint256 paymentTokenReserve,
+			uint256 baseTokenReserve
+		) = _getReserves();
+
+		SafePriceData storage safePrice = safePrices[
+			address(basePayment.token)
+		];
+		safePrice.updateSafePrice(paymentTokenReserve, baseTokenReserve);
+
+		uint256 initialK = Amm.calculateKConstant(
+			paymentTokenReserve,
+			baseTokenReserve
+		);
+
+		AddLiquidityContext memory addLiqContext = AddLiquidityContextUtil
+			.newContext(payment, basePayment);
+		deposits += addLiqContext.depositAdded;
+		lpSupply += addLiqContext.liqAdded;
+
+		// Check K values
+		(
+			uint256 newPaymentTokenReserve,
+			uint256 newBaseTokenReserve
+		) = _getReserves();
+		uint256 newK = Amm.calculateKConstant(
+			newPaymentTokenReserve,
+			newBaseTokenReserve
+		);
+		if (initialK > newK) {
+			revert ErrorKInvariantFailed();
+		}
+	}
+
+	function reserve() public view returns (uint256) {
+		return deposits + sales;
 	}
 }

@@ -15,20 +15,20 @@ library OutputBuilder {
 	) internal view returns (ERC20TokenPayment[] memory payments) {
 		payments = new ERC20TokenPayment[](3);
 
-		payments[0] = (
-			ERC20TokenPayment(
-				storageCache.firstToken,
-				addLiqContext.firstPayment.amount -
-					addLiqContext.firstTokenOptimalAmount
-			)
-		);
-		payments[1] = (
-			ERC20TokenPayment(
-				storageCache.secondToken,
-				addLiqContext.secondPayment.amount -
-					addLiqContext.secondTokenOptimalAmount
-			)
-		);
+		// payments[0] = (
+		// 	ERC20TokenPayment(
+		// 		storageCache.firstToken,
+		// 		addLiqContext.firstPayment.amount -
+		// 			addLiqContext.firstTokenOptimalAmount
+		// 	)
+		// );
+		// payments[1] = (
+		// 	ERC20TokenPayment(
+		// 		storageCache.secondToken,
+		// 		addLiqContext.secondPayment.amount -
+		// 			addLiqContext.secondTokenOptimalAmount
+		// 	)
+		// );
 	}
 
 	function buildRemoveLiqOutputPayments(
@@ -58,14 +58,8 @@ library OutputBuilder {
 		return
 			AddLiquidityResultType(
 				ERC20TokenPayment(storageCache.lpToken, addLiqContext.liqAdded),
-				ERC20TokenPayment(
-					storageCache.firstToken,
-					addLiqContext.firstTokenOptimalAmount
-				),
-				ERC20TokenPayment(
-					storageCache.secondToken,
-					addLiqContext.secondTokenOptimalAmount
-				)
+				ERC20TokenPayment(storageCache.firstToken, 0),
+				ERC20TokenPayment(storageCache.secondToken, 0)
 			);
 	}
 

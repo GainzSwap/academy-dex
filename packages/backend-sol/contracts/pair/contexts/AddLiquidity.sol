@@ -4,28 +4,20 @@ pragma solidity 0.8.26;
 import "../../common/libs/Types.sol";
 
 struct AddLiquidityContext {
-	ERC20TokenPayment firstPayment;
-	ERC20TokenPayment secondPayment;
-	uint256 firstTokenAmountMin;
-	uint256 secondTokenAmountMin;
-	uint256 firstTokenOptimalAmount;
-	uint256 secondTokenOptimalAmount;
+	ERC20TokenPayment payment;
+	ERC20TokenPayment basePayment;
 	uint256 liqAdded;
+	uint256 depositAdded;
 }
 
 library AddLiquidityContextUtil {
 	function newContext(
-		ERC20TokenPayment memory firstPayment,
-		ERC20TokenPayment memory secondPayment,
-		uint256 firstTokenAmountMin,
-		uint256 secondTokenAmountMin
+		ERC20TokenPayment memory payment,
+		ERC20TokenPayment memory basePayment
 	) internal pure returns (AddLiquidityContext memory context) {
-		context.firstPayment = firstPayment;
-		context.secondPayment = secondPayment;
-		context.firstTokenAmountMin = firstTokenAmountMin;
-		context.secondTokenAmountMin = secondTokenAmountMin;
-		context.firstTokenOptimalAmount = 0;
-		context.secondTokenOptimalAmount = 0;
-		context.liqAdded = 0;
+		context.payment = payment;
+		context.basePayment = basePayment;
+		context.depositAdded = payment.amount;
+		context.liqAdded = basePayment.amount;
 	}
 }

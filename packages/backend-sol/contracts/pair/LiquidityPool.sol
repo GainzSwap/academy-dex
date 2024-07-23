@@ -54,52 +54,6 @@ library LiquidityPool {
 		liquidity -= MINIMUM_LIQUIDITY;
 	}
 
-	function setOptimalAmounts(
-		AddLiquidityContext memory context,
-		storagecache storage storageCache
-	) internal view returns (AddLiquidityContext memory) {
-		uint256 firstTokenAmountDesired = context.firstPayment.amount;
-		uint256 secondTokenAmountDesired = context.secondPayment.amount;
-
-		bool isInitialLiqAdd = storageCache.lpTokenSupply == 0;
-		if (isInitialLiqAdd) {
-			context.firstTokenOptimalAmount = firstTokenAmountDesired;
-			context.secondTokenOptimalAmount = secondTokenAmountDesired;
-
-			return context;
-		}
-
-		uint256 secondTokenAmountOptimal = Amm.quote(
-			firstTokenAmountDesired,
-			storageCache.firstTokenReserve,
-			storageCache.secondTokenReserve
-		);
-
-		if (secondTokenAmountOptimal <= secondTokenAmountDesired) {
-			context.firstTokenOptimalAmount = firstTokenAmountDesired;
-			context.secondTokenOptimalAmount = secondTokenAmountOptimal;
-		} else {
-			uint256 firstTokenAmountOptimal = Amm.quote(
-				secondTokenAmountDesired,
-				storageCache.secondTokenReserve,
-				storageCache.firstTokenReserve
-			);
-			if (firstTokenAmountOptimal > firstTokenAmountDesired) {
-				revert ErrorOptimalGreaterThanPaid();
-			}
-			context.firstTokenOptimalAmount = firstTokenAmountOptimal;
-			context.secondTokenOptimalAmount = secondTokenAmountDesired;
-		}
-		if (context.firstTokenOptimalAmount < context.firstTokenAmountMin) {
-			revert ErrorInsufficientFirstToken();
-		}
-		if (context.secondTokenOptimalAmount < context.secondTokenAmountMin) {
-			revert ErrorInsufficientSecondToken();
-		}
-
-		return context;
-	}
-
 	function poolRemoveLiquidity(
 		RemoveLiquidityContext memory context,
 		storagecache storage storageCache
