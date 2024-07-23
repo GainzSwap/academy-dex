@@ -15,7 +15,7 @@ contract Router is Ownable {
 		address tradeToken
 	) external onlyOwner returns (Pair pair) {
 		if (basePairAddr == address(0)) {
-			pair = new BasePair(tradeToken);
+			pair = new BasePair();
 			basePairAddr = address(pair);
 		} else {
 			pair = new Pair(tradeToken, basePairAddr);

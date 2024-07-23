@@ -11,7 +11,9 @@ import "./SafePrice.sol";
 import "./Amm.sol";
 import "./LiquidityPool.sol";
 
-contract Pair {
+import "./Interface.sol";
+
+contract Pair is IPair {
 	using SafePriceUtil for SafePriceData;
 
 	ERC20 public immutable tradeToken;
@@ -20,7 +22,7 @@ contract Pair {
 
 	uint256 public rewards;
 	uint256 public lpSupply;
-	Pair immutable basePair;
+	IBasePair immutable basePair;
 
 	mapping(address => SafePriceData) safePrices;
 
@@ -36,19 +38,21 @@ contract Pair {
 			"Pair: Invalid trade token"
 		);
 
-		basePair = Pair(basePairAddr);
+		basePair = IBasePair(basePairAddr);
 		// FIXME require(
-		// 	bytes(basePair.tradeToken().symbol()).length > 0,
+		// 	bytes(ERC20(Pair(basePairAddr).tradeToken()).symbol()).length > 0,
 		// 	"Pair: Invalid base pair contract"
 		// );
 	}
 
-	function _checkReceivedPayment(
-		ERC20TokenPayment memory payment
-	) internal view {
+	function _checkAndReceivePayment(
+		ERC20TokenPayment calldata payment
+	) internal {
 		if (payment.token != tradeToken || payment.amount < MIN_MINT_DEPOSIT) {
 			revert("Pair: Bad received payment");
 		}
+
+		TokenPayments.receiveERC20(payment);
 	}
 
 	function _getReserves()
@@ -63,19 +67,26 @@ contract Pair {
 		ERC20TokenPayment calldata incomingPayment
 	)
 		internal
-		view
 		returns (
-			ERC20TokenPayment memory payment,
+			ERC20TokenPayment memory partPayment,
 			ERC20TokenPayment memory basePayment
 		)
 	{
+		bool isInitialLiq = reserve() == 0;
+
+		partPayment.amount = incomingPayment.amount / 2;
+		partPayment.token = incomingPayment.token;
+
+		if (!isInitialLiq) {
+			// Buy base pair
+			_executeSell(partPayment, basePair, 1);
+		} else {
+			sales += partPayment.amount;
+		}
 		(
 			uint256 paymentTokenReserve,
 			uint256 baseTokenReserve
 		) = _getReserves();
-
-		payment.amount = incomingPayment.amount / 2;
-		payment.token = incomingPayment.token;
 
 		// Incase of initial liquidity
 		paymentTokenReserve = paymentTokenReserve <= 0
@@ -84,42 +95,96 @@ contract Pair {
 
 		basePayment = ERC20TokenPayment({
 			amount: Amm.quote(
-				payment.amount,
+				partPayment.amount,
 				paymentTokenReserve,
 				baseTokenReserve
 			),
-			token: IERC20(address(basePair))
+			token: IERC20(Pair(address(basePair)).tradeToken())
 		});
-
-		// TODO buy base pair and add the other half of payment to deposit
 	}
 
-	function addLiquidity(ERC20TokenPayment calldata payment_) external {
-		_checkReceivedPayment(payment_);
-		TokenPayments.receiveERC20(payment_);
+	function _takeFromReserve(uint256 amount) internal returns (uint256 taken) {
+		if (sales >= amount) {
+			sales -= amount;
 
-		bool isBasePair = address(this) == address(basePair);
-
-		if (isBasePair) {
-			deposits += payment_.amount / 2;
-			sales += payment_.amount / 2;
-
-			return;
+			return amount;
 		}
 
+		if (deposits >= amount) {
+			taken = amount;
+
+			deposits -= taken - sales;
+			sales = 0;
+		} else {
+			revert("Amount to be taken is too large");
+		}
+	}
+
+	function _executeSell(
+		ERC20TokenPayment memory inPayment,
+		IPair outPair,
+		uint256 slippage
+	) private {
+		uint256 inTokenReserve = reserve();
+		uint256 outTokenReserve = outPair.reserve();
+
+		uint256 amountOutMin = Amm.quote(
+			Slippage.compute(inPayment.amount, slippage),
+			inTokenReserve,
+			outTokenReserve
+		);
+		require(outTokenReserve > amountOutMin, "Pair: not enough reserve");
+
+		safePrices[address(outPair)].updateSafePrice(
+			inTokenReserve,
+			outTokenReserve
+		);
+
+		uint256 initialK = Amm.calculateKConstant(
+			inTokenReserve,
+			outTokenReserve
+		);
+
+		uint256 amountOutOptimal = Amm.getAmountOut(
+			inPayment.amount,
+			inTokenReserve,
+			outTokenReserve
+		);
+		require(amountOutOptimal >= amountOutMin, "Slippage Exceeded");
+		require(amountOutOptimal != 0, "Zero out amount");
+
+		// Complete buy
+		sales += inPayment.amount;
+		outPair.completeSell(msg.sender, amountOutOptimal);
+
+		uint256 newK = Amm.calculateKConstant(reserve(), outPair.reserve());
+		require(initialK <= newK, "ERROR_K_INVARIANT_FAILED");
+	}
+
+	function _addBaseLiq(ERC20TokenPayment calldata wholePayment) internal {
+		uint256 value = wholePayment.amount / 2;
+
+		_insertLiqValues(AddLiquidityContext({ deposit: value, liq: value }));
+		sales += value;
+	}
+
+	function _insertLiqValues(AddLiquidityContext memory context) internal {
+		deposits += context.deposit;
+		lpSupply += context.liq;
+	}
+
+	function _addPairLiq(ERC20TokenPayment calldata wholePayment) internal {
 		(
-			ERC20TokenPayment memory payment,
+			ERC20TokenPayment memory partPayment,
 			ERC20TokenPayment memory basePayment
-		) = _getPayments(payment_);
+		) = _getPayments(wholePayment);
 
 		(
 			uint256 paymentTokenReserve,
 			uint256 baseTokenReserve
 		) = _getReserves();
 
-		SafePriceData storage safePrice = safePrices[
-			address(basePayment.token)
-		];
+		SafePriceData storage safePrice = safePrices[address(basePair)];
 		safePrice.updateSafePrice(paymentTokenReserve, baseTokenReserve);
 
 		uint256 initialK = Amm.calculateKConstant(
@@ -127,10 +192,12 @@ contract Pair {
 			baseTokenReserve
 		);
 
-		AddLiquidityContext memory addLiqContext = AddLiquidityContextUtil
-			.newContext(payment, basePayment);
-		deposits += addLiqContext.depositAdded;
-		lpSupply += addLiqContext.liqAdded;
+		_insertLiqValues(
+			AddLiquidityContext({
+				deposit: partPayment.amount,
+				liq: basePayment.amount
+			})
+		);
 
 		// Check K values
 		(
@@ -146,7 +213,37 @@ contract Pair {
 		}
 	}
 
+	function addLiquidity(ERC20TokenPayment calldata wholePayment) external {
+		_checkAndReceivePayment(wholePayment);
+
+		bool isBasePair = address(this) == address(basePair);
+
+		if (isBasePair) {
+			_addBaseLiq(wholePayment);
+		} else {
+			_addPairLiq(wholePayment);
+		}
+	}
+
+	function sell(
+		ERC20TokenPayment calldata inPayment,
+		IPair outPair,
+		uint256 slippage
+	) external {
+		_checkAndReceivePayment(inPayment);
+		_executeSell(inPayment, outPair, slippage);
+	}
+
+	function completeSell(address to, uint256 amount) external {
+		tradeToken.transfer(to, _takeFromReserve(amount));
+		basePair.mintRewards(IPair(address(this)), amount);
+	}
+
 	function reserve() public view returns (uint256) {
 		return deposits + sales;
+	}
+
+	function takeReward(uint256 mintAmount) external {
+		rewards += mintAmount;
 	}
 }
