@@ -26,6 +26,13 @@ library TokenPayments {
 		payment.token.transferFrom(msg.sender, address(this), payment.amount);
 	}
 
+	function receiveERC20(
+		ERC20TokenPayment calldata payment,
+		address from
+	) internal {
+		payment.token.transferFrom(from, address(this), payment.amount);
+	}
+
 	function sendMultipleTokensIfNotZero(
 		address destination,
 		ERC20TokenPayment[] memory payments

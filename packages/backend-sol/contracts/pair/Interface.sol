@@ -8,5 +8,5 @@ interface IPair {
 }
 
 interface IBasePair is IPair {
-	function mintRewards(IPair pair, uint256 amount) external;
+	function mintRewards(uint256 amount) external;
 }

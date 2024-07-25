@@ -12,13 +12,20 @@ contract BasePair is Pair {
 		)
 	{}
 
-	function mintRewards(Pair pair, uint256 amount) external {
+	function mintRewards(uint256 amount) external isKnownPair(msg.sender) {
+		address pairAddress = msg.sender;
+		Pair pair = Pair(pairAddress);
+
 		uint256 mintAmount = Amm.quote(amount, pair.reserve(), reserve());
 
 		MintableERC20 token = MintableERC20(address(tradeToken));
-		token.mint(address(pair), mintAmount);
-		token.approve(address(pair), mintAmount);
+		token.mint(address(this), mintAmount);
+		// TODO send some mintAmount to others in ecosystem
+		// TODO use decay method and bound mintiing
+		token.approve(pairAddress, mintAmount);
 
-		pair.takeReward(mintAmount);
+		pair.takeReward(
+			ERC20TokenPayment({ amount: mintAmount, token: token })
+		);
 	}
 }

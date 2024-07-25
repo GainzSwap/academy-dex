@@ -2,6 +2,7 @@
 pragma solidity 0.8.26;
 
 import "@openzeppelin/contracts/interfaces/IERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "../common/libs/Slippage.sol";
 import "../common/libs/TokenPayments.sol";
@@ -13,7 +14,10 @@ import "./LiquidityPool.sol";
 
 import "./Interface.sol";
 
-contract Pair is IPair {
+import "hardhat/console.sol";
+import "./Knowable.sol";
+
+contract Pair is IPair, Ownable, KnowablePair {
 	using SafePriceUtil for SafePriceData;
 
 	ERC20 public immutable tradeToken;
@@ -46,13 +50,14 @@ contract Pair is IPair {
 	}
 
 	function _checkAndReceivePayment(
-		ERC20TokenPayment calldata payment
+		ERC20TokenPayment calldata payment,
+		address from
 	) internal {
 		if (payment.token != tradeToken || payment.amount < MIN_MINT_DEPOSIT) {
 			revert("Pair: Bad received payment");
 		}
 
-		TokenPayments.receiveERC20(payment);
+		TokenPayments.receiveERC20(payment, from);
 	}
 
 	function _getReserves()
@@ -63,26 +68,9 @@ contract Pair is IPair {
 		return (reserve(), basePair.reserve());
 	}
 
-	function _getPayments(
-		ERC20TokenPayment calldata incomingPayment
-	)
-		internal
-		returns (
-			ERC20TokenPayment memory partPayment,
-			ERC20TokenPayment memory basePayment
-		)
-	{
-		bool isInitialLiq = reserve() == 0;
-
-		partPayment.amount = incomingPayment.amount / 2;
-		partPayment.token = incomingPayment.token;
-
-		if (!isInitialLiq) {
-			// Buy base pair
-			_executeSell(partPayment, basePair, 1);
-		} else {
-			sales += partPayment.amount;
-		}
+	function _getLiqAdded(
+		ERC20TokenPayment calldata payment
+	) internal view returns (uint256) {
 		(
 			uint256 paymentTokenReserve,
 			uint256 baseTokenReserve
@@ -90,17 +78,10 @@ contract Pair is IPair {
 
 		// Incase of initial liquidity
 		paymentTokenReserve = paymentTokenReserve <= 0
-			? incomingPayment.amount
+			? payment.amount
 			: paymentTokenReserve;
 
-		basePayment = ERC20TokenPayment({
-			amount: Amm.quote(
-				partPayment.amount,
-				paymentTokenReserve,
-				baseTokenReserve
-			),
-			token: IERC20(Pair(address(basePair)).tradeToken())
-		});
+		return Amm.quote(payment.amount, paymentTokenReserve, baseTokenReserve);
 	}
 
 	function _takeFromReserve(uint256 amount) internal returns (uint256 taken) {
@@ -120,8 +101,19 @@ contract Pair is IPair {
 		}
 	}
 
+	function _completeSell(
+		ERC20TokenPayment memory inPayment,
+		address from,
+		IPair outPair,
+		uint256 outAmount
+	) internal virtual {
+		sales += inPayment.amount;
+		outPair.completeSell(from, outAmount);
+	}
+
 	function _executeSell(
 		ERC20TokenPayment memory inPayment,
+		address from,
 		IPair outPair,
 		uint256 slippage
 	) private {
@@ -153,19 +145,16 @@ contract Pair is IPair {
 		require(amountOutOptimal >= amountOutMin, "Slippage Exceeded");
 		require(amountOutOptimal != 0, "Zero out amount");
 
-		// Complete buy
-		sales += inPayment.amount;
-		outPair.completeSell(msg.sender, amountOutOptimal);
+		_completeSell(inPayment, from, outPair, amountOutOptimal);
 
 		uint256 newK = Amm.calculateKConstant(reserve(), outPair.reserve());
 		require(initialK <= newK, "ERROR_K_INVARIANT_FAILED");
 	}
 
 	function _addBaseLiq(ERC20TokenPayment calldata wholePayment) internal {
-		uint256 value = wholePayment.amount / 2;
+		uint256 value = wholePayment.amount;
 
 		_insertLiqValues(AddLiquidityContext({ deposit: value, liq: value }));
-		sales += value;
 	}
 
 	function _insertLiqValues(AddLiquidityContext memory context) internal {
@@ -174,10 +163,7 @@ contract Pair is IPair {
 	}
 
 	function _addPairLiq(ERC20TokenPayment calldata wholePayment) internal {
-		(
-			ERC20TokenPayment memory partPayment,
-			ERC20TokenPayment memory basePayment
-		) = _getPayments(wholePayment);
+		uint256 liqAdded = _getLiqAdded(wholePayment);
 
 		(
 			uint256 paymentTokenReserve,
@@ -193,10 +179,7 @@ contract Pair is IPair {
 		);
 
 		_insertLiqValues(
-			AddLiquidityContext({
-				deposit: partPayment.amount,
-				liq: basePayment.amount
-			})
+			AddLiquidityContext({ deposit: wholePayment.amount, liq: liqAdded })
 		);
 
 		// Check K values
@@ -213,8 +196,11 @@ contract Pair is IPair {
 		}
 	}
 
-	function addLiquidity(ERC20TokenPayment calldata wholePayment) external {
-		_checkAndReceivePayment(wholePayment);
+	function addLiquidity(
+		ERC20TokenPayment calldata wholePayment,
+		address from
+	) external onlyOwner {
+		_checkAndReceivePayment(wholePayment, from);
 
 		bool isBasePair = address(this) == address(basePair);
 
@@ -230,20 +216,26 @@ contract Pair is IPair {
 		IPair outPair,
 		uint256 slippage
 	) external {
-		_checkAndReceivePayment(inPayment);
-		_executeSell(inPayment, outPair, slippage);
+		_checkAndReceivePayment(inPayment, msg.sender);
+		_executeSell(inPayment, msg.sender, outPair, slippage);
 	}
 
-	function completeSell(address to, uint256 amount) external {
+	function completeSell(
+		address to,
+		uint256 amount
+	) external isKnownPair(msg.sender) {
 		tradeToken.transfer(to, _takeFromReserve(amount));
-		basePair.mintRewards(IPair(address(this)), amount);
+		basePair.mintRewards(amount);
 	}
 
 	function reserve() public view returns (uint256) {
 		return deposits + sales;
 	}
 
-	function takeReward(uint256 mintAmount) external {
-		rewards += mintAmount;
+	function takeReward(ERC20TokenPayment calldata payment) external {
+		require(msg.sender == address(basePair), "not allowed");
+		// TODO check that payment is base pair's token
+		TokenPayments.receiveERC20(payment);
+		rewards += payment.amount;
 	}
 }
