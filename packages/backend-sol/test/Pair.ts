@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
-import { BigNumberish, ZeroAddress } from "ethers";
+import { BigNumberish, parseEther, ZeroAddress } from "ethers";
 import { ERC20TokenPaymentStruct, Pair } from "../typechain-types/contracts/pair/Pair";
 import { MintableERC20, Router } from "../typechain-types";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
@@ -16,7 +16,7 @@ describe("Pair", function () {
 
     const basePairContract = await ethers.getContractAt("TestingBasePair", await router.basePairAddr());
     const baseTradeToken = await ethers.getContractAt("MintableERC20", await basePairContract.tradeToken());
-    await basePairContract.mint(user, ethers.parseEther("3000000.4456"));
+    await basePairContract.mint(user, ethers.parseEther("0.1"));
 
     let pairCount = 0;
     const createPair = async () => {
@@ -25,7 +25,7 @@ describe("Pair", function () {
       const pairTradeToken = await ethers.deployContract("TestingERC20", ["PairTradeToken", pairCount + "PTK"], {
         signer: owner,
       });
-      await pairTradeToken.mint(user, ethers.parseEther("3000000.4456"));
+      await pairTradeToken.mint(user, ethers.parseEther("0.1"));
       await router.connect(owner).createPair(pairTradeToken);
       const pairContract = await ethers.getContractAt("Pair", await router.tokensPairAddress(pairTradeToken));
 
@@ -47,7 +47,7 @@ describe("Pair", function () {
       await tradeToken.connect(signer).approve(contract, payment.amount);
       return router.connect(signer).addLiquidity(...args);
     };
-    const addInitialLiq = async ({ baseAmt, pairAmt }: { baseAmt: number; pairAmt: number }) => {
+    const addInitialLiq = async ({ baseAmt, pairAmt }: { baseAmt: BigNumberish; pairAmt: BigNumberish }) => {
       const basePayment = { amount: baseAmt, token: baseTradeToken };
       const pairPayment = { amount: pairAmt, token: pairTradeToken };
 
@@ -115,6 +115,7 @@ describe("Pair", function () {
       pairTradeToken,
       baseTradeToken,
       user,
+      owner,
       otherUsers,
       addLiquidity,
       addInitialLiq,
@@ -194,14 +195,18 @@ describe("Pair", function () {
         basePairContract,
         baseTradeToken,
         pairTradeToken,
+        user,
         addInitialLiq,
         sellToken,
         createPair,
         addLiquidity,
-        otherUsers: [, , , , , someUser],
+        otherUsers: [, , , , otherUser, someUser],
       } = await loadFixture(deployPairFixture);
       let pairAmt = 3_000_000;
-      await addInitialLiq({ baseAmt: pairAmt, pairAmt });
+      const baseAmt = parseEther(pairAmt.toString());
+      await basePairContract.mint(user, baseAmt);
+      await addInitialLiq({ baseAmt, pairAmt });
+      const _format = (n: bigint) => format(n, 0);
 
       while (pairAmt > 0) {
         const sellAmt = 500_000;
@@ -236,7 +241,6 @@ describe("Pair", function () {
         userPairTokenBal = await pairTradeToken.balanceOf(someUser);
         userBaseTokenBal = await baseTradeToken.balanceOf(someUser);
 
-        const _format = (n: bigint) => format(n, 0);
         const pairTradingReserve = await pairContract.reserve();
         const basePairRewards = await basePairContract.rewards();
         const pairRewards = await pairContract.rewards();
@@ -250,26 +254,35 @@ describe("Pair", function () {
         //   userPairTokenBal: _format(userPairTokenBal),
         //   pairTradingReserve: _format(pairTradingReserve),
         // });
+        // console.log("base supply: ", format(await baseTradeToken.totalSupply()));
       }
 
       // Create new pair
       const { pairContract: secondPairContract, pairTradeToken: secondTradeToken } = await createPair();
+      const amount = parseEther((0.8).toString());
+      await secondTradeToken.mint(otherUser, amount);
       await addLiquidity(
-        { tradeToken: secondTradeToken, contract: secondPairContract },
-        { amount: 80_000_000, token: secondTradeToken },
+        { tradeToken: secondTradeToken, contract: secondPairContract, signer: otherUser },
+        { amount, token: secondTradeToken },
       );
       for (let i = 0; i < 15; i++) {
+        let sellAmt = parseEther((0.07 * (i + 1)).toString().substring(0, 19));
+
+        await secondTradeToken.mint(otherUser, sellAmt);
         await sellToken({
           buyContract: pairContract,
           sellContract: secondPairContract,
-          sellAmt: 70000_000 * (i + 1),
+          sellAmt,
           slippage: 100_00,
+          someUser: otherUser,
         });
 
         if (i % 5 == 0) {
-           const { pairContract: contract, pairTradeToken: tradeToken } = await createPair();
-                await addLiquidity({ tradeToken, contract }, { amount: 80_000_000, token: tradeToken });
+          const { pairContract: contract, pairTradeToken: tradeToken } = await createPair();
+          await addLiquidity({ tradeToken, contract }, { amount: 80_000_000, token: tradeToken });
         }
+        // console.log("base supply: ", format(await baseTradeToken.totalSupply()));
+        // console.log("pairRewards: ", format(await pairContract.rewards()));
       }
     });
   });
