@@ -13,8 +13,12 @@ contract BasePair is Pair, IBasePair {
 	{}
 
 	function burnFee(uint256 amount) external isKnownPair(msg.sender) {
-		_takeFromReserve(amount);
 		MintableERC20(address(tradeToken)).burn(amount);
+
+		// Transfer amount to rewards so that the effect
+		// will be felt on price
+		_takeFromReserve(amount);
+		rewards += amount;
 	}
 
 	function mintRewards(uint256 amount) external isKnownPair(msg.sender) {
