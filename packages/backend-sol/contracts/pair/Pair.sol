@@ -49,11 +49,24 @@ contract Pair is IPair, Ownable, KnowablePair {
 		// );
 	}
 
+	modifier onlyBasePair() {
+		require(msg.sender == address(basePair), "not allowed");
+		_;
+	}
+
 	function _checkAndReceivePayment(
 		ERC20TokenPayment calldata payment,
 		address from
 	) internal {
-		if (payment.token != tradeToken || payment.amount < MIN_MINT_DEPOSIT) {
+		_checkAndReceivePayment(payment, from, MIN_MINT_DEPOSIT);
+	}
+
+	function _checkAndReceivePayment(
+		ERC20TokenPayment calldata payment,
+		address from,
+		uint256 min
+	) internal {
+		if (payment.token != tradeToken || payment.amount < min) {
 			revert("Pair: Bad received payment");
 		}
 
@@ -91,7 +104,7 @@ contract Pair is IPair, Ownable, KnowablePair {
 			return amount;
 		}
 
-		if (deposits >= amount) {
+		if ((deposits + sales) >= amount) {
 			taken = amount;
 
 			deposits -= taken - sales;
@@ -111,11 +124,36 @@ contract Pair is IPair, Ownable, KnowablePair {
 		outPair.completeSell(from, outAmount);
 	}
 
+	function _takeBasePairFee(
+		ERC20TokenPayment memory inPayment,
+		uint256 totalFeePercent
+	) internal returns (ERC20TokenPayment memory, uint256) {
+		// 20%
+		uint256 burnFeePercent = (totalFeePercent * 2) / 10;
+		uint256 removedAmt = (inPayment.amount * burnFeePercent) /
+			Amm.MAX_PERCENTAGE;
+
+		inPayment.amount -= removedAmt;
+
+		// Move the removedAmt to deposits, then remove the equivalent in basePair trade token
+		// from basePair's reserve and burn that amount from circulation
+		deposits += removedAmt;
+		uint256 feeToBurn = Amm.quote(
+			removedAmt,
+			reserve(),
+			basePair.reserve()
+		);
+		basePair.burnFee(feeToBurn);
+
+		return (inPayment, totalFeePercent - burnFeePercent);
+	}
+
 	function _executeSell(
 		ERC20TokenPayment memory inPayment,
 		address from,
 		IPair outPair,
-		uint256 slippage
+		uint256 slippage,
+		uint256 totalFeePercent
 	) private {
 		uint256 inTokenReserve = reserve();
 		uint256 outTokenReserve = outPair.reserve();
@@ -140,7 +178,8 @@ contract Pair is IPair, Ownable, KnowablePair {
 		uint256 amountOutOptimal = Amm.getAmountOut(
 			inPayment.amount,
 			inTokenReserve,
-			outTokenReserve
+			outTokenReserve,
+			totalFeePercent
 		);
 		require(amountOutOptimal >= amountOutMin, "Slippage Exceeded");
 		require(amountOutOptimal != 0, "Zero out amount");
@@ -199,25 +238,35 @@ contract Pair is IPair, Ownable, KnowablePair {
 	function addLiquidity(
 		ERC20TokenPayment calldata wholePayment,
 		address from
-	) external onlyOwner {
+	) external onlyOwner returns (uint256 liqAdded) {
 		_checkAndReceivePayment(wholePayment, from);
 
 		bool isBasePair = address(this) == address(basePair);
 
+		uint256 initalLp = lpSupply;
 		if (isBasePair) {
 			_addBaseLiq(wholePayment);
 		} else {
 			_addPairLiq(wholePayment);
 		}
+
+		require(lpSupply > initalLp, "Pair: invalid liquidity addition");
+		liqAdded = lpSupply - initalLp;
 	}
 
 	function sell(
+		address caller,
 		ERC20TokenPayment calldata inPayment,
 		IPair outPair,
-		uint256 slippage
-	) external {
-		_checkAndReceivePayment(inPayment, msg.sender);
-		_executeSell(inPayment, msg.sender, outPair, slippage);
+		uint256 slippage,
+		uint256 totalFeePercent
+	) external onlyOwner {
+		_checkAndReceivePayment(inPayment, caller, 0);
+		(
+			ERC20TokenPayment memory inPaymentAfterFee,
+			uint256 feePercent
+		) = _takeBasePairFee(inPayment, totalFeePercent);
+		_executeSell(inPaymentAfterFee, caller, outPair, slippage, feePercent);
 	}
 
 	function completeSell(
@@ -232,8 +281,9 @@ contract Pair is IPair, Ownable, KnowablePair {
 		return deposits + sales;
 	}
 
-	function takeReward(ERC20TokenPayment calldata payment) external {
-		require(msg.sender == address(basePair), "not allowed");
+	function receiveReward(
+		ERC20TokenPayment calldata payment
+	) external onlyBasePair {
 		// TODO check that payment is base pair's token
 		TokenPayments.receiveERC20(payment);
 		rewards += payment.amount;

@@ -66,23 +66,35 @@ describe("Pair", function () {
       sellAmt,
       sellContract,
       someUser = user,
+      slippage = 1_00,
     }: {
       buyContract: Pair;
       sellContract: Pair;
       sellAmt: BigNumberish;
       someUser?: HardhatEthersSigner;
+      slippage?: number;
     }) => {
       const buyToken = await ethers.getContractAt("ERC20", await buyContract.tradeToken());
       const sellToken = await ethers.getContractAt("ERC20", await sellContract.tradeToken());
       await sellToken.connect(someUser).approve(sellContract, sellAmt);
 
+      const basePairAddr = await basePairContract.getAddress();
+      const buyPairAddr = await buyContract.getAddress();
+      const computeBuyTradeBal = (bal: bigint, rewards: bigint) => (buyPairAddr == basePairAddr ? bal - rewards : bal);
+
       const initialReward = await buyContract.rewards();
+      const initialBuyTradeBal = await buyToken
+        .balanceOf(buyContract)
+        .then(value => computeBuyTradeBal(value, initialReward));
       const initialOutBal = await buyToken.balanceOf(someUser);
       const initialInBal = await sellToken.balanceOf(someUser);
 
-      await sellContract.connect(someUser).sell({ token: sellToken, amount: sellAmt }, buyContract, 1_00);
+      await router.connect(someUser).swap({ token: sellToken, amount: sellAmt }, sellContract, buyContract, slippage);
 
       const finalReward = await buyContract.rewards();
+      const finalBuyTradeBal = await buyToken
+        .balanceOf(buyContract)
+        .then(value => computeBuyTradeBal(value, finalReward));
       const finalOutBal = await buyToken.balanceOf(someUser);
       const finalInBal = await sellToken.balanceOf(someUser);
 
@@ -90,8 +102,9 @@ describe("Pair", function () {
         [finalOutBal, initialOutBal],
         [finalReward, initialReward],
         [initialInBal, finalInBal],
-      ].forEach(([bigger, smaller]) => {
-        expect(bigger > smaller).to.equal(true);
+        [initialBuyTradeBal, finalBuyTradeBal],
+      ].forEach(([bigger, smaller], index) => {
+        expect(bigger > smaller).to.equal(true, `Expected balance comparison after sale fialed at index: ${index}`);
       });
     };
 
@@ -174,5 +187,115 @@ describe("Pair", function () {
       await sellToken({ buyContract: firstPairContract, sellContract: secondPairContract, sellAmt: 7000 });
       await sellToken({ buyContract: secondPairContract, sellContract: basePairContract, sellAmt: 7000 });
     });
+
+    it("keeps minting of base pair in a sensible valuation", async () => {
+      const {
+        pairContract,
+        basePairContract,
+        baseTradeToken,
+        pairTradeToken,
+        addInitialLiq,
+        sellToken,
+        createPair,
+        addLiquidity,
+        otherUsers: [, , , , , someUser],
+      } = await loadFixture(deployPairFixture);
+      let pairAmt = 3_000_000;
+      await addInitialLiq({ baseAmt: pairAmt, pairAmt });
+
+      while (pairAmt > 0) {
+        const sellAmt = 500_000;
+        pairAmt -= sellAmt;
+
+        await pairTradeToken.mint(someUser, sellAmt);
+        await sellToken({
+          buyContract: basePairContract,
+          sellAmt,
+          sellContract: pairContract,
+          slippage: 100_00,
+          someUser,
+        });
+        let userBaseTokenBal = await baseTradeToken.balanceOf(someUser);
+        await sellToken({
+          buyContract: pairContract,
+          sellAmt: userBaseTokenBal,
+          sellContract: basePairContract,
+          slippage: 100_00,
+          someUser,
+        });
+        let userPairTokenBal = await pairTradeToken.balanceOf(someUser);
+        if (pairAmt <= 0) {
+          await sellToken({
+            buyContract: basePairContract,
+            sellAmt: userPairTokenBal,
+            sellContract: pairContract,
+            slippage: 100_00,
+            someUser,
+          });
+        }
+        userPairTokenBal = await pairTradeToken.balanceOf(someUser);
+        userBaseTokenBal = await baseTradeToken.balanceOf(someUser);
+
+        const _format = (n: bigint) => format(n, 0);
+        const pairTradingReserve = await pairContract.reserve();
+        const basePairRewards = await basePairContract.rewards();
+        const pairRewards = await pairContract.rewards();
+        // console.log({
+        //   rewards: {
+        //     basePairRewards: _format(basePairRewards),
+        //     pairRewards: _format(pairRewards),
+        //     totalMintedBaseToken: _format(basePairRewards + pairRewards),
+        //   },
+        //   userBaseTokenBal: _format(userBaseTokenBal),
+        //   userPairTokenBal: _format(userPairTokenBal),
+        //   pairTradingReserve: _format(pairTradingReserve),
+        // });
+      }
+
+      // Create new pair
+      const { pairContract: secondPairContract, pairTradeToken: secondTradeToken } = await createPair();
+      await addLiquidity(
+        { tradeToken: secondTradeToken, contract: secondPairContract },
+        { amount: 80_000_000, token: secondTradeToken },
+      );
+      for (let i = 0; i < 15; i++) {
+        await sellToken({
+          buyContract: pairContract,
+          sellContract: secondPairContract,
+          sellAmt: 70000_000 * (i + 1),
+          slippage: 100_00,
+        });
+
+        if (i % 5 == 0) {
+           const { pairContract: contract, pairTradeToken: tradeToken } = await createPair();
+                await addLiquidity({ tradeToken, contract }, { amount: 80_000_000, token: tradeToken });
+        }
+      }
+    });
   });
 });
+
+function format(n: bigint, decimals = 18) {
+  const isNeg = n < 0n;
+  isNeg && (n = -1n * n);
+
+  const one = BigInt(10 ** decimals);
+  const int = n / one;
+  const mts = (int > 0 ? n - int * one : n).toString().padStart(decimals, "0");
+
+  return (
+    (isNeg ? "-" : "") +
+    int
+      .toString()
+      .replace(/^0{2,}/, "")
+      .split("")
+      .reverse()
+      .reduce((a, c, i) => {
+        i >= 3 && i % 3 == 0 && (a = "," + a);
+        a = c + a;
+
+        return a;
+      }, ".") +
+    mts
+  );
+}

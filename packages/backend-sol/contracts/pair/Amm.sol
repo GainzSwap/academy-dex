@@ -22,11 +22,13 @@ library Amm {
 	function getAmountOut(
 		uint256 amountIn,
 		uint256 reserveIn,
-		uint256 reserveOut
+		uint256 reserveOut,
+		uint256 totalFeePercent
 	) internal pure returns (uint256) {
-		// TODO compute this dynamically
-		uint256 totalFeePercent = 0;
-
+		require(
+			MAX_PERCENTAGE >= totalFeePercent,
+			"AMM: Invalid computed fee percent"
+		);
 		uint256 amountInWithFee = amountIn * (MAX_PERCENTAGE - totalFeePercent);
 		uint256 numerator = amountInWithFee * reserveOut;
 		uint256 denominator = (reserveIn * MAX_PERCENTAGE) + amountInWithFee;
