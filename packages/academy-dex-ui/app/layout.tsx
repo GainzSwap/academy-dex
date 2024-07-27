@@ -1,24 +1,36 @@
+"use client";
+
+import { Suspense } from "react";
+import "../styles/bs/global.scss";
+import AppProvider from "./provider";
 import "@rainbow-me/rainbowkit/styles.css";
-import { ScaffoldEthAppWithProviders } from "~~/components/ScaffoldEthAppWithProviders";
-import { ThemeProvider } from "~~/components/ThemeProvider";
-import "~~/styles/globals.css";
-import { getMetadata } from "~~/utils/scaffold-eth/getMetadata";
+import MainMenu from "~~/components/MainMenu";
+import MobileMenu from "~~/components/MobileMenu";
+import { useContentPanel } from "~~/hooks/useContentPanel";
 
-export const metadata = getMetadata({
-  title: "AcademyDEX App",
-  description: "Built with 🏗 AcademyDEX",
-});
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const { contentPanelActive } = useContentPanel();
 
-const ScaffoldEthApp = ({ children }: { children: React.ReactNode }) => {
   return (
-    <html suppressHydrationWarning>
-      <body>
-        <ThemeProvider enableSystem>
-          <ScaffoldEthAppWithProviders>{children}</ScaffoldEthAppWithProviders>
-        </ThemeProvider>
+    <html lang="en">
+      <body className="menu-position-side menu-side-left full-screen color-scheme-dark with-content-panel">
+        <Suspense>
+          <AppProvider>
+            <div
+              className={`all-wrapper with-side-panel solid-bg-all${contentPanelActive ? " content-panel-active" : ""}`}
+            >
+              <div className="layout-w">
+                <MainMenu />
+                <MobileMenu />
+
+                <div className="content-w" style={{ minHeight: "95vh" }}>
+                  {children}
+                </div>
+              </div>
+            </div>
+          </AppProvider>
+        </Suspense>
       </body>
     </html>
   );
-};
-
-export default ScaffoldEthApp;
+}

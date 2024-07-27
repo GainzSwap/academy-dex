@@ -53,7 +53,10 @@ contract Router is Ownable {
 
 	function addLiquidity(ERC20TokenPayment calldata wholePayment) external {
 		address tokenAddress = address(wholePayment.token);
-		Pair pair = Pair(tokensPairAddress[tokenAddress]);
+		address pairAddress = tokensPairAddress[tokenAddress];
+		require(pairAddress != address(0), "Router: Invalid pair address");
+
+		Pair pair = Pair(pairAddress);
 
 		uint256 liqAdded = pair.addLiquidity(wholePayment, msg.sender);
 
