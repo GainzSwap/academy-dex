@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
-import { BigNumberish, parseEther, ZeroAddress } from "ethers";
+import { BigNumberish, ZeroAddress } from "ethers";
 import { ERC20TokenPaymentStruct, Pair } from "../typechain-types/contracts/pair/Pair";
 import { MintableERC20, Router } from "../typechain-types";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
@@ -22,7 +22,7 @@ describe("Pair", function () {
     const createPair = async () => {
       pairCount++;
 
-      const pairTradeToken = await ethers.deployContract("TestingERC20", ["PairTradeToken", pairCount + "PTK"], {
+      const pairTradeToken = await ethers.deployContract("MintableERC20", ["PairTradeToken", pairCount + "PTK"], {
         signer: owner,
       });
       await pairTradeToken.mint(user, ethers.parseEther("0.1"));
@@ -203,7 +203,7 @@ describe("Pair", function () {
         otherUsers: [, , , , otherUser, someUser],
       } = await loadFixture(deployPairFixture);
       let pairAmt = 3_000_000;
-      const baseAmt = parseEther(pairAmt.toString());
+      const baseAmt = ethers.parseEther(pairAmt.toString());
       await basePairContract.mint(user, baseAmt);
       await addInitialLiq({ baseAmt, pairAmt });
       const _format = (n: bigint) => format(n, 0);
@@ -212,7 +212,7 @@ describe("Pair", function () {
         const sellAmt = 500_000;
         pairAmt -= sellAmt;
 
-        await pairTradeToken.mint(someUser, sellAmt);
+        await pairTradeToken.mint(someUser, ethers.parseEther(sellAmt.toString()));
         await sellToken({
           buyContract: basePairContract,
           sellAmt,
@@ -244,29 +244,37 @@ describe("Pair", function () {
         const pairTradingReserve = await pairContract.reserve();
         const basePairRewards = await basePairContract.rewards();
         const pairRewards = await pairContract.rewards();
+
+        // Add assertions to check the expected state
+        expect(pairTradingReserve).to.be.gt(0);
+        expect(basePairRewards).to.be.gt(0);
+        expect(pairRewards).to.be.gt(0);
+
+        // Optionally, log values for debugging purposes
         // console.log({
         //   rewards: {
         //     basePairRewards: _format(basePairRewards),
         //     pairRewards: _format(pairRewards),
-        //     totalMintedBaseToken: _format(basePairRewards + pairRewards),
+        //     totalMintedBaseToken: _format(basePairRewards.add(pairRewards)),
         //   },
         //   userBaseTokenBal: _format(userBaseTokenBal),
         //   userPairTokenBal: _format(userPairTokenBal),
         //   pairTradingReserve: _format(pairTradingReserve),
         // });
-        // console.log("base supply: ", format(await baseTradeToken.totalSupply()));
+        // console.log("base supply: ", _format(await baseTradeToken.totalSupply()));
       }
 
       // Create new pair
       const { pairContract: secondPairContract, pairTradeToken: secondTradeToken } = await createPair();
-      const amount = parseEther((0.8).toString());
+      const amount = ethers.parseEther((0.8).toString());
       await secondTradeToken.mint(otherUser, amount);
       await addLiquidity(
         { tradeToken: secondTradeToken, contract: secondPairContract, signer: otherUser },
         { amount, token: secondTradeToken },
       );
+
       for (let i = 0; i < 15; i++) {
-        let sellAmt = parseEther((0.07 * (i + 1)).toString().substring(0, 19));
+        let sellAmt = ethers.parseEther((0.07 * (i + 1)).toFixed(8).toString());
 
         await secondTradeToken.mint(otherUser, sellAmt);
         await sellToken({
@@ -278,12 +286,156 @@ describe("Pair", function () {
         });
 
         if (i % 5 == 0) {
-          const { pairContract: contract, pairTradeToken: tradeToken } = await createPair();
-          await addLiquidity({ tradeToken, contract }, { amount: 80_000_000, token: tradeToken });
+          const { pairContract: newPairContract, pairTradeToken: newPairTradeToken } = await createPair();
+          await addLiquidity(
+            { tradeToken: newPairTradeToken, contract: newPairContract },
+            { amount: 80_000_000, token: newPairTradeToken },
+          );
         }
-        // console.log("base supply: ", format(await baseTradeToken.totalSupply()));
-        // console.log("pairRewards: ", format(await pairContract.rewards()));
+
+        // Optionally, log values for debugging purposes
+        // console.log("base supply: ", _format(await baseTradeToken.totalSupply()));
+        // console.log("pairRewards: ", _format(await pairContract.rewards()));
       }
+
+      // Add assertions to check the final state
+      expect(await baseTradeToken.totalSupply()).to.be.gt(0);
+      expect(await pairContract.rewards()).to.be.gt(0);
+    });
+  });
+
+  describe("Edge Cases for Adding Liquidity", function () {
+    it("should revert when adding zero liquidity", async function () {
+      const { addLiquidity, basePairContract, baseTradeToken, user } = await loadFixture(deployPairFixture);
+
+      await expect(
+        addLiquidity(
+          { contract: basePairContract, tradeToken: baseTradeToken, signer: user },
+          { amount: 0, token: baseTradeToken },
+        ),
+      ).to.be.revertedWith("Pair: Bad received payment");
+    });
+
+    it("should revert when adding liquidity below minimum amount", async function () {
+      const { addLiquidity, basePairContract, baseTradeToken, user } = await loadFixture(deployPairFixture);
+
+      await expect(
+        addLiquidity(
+          { contract: basePairContract, tradeToken: baseTradeToken, signer: user },
+          { amount: ethers.parseEther("0.01"), token: baseTradeToken },
+        ),
+      ).to.be.revertedWith("Pair: Bad received payment");
+    });
+
+    it("should revert when user has insufficient token balance", async function () {
+      const {
+        addLiquidity,
+        basePairContract,
+        baseTradeToken,
+        otherUsers: [anotherUser],
+      } = await loadFixture(deployPairFixture);
+
+      await expect(
+        addLiquidity(
+          { contract: basePairContract, tradeToken: baseTradeToken, signer: anotherUser },
+          { amount: ethers.parseEther("1"), token: baseTradeToken },
+        ),
+      ).to.be.revertedWith("ERC20: transfer amount exceeds balance");
+    });
+  });
+
+  describe("Edge Cases for Selling Tokens", function () {
+    it("should revert when selling zero tokens", async function () {
+      const { sellToken, basePairContract, pairContract, user } = await loadFixture(deployPairFixture);
+
+      await expect(
+        sellToken({ sellAmt: 0, sellContract: pairContract, buyContract: basePairContract, someUser: user }),
+      ).to.be.revertedWith("Pair: Bad received payment");
+    });
+
+    it("should revert when selling more tokens than user's balance", async function () {
+      const { sellToken, basePairContract, pairContract, user, pairTradeToken } = await loadFixture(deployPairFixture);
+
+      const userBalance = await pairTradeToken.balanceOf(user);
+      await expect(
+        sellToken({
+          sellAmt: userBalance + 1n,
+          sellContract: pairContract,
+          buyContract: basePairContract,
+          someUser: user,
+        }),
+      ).to.be.revertedWith("ERC20: transfer amount exceeds balance");
+    });
+
+    it("should revert when selling more tokens than contract's reserve", async function () {
+      const { sellToken, basePairContract, pairContract, user, pairTradeToken } = await loadFixture(deployPairFixture);
+
+      await pairTradeToken.mint(user, ethers.parseEther("1000"));
+      await pairTradeToken.connect(user).approve(pairContract, ethers.parseEther("1000"));
+      await expect(
+        sellToken({
+          sellAmt: ethers.parseEther("1000"),
+          sellContract: pairContract,
+          buyContract: basePairContract,
+          someUser: user,
+        }),
+      ).to.be.revertedWith("Amount to be taken is too large");
+    });
+  });
+
+  describe("Slippage Handling", function () {
+    it("should handle zero slippage correctly", async function () {
+      const { sellToken, basePairContract, pairContract, user, pairTradeToken } = await loadFixture(deployPairFixture);
+
+      await pairTradeToken.mint(user, ethers.parseEther("1000"));
+      await pairTradeToken.connect(user).approve(pairContract, ethers.parseEther("1000"));
+      await expect(
+        sellToken({
+          sellAmt: ethers.parseEther("1000"),
+          sellContract: pairContract,
+          buyContract: basePairContract,
+          someUser: user,
+          slippage: 0,
+        }),
+      ).to.not.be.reverted;
+    });
+
+    it("should handle high slippage correctly", async function () {
+      const { sellToken, basePairContract, pairContract, user, pairTradeToken } = await loadFixture(deployPairFixture);
+
+      await pairTradeToken.mint(user, ethers.parseEther("1000"));
+      await pairTradeToken.connect(user).approve(pairContract, ethers.parseEther("1000"));
+      await expect(
+        sellToken({
+          sellAmt: ethers.parseEther("1000"),
+          sellContract: pairContract,
+          buyContract: basePairContract,
+          someUser: user,
+          slippage: 100_00,
+        }),
+      ).to.not.be.reverted;
+    });
+  });
+
+  describe("Fee Calculation and Burning", function () {
+    it("should correctly calculate and burn fees during sale", async function () {
+      const { sellToken, basePairContract, pairContract, user, pairTradeToken, baseTradeToken } =
+        await loadFixture(deployPairFixture);
+
+      await pairTradeToken.mint(user, ethers.parseEther("1000"));
+      await pairTradeToken.connect(user).approve(pairContract, ethers.parseEther("1000"));
+
+      const initialSupply = await baseTradeToken.totalSupply();
+
+      await sellToken({
+        sellAmt: ethers.parseEther("1000"),
+        sellContract: pairContract,
+        buyContract: basePairContract,
+        someUser: user,
+      });
+
+      const finalSupply = await baseTradeToken.totalSupply();
+      expect(finalSupply).to.be.lessThan(initialSupply);
     });
   });
 });

@@ -1,22 +1,22 @@
-//SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import "@openzeppelin/contracts/interfaces/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-
 import "../common/libs/Slippage.sol";
 import "../common/libs/TokenPayments.sol";
-
+import "./contexts/AddLiquidity.sol";
 import "./Errors.sol";
 import "./SafePrice.sol";
 import "./Amm.sol";
-import "./LiquidityPool.sol";
-
 import "./Interface.sol";
-
 import "hardhat/console.sol";
 import "./Knowable.sol";
 
+/**
+ * @title Pair
+ * @dev This contract manages a trading pair in the DEX, handling liquidity, trading, and fee mechanisms.
+ */
 contract Pair is IPair, Ownable, KnowablePair {
 	using SafePriceUtil for SafePriceData;
 
@@ -32,6 +32,11 @@ contract Pair is IPair, Ownable, KnowablePair {
 
 	uint256 constant MIN_MINT_DEPOSIT = 4_000;
 
+	/**
+	 * @dev Constructor for initializing the Pair contract.
+	 * @param tradeToken_ Address of the trade token.
+	 * @param basePairAddr Address of the base pair.
+	 */
 	constructor(address tradeToken_, address basePairAddr) {
 		require(tradeToken_ != address(0), "Pair: Invalid trade token address");
 		require(basePairAddr != address(0), "Pair: Invalid base pair address");
@@ -54,6 +59,11 @@ contract Pair is IPair, Ownable, KnowablePair {
 		_;
 	}
 
+	/**
+	 * @dev Internal function to check and receive a payment.
+	 * @param payment Payment details.
+	 * @param from Address from which payment is received.
+	 */
 	function _checkAndReceivePayment(
 		ERC20TokenPayment calldata payment,
 		address from
@@ -89,7 +99,7 @@ contract Pair is IPair, Ownable, KnowablePair {
 			uint256 baseTokenReserve
 		) = _getReserves();
 
-		// Incase of initial liquidity
+		// In case of initial liquidity
 		paymentTokenReserve = paymentTokenReserve <= 0
 			? payment.amount
 			: paymentTokenReserve;
@@ -100,13 +110,11 @@ contract Pair is IPair, Ownable, KnowablePair {
 	function _takeFromReserve(uint256 amount) internal returns (uint256 taken) {
 		if (sales >= amount) {
 			sales -= amount;
-
 			return amount;
 		}
 
 		if ((deposits + sales) >= amount) {
 			taken = amount;
-
 			deposits -= taken - sales;
 			sales = 0;
 		} else {
@@ -192,7 +200,6 @@ contract Pair is IPair, Ownable, KnowablePair {
 
 	function _addBaseLiq(ERC20TokenPayment calldata wholePayment) internal {
 		uint256 value = wholePayment.amount;
-
 		_insertLiqValues(AddLiquidityContext({ deposit: value, liq: value }));
 	}
 
@@ -235,6 +242,12 @@ contract Pair is IPair, Ownable, KnowablePair {
 		}
 	}
 
+	/**
+	 * @notice Adds liquidity to the pair.
+	 * @param wholePayment Details of the payment for adding liquidity.
+	 * @param from Address from which liquidity is added.
+	 * @return liqAdded Amount of liquidity added.
+	 */
 	function addLiquidity(
 		ERC20TokenPayment calldata wholePayment,
 		address from
@@ -254,6 +267,14 @@ contract Pair is IPair, Ownable, KnowablePair {
 		liqAdded = lpSupply - initalLp;
 	}
 
+	/**
+	 * @notice Executes a sell order.
+	 * @param caller Address of the caller.
+	 * @param inPayment Details of the payment for the sell order.
+	 * @param outPair Address of the pair to sell to.
+	 * @param slippage Maximum slippage allowed.
+	 * @param totalFeePercent Total fee percentage.
+	 */
 	function sell(
 		address caller,
 		ERC20TokenPayment calldata inPayment,
@@ -269,6 +290,11 @@ contract Pair is IPair, Ownable, KnowablePair {
 		_executeSell(inPaymentAfterFee, caller, outPair, slippage, feePercent);
 	}
 
+	/**
+	 * @notice Completes a sell order.
+	 * @param to Address to which the amount is transferred.
+	 * @param amount Amount to be transferred.
+	 */
 	function completeSell(
 		address to,
 		uint256 amount
@@ -277,6 +303,10 @@ contract Pair is IPair, Ownable, KnowablePair {
 		basePair.mintRewards(amount);
 	}
 
+	/**
+	 * @notice Returns the total amount of tradeToken that can be bought from this Pair.
+	 * @return The reserve amount.
+	 */
 	function reserve() public view returns (uint256) {
 		return deposits + sales;
 	}
