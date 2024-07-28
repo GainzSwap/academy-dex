@@ -9,20 +9,14 @@ import { TokenData } from "./types";
 import { useAccount } from "wagmi";
 import { formatAmount } from "~~/utils/formatAmount";
 
-// import { useSlippageAdjuster } from '../../hooks';
-
 const tokensSwapWidth = "41.83333333%";
-
-export function SwapTokensHead() {
-  return <>Quick Swap</>;
-}
 
 export function SwapTokensBody() {
   const { address } = useAccount();
 
   const [fromToken, setFromToken] = useState<TokenData>();
   const [toToken, setToToken] = useState<TokenData>();
-  const { applySlippage, slippageSlider } = useSlippageAdjuster();
+  const { slippage, slippageSlider } = useSlippageAdjuster();
 
   const { tokens, isTokensLoaded, updateSwapableTokens } = useSwapableTokens({
     fromToken,
@@ -62,7 +56,7 @@ export function SwapTokensBody() {
       fromToken,
       toToken,
       sendBalance,
-      applySlippage,
+      slippage,
     });
 
   return !isTokensLoaded && !(toToken || fromToken) ? (
@@ -137,11 +131,18 @@ export function SwapTokensBody() {
             </div>
 
             {+values.receiveAmt > 0 && (
-              <small className="form-text">
-                <TokenIcon src={fromToken!.iconSrc} identifier={fromToken!.identifier} /> 1{"  "}≃{"  "}
-                {+values.receiveAmt / +values.sendAmt}{" "}
-                <TokenIcon src={toToken.iconSrc} identifier={toToken.identifier} />
-              </small>
+              <>
+                <small className="form-text">
+                  <TokenIcon src={fromToken!.iconSrc} identifier={fromToken!.identifier} /> 1{"  "}≃{"  "}
+                  {+values.receiveAmt / +values.sendAmt}{" "}
+                  <TokenIcon src={toToken.iconSrc} identifier={toToken.identifier} />
+                </small>{" "}
+                @{" "}
+                <small className={`form-text ${+values.feePercent > 5 ? "text-danger" : "text-warning"}`}>
+                  {values.feePercent}%
+                </small>{" "}
+                fee
+              </>
             )}
           </div>
         )}
@@ -154,5 +155,9 @@ export function SwapTokensBody() {
 }
 
 function FormErrorMessage({ message }: { message?: string }) {
-  return !message ? null : <div className="invalid-feedback">{message}</div>;
+  return !message ? null : (
+    <div style={{ display: "inline-block" }} className="invalid-feedback">
+      {message}
+    </div>
+  );
 }

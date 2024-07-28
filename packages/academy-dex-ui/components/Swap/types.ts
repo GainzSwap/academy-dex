@@ -1,5 +1,7 @@
 export interface TokenData {
   identifier: string;
+  tradeTokenAddr: string;
+  pairAddr: string;
   balance: string;
   iconSrc: string;
   decimals: number;

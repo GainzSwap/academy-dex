@@ -6,7 +6,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   31337: {
     Router: {
-      address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+      address: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
       abi: [
         {
           anonymous: false,
@@ -109,6 +109,40 @@ const deployedContracts = {
           type: "function",
         },
         {
+          inputs: [
+            {
+              internalType: "address",
+              name: "inPair",
+              type: "address",
+            },
+            {
+              internalType: "address",
+              name: "outPair",
+              type: "address",
+            },
+            {
+              internalType: "uint256",
+              name: "inAmount",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "slippage",
+              type: "uint256",
+            },
+          ],
+          name: "estimateOutAmount",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "amountOut",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
           inputs: [],
           name: "getAllPairs",
           outputs: [
@@ -182,7 +216,7 @@ const deployedContracts = {
           outputs: [
             {
               internalType: "uint64",
-              name: "count",
+              name: "",
               type: "uint64",
             },
           ],
@@ -216,13 +250,8 @@ const deployedContracts = {
               type: "tuple",
             },
             {
-              internalType: "contract Pair",
-              name: "inPair",
-              type: "address",
-            },
-            {
-              internalType: "contract Pair",
-              name: "outPair",
+              internalType: "address",
+              name: "outPairAddr",
               type: "address",
             },
             {

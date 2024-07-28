@@ -10,7 +10,14 @@ describe("Pair", function () {
   async function deployPairFixture() {
     const [user, owner, ...otherUsers] = await ethers.getSigners();
 
-    const router = await ethers.deployContract("TestingRouter", { signer: owner });
+    const PairFactory = await ethers.getContractFactory("TestingPairFactory");
+    const pairFactoryInstance = await PairFactory.deploy();
+    await pairFactoryInstance.waitForDeployment();
+
+    const router = await ethers.deployContract("Router", {
+      signer: owner,
+      libraries: { PairFactory: await pairFactoryInstance.getAddress() },
+    });
 
     await router.connect(owner).createPair(ZeroAddress);
 
@@ -89,7 +96,7 @@ describe("Pair", function () {
       const initialOutBal = await buyToken.balanceOf(someUser);
       const initialInBal = await sellToken.balanceOf(someUser);
 
-      await router.connect(someUser).swap({ token: sellToken, amount: sellAmt }, sellContract, buyContract, slippage);
+      await router.connect(someUser).swap({ token: sellToken, amount: sellAmt }, buyContract, slippage);
 
       const finalReward = await buyContract.rewards();
       const finalBuyTradeBal = await buyToken

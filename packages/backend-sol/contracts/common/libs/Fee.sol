@@ -13,8 +13,8 @@ library FeeUtil {
 	/// 0.05%
 	uint64 constant MIN_FEE = 10;
 	uint64 constant FIRST_FEE = 30;
-	uint64 constant SECOND_FEE = 5_00;
-	uint64 constant THIRD_FEE = 65_00;
+	uint64 constant SECOND_FEE = 1_00;
+	uint64 constant THIRD_FEE = 100_00;
 
 	function feePercent(
 		uint256 pairTotalSales,
@@ -60,7 +60,7 @@ library FeeUtil {
 			minOut = maxOut + 1;
 
 			if (count == 0) {
-				maxIn = MAX_RATIO_BALANCE_FACTOR / 3;
+				maxIn = MAX_RATIO_BALANCE_FACTOR / 5;
 				maxOut = SECOND_FEE;
 			} else if (count == 1) {
 				maxIn = MAX_RATIO_BALANCE_FACTOR;

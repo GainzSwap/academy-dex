@@ -45,7 +45,6 @@ const config: HardhatUserConfig = {
         url: `https://eth-mainnet.alchemyapi.io/v2/${providerApiKey}`,
         enabled: process.env.MAINNET_FORKING_ENABLED === "true",
       },
-      mining: { auto: true },
     },
     opencampus: {
       url: `https://rpc.open-campus-codex.gelato.digital`,

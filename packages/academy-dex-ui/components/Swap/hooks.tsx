@@ -4,9 +4,9 @@ import BigNumber from "bignumber.js";
 import { useFormik } from "formik";
 import RcSlider from "rc-slider";
 import useSWR from "swr";
-import { erc20Abi } from "viem";
-import { usePublicClient } from "wagmi";
-import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
+import { erc20Abi, parseUnits } from "viem";
+import { useAccount, usePublicClient, useWriteContract } from "wagmi";
+import { useDeployedContractInfo, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { formatAmount } from "~~/utils/formatAmount";
 
 export const SLIPPAGE_DIVISOR = 10_000;
@@ -43,11 +43,6 @@ export const useSlippageAdjuster = () => {
   };
 };
 
-// /**
-//  * Converts tokenID appropriately from egldLabel to wrappedEgldLabel
-//  */
-// export const normaliseTokenID = ({ id, wegldID }: { id: string; wegldID: string }) => (id === egldLabel ? wegldID : id);
-
 export const useSwapableTokens = ({
   address,
   fromToken,
@@ -58,6 +53,7 @@ export const useSwapableTokens = ({
   toToken?: TokenData;
 }) => {
   const client = usePublicClient();
+  const { data: router } = useDeployedContractInfo("Router");
 
   // Function to fetch token data
   const fetchTokenData = async (tokenAddress: string): Promise<TokenData> => {
@@ -67,8 +63,12 @@ export const useSwapableTokens = ({
     if (!address) {
       throw new Error("User address not loaded");
     }
+    if (!router) {
+      throw new Error("Router data not loaded");
+    }
 
-    const [identifier, balance, decimals] = await Promise.all([
+    // FIXME improve this call
+    const [identifier, balance, decimals, pairAddr] = await Promise.all([
       client.readContract({
         address: tokenAddress,
         abi: erc20Abi,
@@ -85,12 +85,20 @@ export const useSwapableTokens = ({
         abi: erc20Abi,
         functionName: "decimals",
       }),
+      client.readContract({
+        address: router.address,
+        abi: router.abi,
+        functionName: "tokensPairAddress",
+        args: [tokenAddress],
+      }),
     ]);
 
     // TODO Construct icon source URL based on token identifier
     const iconSrc = ``;
 
     return {
+      pairAddr,
+      tradeTokenAddr: tokenAddress,
       identifier,
       balance: balance.toString(),
       iconSrc,
@@ -125,137 +133,103 @@ export const useSwapableTokens = ({
   };
 };
 
-// const minSendAmount = formatAmount({ input: "100000" });
 export const useSwapTokensForm = ({
   fromToken,
   toToken,
   sendBalance,
-  applySlippage,
+  slippage: slippage_,
 }: {
   fromToken?: TokenData;
   toToken?: TokenData;
   sendBalance: string;
-  applySlippage: (value: BigNumber.Value) => BigNumber;
+  slippage: BigNumber.Value;
 }) => {
+  const { address } = useAccount();
+  const { updateSwapableTokens } = useSwapableTokens({ address });
+
+  const slippage = parseUnits(slippage_.toString(), SLIPPAGE_DIVISOR.toString().length - 1);
+
+  const client = usePublicClient();
+  const { data: router } = useDeployedContractInfo("Router");
+  const { writeContractAsync: writeRouter } = useScaffoldWriteContract("Router");
+  const { writeContractAsync } = useWriteContract();
+
   const { handleSubmit, handleChange, values, setFieldValue, setFieldError, errors, touched, resetForm } = useFormik({
     initialValues: {
       sendAmt: "",
       receiveAmt: "",
+      feePercent: "",
     },
-    onSubmit({ sendAmt, receiveAmt }, { setFieldError }) {
+    onSubmit: async ({ sendAmt }, { setFieldError, resetForm }) => {
       try {
-        // if (!wrappedEGLDSC || !wegldID) {
-        //   throw new Error("wrappedEGLDSC not set, try again");
-        // }
-        // if (!fromToken || !toToken) {
-        //   throw new Error("Both tokens must be set");
-        // }
-        // const sendAmount = sendAmt.toString(); // ensure it is string
-        // const fromTokenIsEgld = fromToken.identifier === egldLabel || fromToken.identifier === wegldID;
-        // const toTokenIsEgld = toToken.identifier === egldLabel || toToken.identifier === wegldID;
-        // if (fromTokenIsEgld && toTokenIsEgld) {
-        //   // Set swap direction
-        //   const egldWegldSwapTx =
-        //     fromToken.identifier === wegldID
-        //       ? wrappedEGLDSC.makeUnwrapEGLD(TokenPayment.fungibleFromAmount(wegldID, sendAmount, 18))
-        //       : wrappedEGLDSC.makeWrapEGLD({
-        //           amt: parseAmount(sendAmount, 18),
-        //         });
-        //   setGenericTransaction([egldWegldSwapTx]);
-        // }
-        // if (!swapAction) {
-        //   throw new Error("Swap Pairs not set");
-        // }
-        // const payload = (() => {
-        //   if ("reserve" in swapAction) {
-        //     // Do OneDex swap
-        //     const sendValue = fromTokenIsEgld
-        //       ? parseAmount(sendAmount)
-        //       : TokenTransfer.fungibleFromAmount(fromToken.identifier, sendAmount, fromToken.decimals);
-        //     const amount_out = parseAmount(receiveAmt, toToken.decimals);
-        //     const transaction = oneDexSc.makeSwapMultiTokensFixedInput({
-        //       amount_out,
-        //       path: swapAction.path,
-        //       sendValue,
-        //       unwrap_required: toTokenIsEgld,
-        //     });
-        //     return [transaction];
-        //   } else if (swapAction.length) {
-        //     // Do xExchange Swap
-        //     const {
-        //       dataHelper: { tx: transaction },
-        //     } = getApiComms().router.makeMultiPairSwap({
-        //       swapOperations: swapAction,
-        //       sendValue: TokenPayment.fungibleFromAmount(
-        //         fromTokenIsEgld ? wegldID : fromToken.identifier,
-        //         sendAmount,
-        //         fromToken.decimals,
-        //       ),
-        //     });
-        //     const payload = [transaction];
-        //     if (fromTokenIsEgld) {
-        //       const wrapTx = wrappedEGLDSC.makeWrapEGLD({
-        //         amt: parseAmount(sendAmount, 18),
-        //       });
-        //       payload.unshift(wrapTx);
-        //     } else if (toTokenIsEgld) {
-        //       const unwrapTx = wrappedEGLDSC.makeUnwrapEGLD(TokenPayment.fungibleFromAmount(wegldID, receiveAmt, 18));
-        //       payload.push(unwrapTx);
-        //     }
-        //     return payload;
-        //   }
-        //   throw new Error("No implementation for selected exchange");
-        // })();
-        // setGenericTransaction(payload);
+        if (!fromToken || !toToken || !router) {
+          throw new Error("Missing necessary data for the swap");
+        }
+
+        const amtToSpend = parseUnits(BigNumber(sendAmt).toFixed(fromToken.decimals), fromToken.decimals);
+
+        await writeContractAsync({
+          abi: erc20Abi,
+          address: fromToken.tradeTokenAddr,
+          functionName: "approve",
+          args: [fromToken.pairAddr, amtToSpend],
+        });
+
+        await writeRouter({
+          functionName: "swap",
+          gas: 1_000_000n,
+          args: [{ token: fromToken.tradeTokenAddr, amount: amtToSpend }, toToken.pairAddr, slippage],
+        });
+
+        updateSwapableTokens();
+        resetForm();
       } catch (error: any) {
         setFieldError("sendAmt", error.toString());
       }
     },
-    // validationSchema: object().shape({
-    //   sendAmt: string()
-    //     .required("The send amount field is required")
-    //     .test("maximum", `Maximum send of ${fromToken?.identifier} for your account is: ${sendBalance}`, _value => {
-    //       const value = parseAmount(_value || "0", fromToken?.decimals);
-
-    //       const amount = new BigNumber(value);
-    //       const maxAmount = new BigNumber(fromToken?.balance || "");
-
-    //       return amount.comparedTo(maxAmount) <= 0;
-    //     })
-    //     .test("tokensRequired", "Both `From` and `To` tokens must be set", () => Boolean(fromToken && toToken))
-
-    //     .test("minimum", `Minimum send is ${minSendAmount}`, _v => {
-    //       const value = parseAmount(_v || "0");
-    //       const amount = new BigNumber(value);
-    //       const minAmount = new BigNumber(parseAmount(minSendAmount));
-
-    //       return amount.isGreaterThanOrEqualTo(minAmount);
-    //     }),
-    //   receiveAmt: string()
-    //     .required()
-    //     .test("receiveAmt", "Please wait for Receive amount to be calculated", value => !!!value || value != "0"),
-    // }),
   });
 
   const sendAmountHaserror = (errors.sendAmt || errors.receiveAmt) && touched.sendAmt;
 
   const { isValidating: isCalculatingReceiveAmt, error: receiveAmtCalcErr } = useSWR(
-    !!+values.sendAmt && toToken && fromToken
+    !!+values.sendAmt && toToken && fromToken && client && router
       ? {
-          sendAmt: values.sendAmt,
+          sendAmt: parseUnits(BigNumber(values.sendAmt).toFixed(fromToken.decimals), fromToken.decimals),
           toToken,
           fromToken,
-          applySlippage,
+          slippage,
+          client,
+          router,
         }
       : null,
-    async ({ sendAmt, fromToken, toToken, applySlippage }) => {
-      // TODO compute
-      const amountOut = '0';
+    async ({ sendAmt, fromToken, toToken, slippage, client, router }) => {
+      const amountOut = await client.readContract({
+        abi: router.abi,
+        address: router.address,
+        functionName: "estimateOutAmount",
+        args: [fromToken.pairAddr, toToken.pairAddr, sendAmt, slippage],
+      });
+
+      const feePercent = await client.readContract({
+        abi: router.abi,
+        address: router.address,
+        functionName: "computeFee",
+        args: [fromToken.pairAddr, sendAmt],
+      });
+
       setFieldValue(
         "receiveAmt",
         formatAmount({
           input: amountOut,
           decimals: toToken.decimals,
+        }),
+      );
+      setFieldValue(
+        "feePercent",
+        formatAmount({
+          input: feePercent,
+          decimals: 2,
+          digits: 2,
         }),
       );
     },
@@ -271,6 +245,7 @@ export const useSwapTokensForm = ({
     setFieldValue("sendAmt", sendBalance);
   }, [sendBalance]);
 
+  // Update form with receiveAmt errors if any
   useEffect(() => {
     setFieldError("receiveAmt", receiveAmtCalcErr?.toString());
   }, [receiveAmtCalcErr]);

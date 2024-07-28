@@ -14,6 +14,7 @@ const deployPairs: DeployFunction = async function (hre: HardhatRuntimeEnvironme
   // Get from chain data to stay in sync with multiple calls
   let pairsCount = +(await Router.pairsCount()).toString();
   let tradeToken: MintableERC20, tradeTokenAddr: string, pairAddress: string;
+  const tester = "0x8D0739d9D0d49aFCF8d101416cD2759Bf8922013";
   for (let [name, symbol] of [
     ["", ""],
     ["GainsNetwork", "CPTR"],
@@ -51,10 +52,14 @@ const deployPairs: DeployFunction = async function (hre: HardhatRuntimeEnvironme
     await tradeToken.approve(pairAddress, liq);
 
     await Router.addLiquidity({ amount: liq, token: tradeTokenAddr });
+
+    if (pairsCount > 1) {
+      // Mint the last token for this address
+      await tradeToken.mint(tester, parseEther(value));
+    }
   }
 
-  // Mint the last token for this address
-  await tradeToken!.mint("0x8D0739d9D0d49aFCF8d101416cD2759Bf8922013", parseEther("0.0002464"));
+  (await ethers.getSigner(deployer)).sendTransaction({ value: parseEther("999"), to: tester });
 };
 
 export default deployPairs;

@@ -10,6 +10,34 @@ import "../common/libs/Fee.sol";
 import "../pair/Pair.sol";
 import "../pair/BasePair.sol";
 
+import "../test-case/TestingBasePair.sol";
+
+library PairFactory {
+	function newPair(
+		address tradeToken,
+		address basePairAddr
+	) external returns (Pair) {
+		return new Pair(tradeToken, basePairAddr);
+	}
+
+	function newBasePair() external returns (BasePair) {
+		return new BasePair();
+	}
+}
+
+library TestingPairFactory {
+	function newPair(
+		address tradeToken,
+		address basePairAddr
+	) external returns (Pair) {
+		return new Pair(tradeToken, basePairAddr);
+	}
+
+	function newBasePair() external returns (BasePair) {
+		return new TestingBasePair();
+	}
+}
+
 contract Router is Ownable {
 	using EnumerableSet for EnumerableSet.AddressSet;
 	using Address for address;
@@ -28,12 +56,6 @@ contract Router is Ownable {
 
 	uint256 totalLiq;
 	uint256 totalRewards;
-
-	// This function is created here so that we can create a testing version
-	// of Router
-	function _newBasePair() internal virtual returns (BasePair) {
-		return new BasePair();
-	}
 
 	/**
 	 * @notice Calls the BasePair contract to mint the initial supply of the base trade token.
@@ -69,10 +91,10 @@ contract Router is Ownable {
 		);
 
 		if (pairsCount() == 0) {
-			pair = _newBasePair();
+			pair = PairFactory.newBasePair();
 			tradeToken = address(pair.tradeToken());
 		} else {
-			pair = new Pair(tradeToken, basePairAddr());
+			pair = PairFactory.newPair(tradeToken, basePairAddr());
 		}
 
 		pairs.add(address(pair));
@@ -101,34 +123,29 @@ contract Router is Ownable {
 
 	/**
 	 * @notice Executes a trade between two pairs.
-	 * @param inPair Address of the input pair.
-	 * @param outPair Address of the output pair.
+	 * @param outPairAddr Address of the output pair.
 	 * @param inPayment Payment details for the trade.
 	 * @param slippage Maximum slippage allowed.
 	 */
 	function swap(
 		ERC20TokenPayment calldata inPayment,
-		Pair inPair,
-		Pair outPair,
+		address outPairAddr,
 		uint256 slippage
 	) external {
-		require(
-			pairs.contains(address(inPair)),
-			"Router: Input pair not found"
-		);
-		require(
-			pairs.contains(address(outPair)),
-			"Router: Output pair not found"
-		);
+		address inPairAddr = tokensPairAddress[address(inPayment.token)];
 
+		require(pairs.contains(inPairAddr), "Router: Input pair not found");
+		require(pairs.contains(outPairAddr), "Router: Output pair not found");
+
+		Pair outPair = Pair(outPairAddr);
 		uint256 initialOutPairRewards = outPair.rewards();
 
-		inPair.sell(
+		Pair(inPairAddr).sell(
 			msg.sender,
 			inPayment,
 			outPair,
 			slippage,
-			computeFee(address(inPair), inPayment.amount)
+			computeFee(inPairAddr, inPayment.amount)
 		);
 
 		uint256 finalOutPairRewards = outPair.rewards();
@@ -136,8 +153,8 @@ contract Router is Ownable {
 		uint256 rewardsChange = finalOutPairRewards - initialOutPairRewards;
 		require(rewardsChange > 0, "Router: no rewards gianed for out pair");
 
-		pairData[address(inPair)].rewardsAgainst += rewardsChange;
-		pairData[address(outPair)].rewardsFor += rewardsChange;
+		pairData[inPairAddr].rewardsAgainst += rewardsChange;
+		pairData[outPairAddr].rewardsFor += rewardsChange;
 		totalRewards += rewardsChange;
 	}
 
@@ -194,12 +211,49 @@ contract Router is Ownable {
 	/**
 	 * @return count the total count of listed pairs.
 	 */
-	function pairsCount() public view returns (uint64 count) {
-		uint256 total = pairs.length();
+	function pairsCount() public view returns (uint64) {
+		return uint64(pairs.length());
+	}
 
-		// We are pretty certain this will not overflow ;)
-		assembly {
-			count := total
-		}
+	/**
+	 * @notice Estimates the amount of output tokens to receive for a given input amount, considering slippage.
+	 * @dev The function calculates the amount of output tokens after applying the dynamic fee and slippage.
+	 * @param inPair The address of the input pair.
+	 * @param outPair The address of the output pair.
+	 * @param inAmount The amount of input tokens.
+	 * @param slippage The maximum allowable slippage percentage (e.g., 50 for 0.5%).
+	 * @return amountOut The estimated amount of output tokens.
+	 */
+	function estimateOutAmount(
+		address inPair,
+		address outPair,
+		uint256 inAmount,
+		uint256 slippage
+	) public view returns (uint256 amountOut) {
+		// Ensure the input and output pairs are registered in the Router
+		require(pairs.contains(inPair), "Router: Input pair not found");
+		require(pairs.contains(outPair), "Router: Output pair not found");
+
+		// Instantiate Pair contracts for input and output pairs
+		Pair inputPair = Pair(inPair);
+		Pair outputPair = Pair(outPair);
+
+		// Get reserves for input and output pairs from their respective reserve methods
+		uint256 inPairReserve = inputPair.reserve();
+		uint256 outPairReserve = outputPair.reserve();
+
+		// Calculate the fee using the Router's computeFee method
+		uint256 fee = computeFee(inPair, inAmount);
+
+		// Adjust input amount for slippage
+		uint256 adjustedInAmount = Slippage.compute(inAmount, slippage);
+
+		// Calculate the output amount using the AMM formula, accounting for the computed fee and slippage
+		amountOut = Amm.getAmountOut(
+			adjustedInAmount,
+			inPairReserve,
+			outPairReserve,
+			fee
+		);
 	}
 }

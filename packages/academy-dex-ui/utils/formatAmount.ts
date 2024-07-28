@@ -39,7 +39,7 @@ export function pipe<ValueType>(previous: ValueType) {
 BigNumber.config({ ROUNDING_MODE: BigNumber.ROUND_FLOOR });
 
 export interface FormatAmountType {
-  input: string;
+  input: string | bigint;
   decimals?: number;
   digits?: number;
   showIsLessThanDecimalsLabel?: boolean;
@@ -55,6 +55,8 @@ export function formatAmount({
   showIsLessThanDecimalsLabel = false,
   addCommas = false,
 }: FormatAmountType) {
+  input = input.toString();
+
   if (!stringIsInteger(input, false)) {
     throw new Error("Invalid input");
   }
