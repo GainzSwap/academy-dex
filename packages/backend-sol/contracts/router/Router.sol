@@ -36,6 +36,25 @@ contract Router is Ownable {
 	}
 
 	/**
+	 * @notice Calls the BasePair contract to mint the initial supply of the base trade token.
+	 * @dev This function can only be called by the owner of the contract.
+	 *      It passes the owner of the Router contract as the recipient of the minted tokens.
+	 *      The base trade token is assumed to be the first token in the `pairs` set.
+	 * @param amount The amount of tokens to mint as the initial supply.
+	 */
+	function mintInitialSupply(uint256 amount) external onlyOwner {
+		// Get the address of the base pair, assumed to be the first token in the pairs set
+		address basePairAddress = basePairAddr();
+
+		// Instantiate the base pair contract
+		BasePair basePair = BasePair(basePairAddress);
+
+		// Call the mintInitialSupply function of the base pair contract,
+		// passing the owner of the Router contract as the recipient
+		basePair.mintInitialSupply(amount, owner());
+	}
+
+	/**
 	 * @notice Creates a new pair.
 	 * @dev The first pair becomes the base pair -- For now, called by only owner..when DAO is implemented, DAO can call this
 	 * @param tradeToken Address of the trade token for the pair.

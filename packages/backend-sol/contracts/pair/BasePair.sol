@@ -17,6 +17,24 @@ contract BasePair is Pair, IBasePair {
 	{}
 
 	/**
+	 * @notice Mints the initial supply of the base trade token to the specified recipient.
+	 * @dev This function can only be called by the owner of the contract.
+	 *      The minting only occurs if the total supply of the trade token is zero.
+	 * @param amount The amount of tokens to mint as the initial supply.
+	 * @param recipient The address to receive the minted tokens.
+	 */
+	function mintInitialSupply(
+		uint256 amount,
+		address recipient
+	) external onlyOwner {
+		// Check if the total supply of the trade token is zero
+		if (tradeToken.totalSupply() == 0) {
+			// Mint the specified amount of the trade token to the recipient
+			MintableERC20(address(tradeToken)).mint(recipient, amount);
+		}
+	}
+
+	/**
 	 * @notice Burns a specified amount of fees.
 	 * @param amount Amount of fees to burn.
 	 */
