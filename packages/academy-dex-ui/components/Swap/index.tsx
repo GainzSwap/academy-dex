@@ -25,6 +25,8 @@ export function SwapTokensBody() {
   const { applySlippage, slippageSlider } = useSlippageAdjuster();
 
   const { tokens, isTokensLoaded, updateSwapableTokens } = useSwapableTokens({
+    fromToken,
+    toToken,
     address,
   });
 
