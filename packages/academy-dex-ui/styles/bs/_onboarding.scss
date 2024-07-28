@@ -85,7 +85,7 @@
     align-items: center;
     .onboarding-media {
       flex: 300px 0 0;
-      padding: 40px 0px;
+      padding: 40px 40px;
     }
     .onboarding-content {
       padding: 70px 70px 60px;
@@ -210,7 +210,7 @@
     background-color: transparent;
     font-weight: $font-weight-bold;
     font-size: $font-size-base * 1;
-    color: darken($primary, 5%);
+    color: darken($success, 5%) !important;
     bottom: 25px;
     position: absolute;
     z-index: 999;
@@ -226,7 +226,7 @@
     &:before {
       @include osfont();
       font-size: 15px;
-      color: $primary;
+      color: $success !important;
       position: absolute;
       top: 50%;
       transform: translateY(-50%);

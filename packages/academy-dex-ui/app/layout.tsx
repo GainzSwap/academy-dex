@@ -1,15 +1,24 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useCallback } from "react";
 import "../styles/bs/global.scss";
 import AppProvider from "./provider";
 import "@rainbow-me/rainbowkit/styles.css";
+import "rc-slider/assets/index.css";
 import MainMenu from "~~/components/MainMenu";
 import MobileMenu from "~~/components/MobileMenu";
 import { useContentPanel } from "~~/hooks/useContentPanel";
+import { useWindowWidthChange } from "~~/hooks/useWindowResize";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const { contentPanelActive } = useContentPanel();
+  const { contentPanelActive, showContentPanel, hideContentPanel, toggleContentPanel } = useContentPanel();
+
+  useWindowWidthChange(
+    useCallback(() => {
+      !contentPanelActive && window.innerWidth >= 1150 && showContentPanel();
+      contentPanelActive && window.innerWidth < 1150 && hideContentPanel();
+    }, [contentPanelActive]),
+  );
 
   return (
     <html lang="en">

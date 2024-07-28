@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: SEE LICENSE IN LICENSE
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -21,6 +21,7 @@ contract Router is Ownable {
 	}
 
 	EnumerableSet.AddressSet private pairs;
+	EnumerableSet.AddressSet private tradeTokens;
 
 	mapping(address => address) public tokensPairAddress;
 	mapping(address => PairData) public pairData;
@@ -56,6 +57,7 @@ contract Router is Ownable {
 		}
 
 		pairs.add(address(pair));
+		tradeTokens.add(tradeToken);
 		tokensPairAddress[tradeToken] = address(pair);
 	}
 
@@ -153,6 +155,14 @@ contract Router is Ownable {
 	 */
 	function getAllPairs() public view returns (address[] memory) {
 		return pairs.values();
+	}
+
+	/**
+	 * @notice Returns the list of all trade token addreses.
+	 * @return Array of pair addresses.
+	 */
+	function tradeableTokens() public view returns (address[] memory) {
+		return tradeTokens.values();
 	}
 
 	/**

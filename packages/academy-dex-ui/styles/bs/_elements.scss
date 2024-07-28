@@ -1141,6 +1141,9 @@ a.el-tablo {
   box-shadow: 0px 0px 40px rgba(0, 0, 0, 0.1);
   &.wider {
     max-width: 500px;
+    @media (min-width: 550px) {
+      min-width: 350px;
+    }
   }
 
   .logged-user-w {
@@ -1150,7 +1153,7 @@ a.el-tablo {
 
   .logo-w {
     text-align: center;
-    padding: 20%;
+    padding: 0.5rem;
   }
   .auth-header {
     border-bottom: 1px solid rgba(0, 0, 0, 0.1);
@@ -1173,6 +1176,9 @@ a.el-tablo {
   }
   form {
     padding: 20px 80px;
+    @include media-breakpoint-down(md) {
+      padding: 20px 50px;
+    }
     padding-bottom: 60px;
     .form-check-inline {
       margin-left: 1rem;

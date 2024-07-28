@@ -1,18 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ContractInput } from "./ContractInput";
 import { InheritanceTooltip } from "./InheritanceTooltip";
-import { Abi, AbiFunction } from "abitype";
-import { Address } from "viem";
-import { useReadContract } from "wagmi";
 import {
-  ContractInput,
-  displayTxResult,
   getFunctionInputKey,
   getInitialFormState,
   getParsedContractFunctionArgs,
   transformAbiFunction,
-} from "~~/app/debug/_components/contract";
+} from "./utilsContract";
+import { displayTxResult } from "./utilsDisplay";
+import { Abi, AbiFunction } from "abitype";
+import { Address } from "viem";
+import { useReadContract } from "wagmi";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth/useTargetNetwork";
 import { getParsedError, notification } from "~~/utils/scaffold-eth";
 

@@ -44,7 +44,8 @@
   font-weight: $font-weight-light;
 
   &[href] {
-    @include hover-focus {
+    &:hover,
+    &:focus {
       background-color: lighten(saturate(mix($color, #fff), 10%), 5%);
       border: 1px solid darken($color, 20%);
       color: darken($color, 15%);

@@ -1,6 +1,11 @@
-/* 
-TABLE OF CONTENTS
+@import "font-awesome/scss/font-awesome.scss";
 
+/* 
+These are styles gotten from the  light admin theme
+we will copy the styles as we use the components from the theme
+Bellow is the complete table of contents
+
+TABLE OF CONTENTS
 
 1. Theme Variables
 	1a. User Override Variables
@@ -43,6 +48,7 @@ TABLE OF CONTENTS
 ##. Responsive Styles
 
 */
+
 /* 1. Theme Variables */
 @import "theme-variables";
 /* 1a. User Override Variables */
@@ -88,38 +94,16 @@ TABLE OF CONTENTS
 @import "utilities";
 /* 11. Icon Fonts */
 @import "osfont";
-/* 12. Chat */
-@import "chat";
 /* 13. App - Email */
 @import "app_email";
 /* 14. App - Projects */
 @import "projects";
-/* 15. App - Full Chat */
-@import "full_chat";
-/* 16. Pricing Plans */
-@import "pricing_plans";
-/* 17. Pipelines */
-@import "pipelines";
-/* 18. Dropdowns */
-@import "os_dropdowns";
-/* 19. App - TODO */
-@import "todo";
 /* 20. Fancy Selector */
 @import "fancy_selector";
-/* 21. App - Rentals */
-@import "rentals";
-/* 22. App - Support */
-@import "support";
 /* 23. Onboarding */
 @import "onboarding";
 /* 24. Top Bar styles */
 @import "top_bar";
-/* 25. Search */
-@import "search";
-/* 26. Ecommerce */
-@import "ecommerce";
-/* 27. Customizer */
-@import "customizer";
 /* ##. Dark Color Scheme */
 @import "scheme_dark";
 /* ##. Responsive Styles */

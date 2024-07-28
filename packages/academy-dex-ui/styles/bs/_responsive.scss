@@ -774,34 +774,8 @@ Contents:
   }
 }
 
-/* #11. Phones (< 767px) */
-@media (max-width: 767px) {
-  .layout-w {
-    flex-direction: column;
-  }
-
-  .floated-customizer-btn {
-    display: none;
-  }
-
-  // Onboarding
-
-  .onboarding-modal .onboarding-content.with-gradient {
-    padding-left: 25px;
-    padding-right: 25px;
-    padding-top: 50px;
-  }
-  .onboarding-modal .onboarding-content .onboarding-text {
-    font-size: $font-size-base;
-    padding-left: 0px;
-    padding-right: 0px;
-  }
-  .onboarding-modal .onboarding-slide .onboarding-side-by-side .onboarding-media {
-    padding-bottom: 0px;
-  }
-  .onboarding-modal .onboarding-slide .onboarding-side-by-side .onboarding-content.with-gradient {
-    padding-bottom: 70px;
-  }
+/* #11. Screens < 991px */
+@media (max-width: 991px) {
   .onboarding-modal .onboarding-side-by-side {
     flex-wrap: wrap;
     .onboarding-media {
@@ -820,6 +794,35 @@ Contents:
 
   .hidden-mobile {
     display: none !important;
+  }
+}
+
+/* #11. Phones (< 767px) */
+@media (max-width: 767px) {
+  .layout-w {
+    flex-direction: column;
+  }
+
+  .floated-customizer-btn {
+    display: none;
+  }
+  // Onboarding
+
+  .onboarding-modal .onboarding-content.with-gradient {
+    padding-left: 25px;
+    padding-right: 25px;
+    padding-top: 50px;
+  }
+  .onboarding-modal .onboarding-content .onboarding-text {
+    font-size: $font-size-base;
+    padding-left: 0px;
+    padding-right: 0px;
+  }
+  .onboarding-modal .onboarding-slide .onboarding-side-by-side .onboarding-media {
+    padding-bottom: 0px;
+  }
+  .onboarding-modal .onboarding-slide .onboarding-side-by-side .onboarding-content.with-gradient {
+    padding-bottom: 70px;
   }
 
   // SUPPORT TICKETS

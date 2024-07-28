@@ -6,7 +6,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   31337: {
     Router: {
-      address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+      address: "0x1291Be112d480055DaFd8a610b7d1e203891C274",
       abi: [
         {
           anonymous: false,
@@ -110,6 +110,19 @@ const deployedContracts = {
         },
         {
           inputs: [],
+          name: "getAllPairs",
+          outputs: [
+            {
+              internalType: "address[]",
+              name: "",
+              type: "address[]",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
           name: "owner",
           outputs: [
             {
@@ -145,6 +158,19 @@ const deployedContracts = {
               internalType: "uint256",
               name: "totalLiq",
               type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "pairsCount",
+          outputs: [
+            {
+              internalType: "uint64",
+              name: "count",
+              type: "uint64",
             },
           ],
           stateMutability: "view",
@@ -211,6 +237,19 @@ const deployedContracts = {
               internalType: "address",
               name: "",
               type: "address",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "tradeableTokens",
+          outputs: [
+            {
+              internalType: "address[]",
+              name: "",
+              type: "address[]",
             },
           ],
           stateMutability: "view",
