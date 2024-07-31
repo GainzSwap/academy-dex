@@ -14,11 +14,11 @@ import { TokenData } from "~~/components/Swap/types";
 import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { useSpendERC20 } from "~~/hooks/useSpendERC20";
 
-const AddLiquidityModal = () => {
+export const AddLiquidityModal = ({ selectedToken_ }: { selectedToken_?: TokenData }) => {
   const { closeModal } = useModalToShow();
   const { address } = useAccount();
   const { tokens, updateSwapableTokens } = useSwapableTokens({ address });
-  const [selectedToken, setSelectedToken] = useState<TokenData>();
+  const [selectedToken, setSelectedToken] = useState<TokenData | undefined>(selectedToken_);
 
   const client = usePublicClient();
   const { writeContractAsync: writeRouter } = useScaffoldWriteContract("Router");
@@ -138,15 +138,14 @@ const AddLiquidityModal = () => {
   );
 };
 
-export default function AddLiquidity() {
+export default function AddLiquidity({ selectedToken_ }: { selectedToken_?: TokenData }) {
   const { openModal } = useModalToShow();
 
   return (
     <a
-      className="btn btn-success text-white"
-      onClick={e => {
-        e.preventDefault();
-        openModal(<AddLiquidityModal />);
+      className={`btn btn-${!!selectedToken_ ? "primary" : "success"} text-white`}
+      onClick={() => {
+        openModal(<AddLiquidityModal selectedToken_={selectedToken_} />);
       }}
     >
       <i className="os-icon os-icon-log-in"></i>

@@ -3,6 +3,7 @@
 import AddLiquidity from "./AddLiquidity";
 import Sidebar from "./Sidebar";
 import Swap from "./Swap";
+import TopBar from "./TopBar";
 import { useContentPanel } from "~~/hooks/useContentPanel";
 
 export default function Dashboard() {
@@ -10,7 +11,7 @@ export default function Dashboard() {
 
   return (
     <>
-      {/* TODO <TopBar /> */}
+      <TopBar />
       <div onClick={toggleContentPanel} className="content-panel-toggler">
         <i className="os-icon os-icon-grid-squares-22"></i>
         <span>Sidebar</span>
