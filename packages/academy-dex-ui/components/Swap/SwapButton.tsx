@@ -22,7 +22,7 @@ export default function SwapButton({ onSwapComplete }: { onSwapComplete: () => v
       data-testid="swap-tokens-btn"
       // onClick={handleClick}
       // disabled={isLoading}
-      className="btn btn-primary btn-lg"
+      className="btn btn-primary w-100 btn-lg"
       type="submit"
     >
       <i className="os-icon os-icon-refresh-ccw"></i>

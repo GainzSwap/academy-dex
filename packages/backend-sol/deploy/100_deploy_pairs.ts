@@ -60,6 +60,13 @@ const deployPairs: DeployFunction = async function (hre: HardhatRuntimeEnvironme
   }
 
   (await ethers.getSigner(deployer)).sendTransaction({ value: parseEther("999"), to: tester });
+
+  // Done to have the abi in front end
+  await hre.deployments.deploy("Pair", {
+    from: deployer,
+    gasLimit: 30_000_000,
+    args: [tradeTokenAddr!, pairAddress!],
+  });
 };
 
 export default deployPairs;

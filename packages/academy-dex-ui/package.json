@@ -26,6 +26,7 @@
     "blockies-identicon": "^0.1.0",
     "bootstrap": "4.4.1",
     "burner-connector": "~0.0.8",
+    "chart.js": "^4.4.3",
     "daisyui": "4.5.0",
     "formik": "^2.2.9",
     "jquery": "^3.7.1",

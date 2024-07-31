@@ -76,7 +76,7 @@ export default function PortfolioValue() {
       <div className="fancy-selector-options">
         {tokens.map(token => {
           return (
-            <div className="fancy-selector-option" style={{ minWidth: "350px" }}>
+            <div key={token.pairAddr} className="fancy-selector-option" style={{ minWidth: "350px" }}>
               <div className="fs-main-info">
                 <div className="fs-name">
                   <span>{token.identifier} Portfolio</span>

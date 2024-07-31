@@ -9,7 +9,6 @@ import { useSlippageAdjuster, useSwapTokensForm, useSwapableTokens } from "./hoo
 import { TokenData } from "./types";
 import { useAccount } from "wagmi";
 import { useSpendERC20 } from "~~/hooks/useSpendERC20";
-import { formatAmount } from "~~/utils/formatAmount";
 
 const tokensSwapWidth = "41.83333333%";
 

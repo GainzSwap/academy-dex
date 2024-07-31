@@ -49,5 +49,5 @@ export const useSpendERC20 = ({ token }: { token?: TokenData }) => {
     [token],
   );
 
-  return { tokenBalanceDisplay: tokenBalance, tokenBalance: tokenBalance.replace(",", ""), checkApproval };
+  return { tokenBalanceDisplay: tokenBalance, tokenBalance: tokenBalance.replace(/,/g, ""), checkApproval };
 };
