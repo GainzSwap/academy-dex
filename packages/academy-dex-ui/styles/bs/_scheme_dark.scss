@@ -114,31 +114,6 @@ body.color-scheme-dark,
           color: #f2f4f8;
         }
       }
-      &.claim {
-        border-color: darken($success, 5%);
-        .ti-icon {
-          color: $success;
-        }
-        .ti-sub-header {
-          color: #71aa91;
-        }
-        .ti-header {
-          color: #f2f4f8;
-        }
-      }
-      &.processing {
-        cursor: progress !important;
-        border-color: darken($warning, 15%);
-        .ti-icon {
-          color: $warning;
-        }
-        .ti-sub-header {
-          color: #99aa71;
-        }
-        .ti-header {
-          color: #f2f4f8;
-        }
-      }
     }
   }
 
@@ -294,9 +269,6 @@ body.color-scheme-dark,
   }
   .onboarding-modal .onboarding-side-by-side .onboarding-content.with-gradient {
     background-image: url(/img/onboarding-gradient-ver-dark.png);
-    @media (max-width: 991px) {
-      background-image: url(/img/onboarding-gradient-hor-dark.png);
-    }
   }
   .onboarding-modal .onboarding-content .onboarding-title {
     color: #fff;

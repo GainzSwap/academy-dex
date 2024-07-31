@@ -5,8 +5,9 @@ import { useFormik } from "formik";
 import RcSlider from "rc-slider";
 import useSWR from "swr";
 import { erc20Abi, parseUnits } from "viem";
-import { useAccount, usePublicClient, useWriteContract } from "wagmi";
+import { useAccount, usePublicClient } from "wagmi";
 import { useDeployedContractInfo, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import { useSpendERC20 } from "~~/hooks/useSpendERC20";
 import { formatAmount } from "~~/utils/formatAmount";
 
 export const SLIPPAGE_DIVISOR = 10_000;
@@ -20,7 +21,7 @@ export const useSlippageAdjuster = () => {
 
   const slippageSlider = useMemo(
     () => (
-      <div className="mb-3 form-group">
+      <div className="mb-3 form-group" style={{ width: "100%" }}>
         <label htmlFor="splippage">Slippage: {(slippage * 100).toFixed(2)} %</label>
         <RcSlider
           defaultValue={slippage * SLIPPAGE_DIVISOR}
@@ -152,7 +153,7 @@ export const useSwapTokensForm = ({
   const client = usePublicClient();
   const { data: router } = useDeployedContractInfo("Router");
   const { writeContractAsync: writeRouter } = useScaffoldWriteContract("Router");
-  const { writeContractAsync } = useWriteContract();
+  const { checkApproval } = useSpendERC20({ token: fromToken });
 
   const { handleSubmit, handleChange, values, setFieldValue, setFieldError, errors, touched, resetForm } = useFormik({
     initialValues: {
@@ -167,13 +168,7 @@ export const useSwapTokensForm = ({
         }
 
         const amtToSpend = parseUnits(BigNumber(sendAmt).toFixed(fromToken.decimals), fromToken.decimals);
-
-        await writeContractAsync({
-          abi: erc20Abi,
-          address: fromToken.tradeTokenAddr,
-          functionName: "approve",
-          args: [fromToken.pairAddr, amtToSpend],
-        });
+        await checkApproval(amtToSpend);
 
         await writeRouter({
           functionName: "swap",

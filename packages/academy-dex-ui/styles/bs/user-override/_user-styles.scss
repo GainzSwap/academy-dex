@@ -86,36 +86,34 @@ body {
   }
 }
 
-.modal-input-group {
-  input {
-    width: 100%;
-    padding: 15px;
-    font-size: 12px;
-    line-height: 1;
-    border-radius: 6px !important;
-    outline: none;
-    &[type="number"] {
-      appearance: textfield;
-    }
+input {
+  width: 100%;
+  padding: 15px;
+  font-size: 12px;
+  line-height: 1;
+  border-radius: 6px !important;
+  outline: none;
+  &[type="number"] {
+    appearance: textfield;
   }
+}
 
-  .max {
-    position: absolute;
-    display: flex;
-    justify-content: center;
-    line-height: 1;
-    border-radius: 6px !important;
-    align-items: center;
-    right: 5px;
-    top: 5px;
-    text-decoration: none !important;
-    padding: 10px;
-    z-index: 10;
+.max {
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  line-height: 1;
+  border-radius: 6px !important;
+  align-items: center;
+  right: 0px;
+  top: 0px;
+  text-decoration: none !important;
+  padding: 10px;
+  z-index: 10;
 
-    &--disabled {
-      pointer-events: none;
-      opacity: 0.35;
-    }
+  &--disabled {
+    pointer-events: none;
+    opacity: 0.35;
   }
 }
 

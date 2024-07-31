@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import TokenIcon from "../TokenIcon";
 import { TokenData } from "./types";
+import Dropdown from "react-bootstrap/Dropdown";
 
 export default function TokensSelect({
   title,
@@ -23,17 +24,8 @@ export default function TokensSelect({
   return (
     <div className="mb-3 form-group">
       <label>{title}</label>
-
-      <div className="dropdown mb-3">
-        <button
-          data-testid={`tokenSelect-${title}`}
-          className="form-control dropdown-toggle"
-          type="button"
-          id={id}
-          data-bs-toggle="dropdown"
-          aria-expanded="false"
-          style={{ overflow: "hidden" }}
-        >
+      <Dropdown className="dropdown mb-3">
+        <Dropdown.Toggle className="form-control dropdown-toggle" id="dropdown-basic">
           {selected ? (
             <>
               {" "}
@@ -42,28 +34,41 @@ export default function TokensSelect({
           ) : (
             "Select"
           )}
-        </button>
+        </Dropdown.Toggle>
+
         {!!tokens.length && (
-          <ul
-            data-testid={`tokenSelect-${title}-list`}
-            className="dropdown-menu"
-            aria-labelledby={id}
+          <Dropdown.Menu
             style={{
               maxHeight: "250px",
               overflowY: "scroll",
             }}
           >
-            {tokens.map(token => (
-              <li key={token.identifier} onClick={() => setSelected(token)}>
-                <a className="dropdown-item btn">
-                  {" "}
+            
+              {tokens.map(token => (
+                <Dropdown.Item key={token.identifier} onClick={() => setSelected(token)}>
                   <TokenIcon src={token.iconSrc} identifier={""} /> {token.identifier}
-                </a>
-              </li>
-            ))}
-          </ul>
+                </Dropdown.Item>
+              ))}
+           
+          </Dropdown.Menu>
         )}
-      </div>
+      </Dropdown>
     </div>
+
+    //   <div >
+    //     <button
+    //       data-testid={`tokenSelect-${title}`}
+    //       className="form-control dropdown-toggle"
+    //       type="button"
+    //       id={id}
+    //       data-bs-toggle="dropdown"
+    //       aria-expanded="false"
+    //       style={{ overflow: "hidden" }}
+    //     >
+
+    //     </button>
+
+    //   </div>
+    // </div>
   );
 }

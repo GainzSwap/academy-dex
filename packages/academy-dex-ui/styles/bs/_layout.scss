@@ -4,12 +4,13 @@ html {
 body {
   min-height: 100%;
   position: relative;
+  padding: 50px;
   overflow-x: hidden;
   &:before {
     content: "";
     position: absolute;
     z-index: -1;
-    background: linear-gradient(to bottom right, #38033a, #9b910b);
+    background: linear-gradient(to bottom right, #d7bbea, #65a8f1);
     top: 0px;
     left: 0px;
     bottom: 0px;
@@ -51,7 +52,6 @@ strong {
   &.with-pattern {
     box-shadow: none;
     border-radius: 0px;
-    // TODO: Redesign this bg image to be Elrond Logo fading into CG logo on all the boxes
     background-image: url("/img/bg-pattern2.png");
     background-size: contain;
     background-repeat: repeat;
@@ -180,7 +180,6 @@ body.menu-side-right {
   border-left: 1px solid rgba(0, 0, 0, 0.05);
   padding: 0.75rem 1.5rem;
   background-color: transparent;
-  overflow-y: scroll;
   &.compact {
     padding: 2rem 1.5rem;
     flex: 0 0 $content-panel-width-compact;

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import FormErrorMessage from "../FormErrorMessage";
 import LoadingState from "../LoadingState";
 import TokenIcon from "../TokenIcon";
 import InputIcon from "./InputIcon";
@@ -7,6 +8,7 @@ import TokensSelect from "./TokensSelect";
 import { useSlippageAdjuster, useSwapTokensForm, useSwapableTokens } from "./hooks";
 import { TokenData } from "./types";
 import { useAccount } from "wagmi";
+import { useSpendERC20 } from "~~/hooks/useSpendERC20";
 import { formatAmount } from "~~/utils/formatAmount";
 
 const tokensSwapWidth = "41.83333333%";
@@ -42,20 +44,13 @@ export function SwapTokensBody() {
     resetForm();
   };
 
-  const sendBalance = useMemo(
-    () =>
-      formatAmount({
-        input: fromToken?.balance || "0",
-        decimals: fromToken?.decimals,
-      }),
-    [fromToken],
-  );
+  const { tokenBalance, tokenBalanceDisplay } = useSpendERC20({ token: fromToken });
 
   const { handleChange, handleSubmit, onMax, values, errors, isCalculatingReceiveAmt, sendAmountHaserror, resetForm } =
     useSwapTokensForm({
       fromToken,
       toToken,
-      sendBalance,
+      sendBalance: tokenBalance,
       slippage,
     });
 
@@ -103,11 +98,9 @@ export function SwapTokensBody() {
               min={0}
             />
             {/* Max Button */}
-            {!(sendBalance === values.sendAmt) && (
-              <div className="input-group-prepend" style={{ overflow: "hidden" }}>
-                <div onClick={onMax} className="input-group-text btn" style={{ height: "100%" }}>
-                  Max
-                </div>
+            {!(tokenBalance === values.sendAmt) && (
+              <div onClick={onMax} className="input-group-text max btn" style={{ height: "100%" }}>
+                Max
               </div>
             )}
             <FormErrorMessage message={errors.sendAmt} />
@@ -116,7 +109,7 @@ export function SwapTokensBody() {
 
           {!sendAmountHaserror && fromToken && (
             <small className="form-text">
-              Available: <span data-testid="swap-tokens-max-sendAmt">{sendBalance}</span>
+              Available: <span data-testid="swap-tokens-max-sendAmt">{tokenBalanceDisplay}</span>
             </small>
           )}
         </div>
@@ -137,11 +130,11 @@ export function SwapTokensBody() {
                   {+values.receiveAmt / +values.sendAmt}{" "}
                   <TokenIcon src={toToken.iconSrc} identifier={toToken.identifier} />
                 </small>{" "}
-                @{" "}
-                <small className={`form-text ${+values.feePercent > 5 ? "text-danger" : "text-warning"}`}>
+                @&nbsp;
+                <span className={`form-text ${+values.feePercent > 5 ? "text-danger" : "text-warning"}`}>
                   {values.feePercent}%
-                </small>{" "}
-                fee
+                </span>
+                &nbsp;fee
               </>
             )}
           </div>
@@ -151,13 +144,5 @@ export function SwapTokensBody() {
         <SwapButton onSwapComplete={onSwapComplete} />
       </div>
     </form>
-  );
-}
-
-function FormErrorMessage({ message }: { message?: string }) {
-  return !message ? null : (
-    <div style={{ display: "inline-block" }} className="invalid-feedback">
-      {message}
-    </div>
   );
 }
