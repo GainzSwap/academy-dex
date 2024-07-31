@@ -10,7 +10,6 @@ import "./Errors.sol";
 import "./SafePrice.sol";
 import "./Amm.sol";
 import "./Interface.sol";
-import "hardhat/console.sol";
 import "./Knowable.sol";
 
 /**
@@ -32,6 +31,21 @@ contract Pair is IPair, Ownable, KnowablePair {
 
 	uint256 constant MIN_MINT_DEPOSIT = 4_000;
 
+	event LiquidityAdded(
+		address indexed from,
+		uint256 amount,
+		uint256 liqAdded
+	);
+	event SellExecuted(
+		address indexed from,
+		address indexed to,
+		uint256 amountIn,
+		uint256 amountOut,
+		uint256 fee
+	);
+	event RewardReceived(address indexed from, uint256 amount);
+	event BalanceUpdated(address indexed user, uint256 balance);
+
 	/**
 	 * @dev Constructor for initializing the Pair contract.
 	 * @param tradeToken_ Address of the trade token.
@@ -48,7 +62,8 @@ contract Pair is IPair, Ownable, KnowablePair {
 		);
 
 		basePair = IBasePair(basePairAddr);
-		// FIXME require(
+		// TODO Write checks to ensure that base pair trade token is valid ERC20 token
+		// require(
 		// 	bytes(ERC20(Pair(basePairAddr).tradeToken()).symbol()).length > 0,
 		// 	"Pair: Invalid base pair contract"
 		// );
@@ -130,6 +145,8 @@ contract Pair is IPair, Ownable, KnowablePair {
 	) internal virtual {
 		sales += inPayment.amount;
 		outPair.completeSell(from, outAmount);
+		emit BalanceUpdated(from, tradeToken.balanceOf(from));
+		emit BalanceUpdated(address(this), tradeToken.balanceOf(address(this)));
 	}
 
 	function _takeBasePairFee(
@@ -196,6 +213,14 @@ contract Pair is IPair, Ownable, KnowablePair {
 
 		uint256 newK = Amm.calculateKConstant(reserve(), outPair.reserve());
 		require(initialK <= newK, "ERROR_K_INVARIANT_FAILED");
+
+		emit SellExecuted(
+			from,
+			address(outPair),
+			inPayment.amount,
+			amountOutOptimal,
+			totalFeePercent
+		);
 	}
 
 	function _addBaseLiq(ERC20TokenPayment calldata wholePayment) internal {
@@ -265,6 +290,10 @@ contract Pair is IPair, Ownable, KnowablePair {
 
 		require(lpSupply > initalLp, "Pair: invalid liquidity addition");
 		liqAdded = lpSupply - initalLp;
+
+		emit LiquidityAdded(from, wholePayment.amount, liqAdded);
+		emit BalanceUpdated(from, tradeToken.balanceOf(from));
+		emit BalanceUpdated(address(this), tradeToken.balanceOf(address(this)));
 	}
 
 	/**
@@ -301,6 +330,8 @@ contract Pair is IPair, Ownable, KnowablePair {
 	) external isKnownPair(msg.sender) {
 		tradeToken.transfer(to, _takeFromReserve(amount));
 		basePair.mintRewards(amount);
+		emit BalanceUpdated(to, tradeToken.balanceOf(to));
+		emit BalanceUpdated(address(this), tradeToken.balanceOf(address(this)));
 	}
 
 	/**
@@ -315,7 +346,13 @@ contract Pair is IPair, Ownable, KnowablePair {
 		ERC20TokenPayment calldata payment
 	) external onlyBasePair {
 		// TODO check that payment is base pair's token
+		require(
+			payment.token == Pair(address(basePair)).tradeToken(),
+			"Pair: invalid reward token"
+		);
 		TokenPayments.receiveERC20(payment);
 		rewards += payment.amount;
+		emit RewardReceived(msg.sender, payment.amount);
+		emit BalanceUpdated(address(this), tradeToken.balanceOf(address(this)));
 	}
 }
