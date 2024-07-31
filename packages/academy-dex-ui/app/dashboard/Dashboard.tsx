@@ -5,6 +5,7 @@ import PortfolioDistribution from "./PortfolioDistribution";
 import Sidebar from "./Sidebar";
 import Swap from "./Swap";
 import TopBar from "./TopBar";
+import ReferralCard from "~~/components/ReferralCard";
 import { useContentPanel } from "~~/hooks/useContentPanel";
 
 export default function Dashboard() {
@@ -37,6 +38,10 @@ export default function Dashboard() {
 
             <div className="col-sm-2 d-none d-lg-block">
               <PortfolioDistribution />
+            </div>
+
+            <div className="col-sm-4 d-none d-lg-block">
+              <ReferralCard />
             </div>
           </div>
         </div>

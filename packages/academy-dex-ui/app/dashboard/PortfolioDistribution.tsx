@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BigNumber from "bignumber.js";
 import { ChartData } from "chart.js";
 import useSWR from "swr";
 import { useAccount, usePublicClient } from "wagmi";
 import { useSwapableTokens } from "~~/components/Swap/hooks";
+import { TokenData } from "~~/components/Swap/types";
 import { useDeployedContractInfo } from "~~/hooks/scaffold-eth";
 import Chart from "~~/utils/chart";
 import { prettyFormatAmount } from "~~/utils/formatAmount";
@@ -32,7 +33,6 @@ const PortfolioHighlight: React.FC<IPortfolioHighlight> = ({ backgroundColor, da
 let chart: Chart | undefined;
 
 export default function PortfolioDistribution() {
-  const [width, setWidth] = useState<number>();
   const { address } = useAccount();
   const { tokens } = useSwapableTokens({ address });
 
@@ -50,17 +50,24 @@ export default function PortfolioDistribution() {
   );
 
   const portFolioCoins = useMemo(() => tokens.filter(token => !BigNumber(token.balance).isZero()), [tokens]);
-
-  const { data: coinReserves } = useSWR(
-    client && pairInfo ? { pairInfo, client, coins: portFolioCoins } : null,
-    ({ client, coins, pairInfo }) =>
+  const { data: coinsWithPrice } = useSWR(
+    baseReserve && client && pairInfo ? { baseReserve, pairInfo, client, coins: portFolioCoins } : null,
+    ({ client, coins, pairInfo, baseReserve }) =>
       Promise.all(
-        coins.map(coin => client.readContract({ abi: pairInfo.abi, address: coin.pairAddr, functionName: "reserve" })),
+        coins.map(coin =>
+          client.readContract({ abi: pairInfo.abi, address: coin.pairAddr, functionName: "reserve" }).then(reserve => ({
+            ...coin,
+            price: BigNumber(coin.balance)
+              .multipliedBy(baseReserve.toString())
+              .dividedBy(reserve.toString())
+              .toFixed(0),
+          })),
+        ),
       ),
   );
 
   useEffect(() => {
-    if (!coinReserves || !baseReserve) {
+    if (!coinsWithPrice) {
       return;
     }
 
@@ -68,17 +75,8 @@ export default function PortfolioDistribution() {
     let backgroundColor: string[] = [];
     let labels: string[] = [];
 
-    for (let i = 0; i < portFolioCoins.length; i++) {
-      const coin = portFolioCoins[i];
-      const reserve = coinReserves[i];
-      const { balance, tradeTokenAddr, identifier } = coin;
-
-      const coinBasePrice = BigNumber(balance)
-        .multipliedBy(baseReserve.toString())
-        .dividedBy(reserve.toString())
-        .toFixed(0);
-
-      values.push(coinBasePrice);
+    for (const { tradeTokenAddr, identifier, price } of coinsWithPrice) {
+      values.push(price);
       backgroundColor.push(getColor(tradeTokenAddr, 5));
       labels.push(identifier + " BASE Value");
     }
@@ -119,9 +117,7 @@ export default function PortfolioDistribution() {
       chart.data = data;
       chart.update();
     }
-
-    setWidth(Math.floor(chart.width * 1.1));
-  }, [portFolioCoins, coinReserves, baseReserve]);
+  }, [coinsWithPrice]);
 
   useEffect(
     () => () => {
@@ -131,7 +127,7 @@ export default function PortfolioDistribution() {
   );
 
   return (
-    <div style={{ width }} className="element-box less-padding">
+    <div className="element-box less-padding">
       <h6 className="element-box-header text-center">Portfolio Distribution</h6>
       <div
         className="el-chart-w"
@@ -139,43 +135,47 @@ export default function PortfolioDistribution() {
           position: "relative",
           display: "flex",
           justifyContent: "center",
-          minHeight: "150px",
-          minWidth: "150px",
-          left: "-7px",
         }}
       >
-        <canvas
-          // height='120'
-          ref={doughnutChartRef}
-          // width='120'
-        ></canvas>
+        <canvas ref={doughnutChartRef}></canvas>
         <div className="inside-donut-chart-label">
           <strong>{portFolioCoins.length}</strong>
           <span>Coins</span>
         </div>
       </div>
 
-      {/* <div className="el-chart-w">
-        <div className="chartjs-size-monitor">
-          <div className="chartjs-size-monitor-expand">
-            <div className=""></div>
-          </div>
-          <div className="chartjs-size-monitor-shrink">
-            <div className=""></div>
-          </div>
+      <div className="el-legend condensed">
+        <div className="row">
+          {coinsWithPrice
+            ?.sort((a, b) => +BigNumber(b.price).minus(a.price))
+            .reduce<TokenData[][]>((acc, curr, index) => {
+              let row = acc[index] || [];
+              if (row.length < 2) {
+                acc[index] = [...row, curr];
+              } else {
+                acc[index + 1] = [curr];
+              }
+              return acc;
+            }, [])
+            .map((row, rowIndex) => (
+              <div
+                key={"portfolio-highlight-row" + rowIndex}
+                className={
+                  rowIndex > 0 ? "col-sm-6 d-none d-xxxxl-block" : "col-auto col-xxxxl-6 ml-sm-auto mr-sm-auto"
+                }
+              >
+                {row.map(({ tradeTokenAddr, identifier, balance, decimals }) => (
+                  <PortfolioHighlight
+                    key={identifier}
+                    backgroundColor={getColor(tradeTokenAddr, 5)}
+                    data={identifier}
+                    title={prettyFormatAmount(balance, { length: 10, minLength: 16, decimals })}
+                  />
+                ))}{" "}
+              </div>
+            ))}
         </div>
-        <canvas
-          height="292"
-          id="donutChart1"
-          width="292"
-          style={{ display: "block", height: "146px", width: "146px" }}
-          className="chartjs-render-monitor"
-        ></canvas>
-        <div className="inside-donut-chart-label">
-          <strong>{portFolioCoins.length}</strong>
-          <span>Coins</span>
-        </div>
-      </div> */}
+      </div>
     </div>
   );
 }

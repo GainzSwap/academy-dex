@@ -44,15 +44,7 @@ export const useSlippageAdjuster = () => {
   };
 };
 
-export const useSwapableTokens = ({
-  address,
-  fromToken,
-  toToken,
-}: {
-  address?: string;
-  fromToken?: TokenData;
-  toToken?: TokenData;
-}) => {
+export const useSwapableTokens = ({ address }: { address?: string }) => {
   const client = usePublicClient();
   const { data: router } = useDeployedContractInfo("Router");
 
@@ -114,7 +106,7 @@ export const useSwapableTokens = ({
   });
 
   const {
-    data: fetchedTokens,
+    data: tokens,
     mutate,
     isLoading,
   } = useSWR(tokenAddresses || null, tokenAddresses => Promise.all(tokenAddresses.map(fetchTokenData)), {
@@ -122,14 +114,9 @@ export const useSwapableTokens = ({
     keepPreviousData: true,
   });
 
-  // Filter out `fromToken` and `toToken` from the fetched tokens
-  const filteredTokens = fetchedTokens?.filter(
-    token => token.identifier !== fromToken?.identifier && token.identifier !== toToken?.identifier,
-  );
-
   return {
     updateSwapableTokens: mutate,
-    tokens: filteredTokens,
+    tokens,
     isTokensLoaded: !isLoading,
   };
 };

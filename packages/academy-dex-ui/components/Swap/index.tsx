@@ -20,8 +20,6 @@ export function SwapTokensBody() {
   const { slippage, slippageSlider } = useSlippageAdjuster();
 
   const { tokens, isTokensLoaded, updateSwapableTokens } = useSwapableTokens({
-    fromToken,
-    toToken,
     address,
   });
 
@@ -53,13 +51,58 @@ export function SwapTokensBody() {
       slippage,
     });
 
+  // Keep selected tokens fresh
+  useEffect(() => {
+    const tryUpdate = ({ from, to }: { from?: TokenData; to?: TokenData }) => {
+      let _from = from;
+      let _to = to;
+      let fromFound = !Boolean(_from);
+      let toFound = !Boolean(_to);
+
+      tokens.some(token => {
+        if (!fromFound && _from) {
+          fromFound = token.identifier === _from.identifier;
+          fromFound && (_from = Object.assign({}, token));
+        } else if (!toFound && _to) {
+          toFound = token.identifier === _to.identifier;
+          toFound && (_to = Object.assign({}, token));
+        }
+
+        return fromFound && toFound;
+      });
+
+      return { _from, _to };
+    };
+
+    setToToken(to => {
+      setFromToken(from => {
+        const { _from, _to } = tryUpdate({ from, to });
+        to = _to;
+
+        return _from;
+      });
+
+      return to;
+    });
+  }, [tokens]);
+
+  // Filter out `fromToken` and `toToken` from the fetched tokens
+  const filteredTokens = tokens?.filter(
+    token => token.identifier !== fromToken?.identifier && token.identifier !== toToken?.identifier,
+  );
+
   return !isTokensLoaded && !(toToken || fromToken) ? (
     <LoadingState text="Getting tokens" />
   ) : (
     <form data-testid="swap-tokens-form" onSubmit={handleSubmit}>
       <div className="d-flex justify-content-between">
         <div style={{ width: tokensSwapWidth }}>
-          <TokensSelect selected={fromToken} title="From" setSelected={token => setFromToken(token)} tokens={tokens} />
+          <TokensSelect
+            selected={fromToken}
+            title="From"
+            setSelected={token => setFromToken(token)}
+            tokens={filteredTokens}
+          />
         </div>
         <div className="d-flex">
           <i
@@ -74,7 +117,12 @@ export function SwapTokensBody() {
           ></i>
         </div>
         <div style={{ width: tokensSwapWidth }}>
-          <TokensSelect selected={toToken} title="To" setSelected={token => setToToken(token)} tokens={tokens} />
+          <TokensSelect
+            selected={toToken}
+            title="To"
+            setSelected={token => setToToken(token)}
+            tokens={filteredTokens}
+          />
         </div>
       </div>
       <div className="row mb-3">
