@@ -144,6 +144,7 @@ export default function AddLiquidity({ selectedToken_ }: { selectedToken_?: Toke
   return (
     <a
       className={`btn btn-${!!selectedToken_ ? "primary" : "success"} text-white`}
+      style={{ flexWrap: "nowrap" }}
       onClick={() => {
         openModal(<AddLiquidityModal selectedToken_={selectedToken_} />);
       }}

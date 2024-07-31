@@ -22,7 +22,7 @@ const deployPairs: DeployFunction = async function (hre: HardhatRuntimeEnvironme
     ["HouseX", "AKU"],
     ["ExistenceToken", "HTH"],
   ]) {
-    const value = (Math.random() ** Math.random() * 3_000_000).toString();
+    const value = (Math.random() ** 10 * 30_000_000_000).toString();
     const liq = ethers.parseEther(value);
 
     if (pairsCount === 0) {
@@ -55,7 +55,7 @@ const deployPairs: DeployFunction = async function (hre: HardhatRuntimeEnvironme
 
     if (pairsCount > 1) {
       // Mint the last token for this address
-      await tradeToken.mint(tester, parseEther(value));
+      await tradeToken.mint(tester, parseEther(value) / 100_000n);
     }
   }
 

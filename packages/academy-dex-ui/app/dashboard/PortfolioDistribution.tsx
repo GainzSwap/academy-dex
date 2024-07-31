@@ -73,8 +73,6 @@ export default function PortfolioDistribution() {
       const reserve = coinReserves[i];
       const { balance, tradeTokenAddr, identifier } = coin;
 
-      console.log({ balance, baseReserve, reserve });
-
       const coinBasePrice = BigNumber(balance)
         .multipliedBy(baseReserve.toString())
         .dividedBy(reserve.toString())

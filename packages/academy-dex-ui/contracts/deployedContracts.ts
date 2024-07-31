@@ -6,7 +6,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   31337: {
     Pair: {
-      address: "0x40a42Baf86Fc821f972Ad2aC878729063CeEF403",
+      address: "0x8F4ec854Dd12F1fe79500a1f53D0cbB30f9b6134",
       abi: [
         {
           inputs: [
@@ -412,7 +412,7 @@ const deployedContracts = {
       },
     },
     Router: {
-      address: "0x525C7063E7C20997BaaE9bDa922159152D0e8417",
+      address: "0x986aaa537b8cc170761FDAC6aC4fc7F9d8a20A8C",
       abi: [
         {
           anonymous: false,

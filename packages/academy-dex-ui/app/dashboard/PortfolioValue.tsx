@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import AddLiquidity from "./AddLiquidity";
+import BigNumber from "bignumber.js";
 import { useAccount } from "wagmi";
 import { useSwapableTokens } from "~~/components/Swap/hooks";
 import { TokenData } from "~~/components/Swap/types";
@@ -63,8 +64,8 @@ export default function PortfolioValue() {
             <strong>
               {prettyFormatAmount(baseToken.balance.toString(), {
                 decimals: baseToken.decimals,
-                length: 4,
-                minLength: 4,
+                length: 12,
+                minLength: 16,
               })}
             </strong>
           </div>
@@ -75,6 +76,9 @@ export default function PortfolioValue() {
       </div>
       <div className="fancy-selector-options">
         {tokens.map(token => {
+          if (BigNumber(token.balance).isZero()) {
+            return;
+          }
           return (
             <div key={token.pairAddr} className="fancy-selector-option" style={{ minWidth: "350px" }}>
               <div className="fs-main-info">
@@ -86,9 +90,9 @@ export default function PortfolioValue() {
                   <span>Balance:</span>
                   <strong>
                     {prettyFormatAmount(token.balance.toString(), {
-                      length: 12,
+                      length: 10,
                       decimals: token.decimals,
-                      minLength: 16,
+                      minLength: 14,
                     })}
                   </strong>
                 </div>
