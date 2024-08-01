@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useReferralInfo } from "../ReferralCard/hooks";
 import { TokenData } from "./types";
 import BigNumber from "bignumber.js";
 import { useFormik } from "formik";
@@ -7,7 +8,10 @@ import useSWR from "swr";
 import { erc20Abi, parseUnits } from "viem";
 import { useAccount, usePublicClient } from "wagmi";
 import { useDeployedContractInfo, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import useRawCallsInfo from "~~/hooks/useRawCallsInfo";
 import { useSpendERC20 } from "~~/hooks/useSpendERC20";
+import { getItem } from "~~/storage/session";
+import { RefIdData } from "~~/utils";
 import { formatAmount } from "~~/utils/formatAmount";
 
 export const SLIPPAGE_DIVISOR = 10_000;
@@ -137,10 +141,11 @@ export const useSwapTokensForm = ({
 
   const slippage = parseUnits(slippage_.toString(), SLIPPAGE_DIVISOR.toString().length - 1);
 
-  const client = usePublicClient();
-  const { data: router } = useDeployedContractInfo("Router");
+  const { client, router } = useRawCallsInfo();
   const { writeContractAsync: writeRouter } = useScaffoldWriteContract("Router");
   const { checkApproval } = useSpendERC20({ token: fromToken });
+
+  const { refIdData, refresh: refreshUserRefInfo } = useReferralInfo();
 
   const { handleSubmit, handleChange, values, setFieldValue, setFieldError, errors, touched, resetForm } = useFormik({
     initialValues: {
@@ -150,18 +155,28 @@ export const useSwapTokensForm = ({
     },
     onSubmit: async ({ sendAmt }, { setFieldError, resetForm }) => {
       try {
-        if (!fromToken || !toToken || !router) {
+        if (!fromToken || !toToken || !router || !refIdData) {
           throw new Error("Missing necessary data for the swap");
         }
 
         const amtToSpend = parseUnits(BigNumber(sendAmt).toFixed(fromToken.decimals), fromToken.decimals);
         await checkApproval(amtToSpend);
 
-        await writeRouter({
-          functionName: "swap",
-          gas: 1_000_000n,
-          args: [{ token: fromToken.tradeTokenAddr, amount: amtToSpend }, toToken.pairAddr, slippage],
-        });
+        if (refIdData.getUserID() === null) {
+          const referrerLink = getItem("userRefBy");
+          const referrerId = referrerLink ? BigInt(RefIdData.getID(referrerLink)) : 0n;
+
+          await writeRouter({
+            functionName: "registerAndSwap",
+            args: [referrerId, { token: fromToken.tradeTokenAddr, amount: amtToSpend }, toToken.pairAddr, slippage],
+          });
+          await refreshUserRefInfo();
+        } else {
+          await writeRouter({
+            functionName: "swap",
+            args: [{ token: fromToken.tradeTokenAddr, amount: amtToSpend }, toToken.pairAddr, slippage],
+          });
+        }
 
         updateSwapableTokens();
         resetForm();
@@ -195,7 +210,7 @@ export const useSwapTokensForm = ({
       const feePercent = await client.readContract({
         abi: router.abi,
         address: router.address,
-        functionName: "computeFee",
+        functionName: "computeFeePercent",
         args: [fromToken.pairAddr, sendAmt],
       });
 

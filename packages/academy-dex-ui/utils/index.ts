@@ -54,3 +54,11 @@ export class RefIdData {
 function hexToNumber(hex: string): number {
   return parseInt(hex, 16);
 }
+
+export const getUnixTimestampWithAddedSeconds = (addedSeconds: number) => {
+  return new Date().setSeconds(new Date().getSeconds() + addedSeconds) / 1000;
+};
+
+export const getUnixTimestamp = () => {
+  return Date.now() / 1000;
+};

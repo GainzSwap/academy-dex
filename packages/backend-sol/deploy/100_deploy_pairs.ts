@@ -14,7 +14,8 @@ const deployPairs: DeployFunction = async function (hre: HardhatRuntimeEnvironme
   // Get from chain data to stay in sync with multiple calls
   let pairsCount = +(await Router.pairsCount()).toString();
   let tradeToken: MintableERC20, tradeTokenAddr: string, pairAddress: string;
-  const tester = "0x8D0739d9D0d49aFCF8d101416cD2759Bf8922013";
+  const tester1 = "0x8D0739d9D0d49aFCF8d101416cD2759Bf8922013";
+  const tester2 = "0x608bB522a3ed264C22f663dEB2585662bFe110BD";
   for (let [name, symbol] of [
     ["", ""],
     ["GainsNetwork", "CPTR"],
@@ -55,18 +56,21 @@ const deployPairs: DeployFunction = async function (hre: HardhatRuntimeEnvironme
 
     if (pairsCount > 1) {
       // Mint the last token for this address
-      await tradeToken.mint(tester, parseEther(value) / 100_000n);
+      await tradeToken.mint(tester1, parseEther(value) / 100_000n);
+      await tradeToken.mint(tester2, parseEther(value) / 100_00n);
     }
   }
-
-  (await ethers.getSigner(deployer)).sendTransaction({ value: parseEther("999"), to: tester });
-
   // Done to have the abi in front end
   await hre.deployments.deploy("Pair", {
     from: deployer,
     gasLimit: 30_000_000,
     args: [tradeTokenAddr!, pairAddress!],
   });
+
+  await Promise.all([
+    (await ethers.getSigner(deployer)).sendTransaction({ value: parseEther("99"), to: tester1 }),
+    (await ethers.getSigner(deployer)).sendTransaction({ value: parseEther("999"), to: tester2 }),
+  ]);
 };
 
 export default deployPairs;

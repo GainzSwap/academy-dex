@@ -12,7 +12,7 @@ import { useContentPanel } from "~~/hooks/useContentPanel";
 import { useWindowWidthChange } from "~~/hooks/useWindowResize";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const { contentPanelActive, showContentPanel, hideContentPanel, toggleContentPanel } = useContentPanel();
+  const { contentPanelActive, showContentPanel, hideContentPanel } = useContentPanel();
 
   useWindowWidthChange(
     useCallback(() => {

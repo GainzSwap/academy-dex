@@ -6,7 +6,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   31337: {
     Pair: {
-      address: "0x8F4ec854Dd12F1fe79500a1f53D0cbB30f9b6134",
+      address: "0xa82fF9aFd8f496c3d6ac40E2a0F282E47488CFc9",
       abi: [
         {
           inputs: [
@@ -341,6 +341,11 @@ const deployedContracts = {
               type: "address",
             },
             {
+              internalType: "address",
+              name: "referrerOfCaller",
+              type: "address",
+            },
+            {
               components: [
                 {
                   internalType: "contract IERC20",
@@ -358,7 +363,7 @@ const deployedContracts = {
               type: "tuple",
             },
             {
-              internalType: "contract IPair",
+              internalType: "contract Pair",
               name: "outPair",
               type: "address",
             },
@@ -375,6 +380,35 @@ const deployedContracts = {
           ],
           name: "sell",
           outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "referrer",
+              type: "address",
+            },
+            {
+              internalType: "uint256",
+              name: "amount",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "totalFeePercent",
+              type: "uint256",
+            },
+          ],
+          name: "takeFees",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "amountOut",
+              type: "uint256",
+            },
+          ],
           stateMutability: "nonpayable",
           type: "function",
         },
@@ -412,7 +446,7 @@ const deployedContracts = {
       },
     },
     Router: {
-      address: "0x986aaa537b8cc170761FDAC6aC4fc7F9d8a20A8C",
+      address: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
       abi: [
         {
           anonymous: false,
@@ -431,6 +465,50 @@ const deployedContracts = {
             },
           ],
           name: "OwnershipTransferred",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "referrerId",
+              type: "uint256",
+            },
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "referralId",
+              type: "uint256",
+            },
+          ],
+          name: "ReferralAdded",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "userId",
+              type: "uint256",
+            },
+            {
+              indexed: false,
+              internalType: "address",
+              name: "userAddress",
+              type: "address",
+            },
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "referrerId",
+              type: "uint256",
+            },
+          ],
+          name: "UserRegistered",
           type: "event",
         },
         {
@@ -484,11 +562,11 @@ const deployedContracts = {
               type: "uint256",
             },
           ],
-          name: "computeFee",
+          name: "computeFeePercent",
           outputs: [
             {
               internalType: "uint256",
-              name: "fee",
+              name: "feePercent",
               type: "uint256",
             },
           ],
@@ -564,6 +642,49 @@ const deployedContracts = {
         {
           inputs: [
             {
+              internalType: "address",
+              name: "userAddress",
+              type: "address",
+            },
+          ],
+          name: "getReferrer",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "referrerId",
+              type: "uint256",
+            },
+            {
+              internalType: "address",
+              name: "referrerAddress",
+              type: "address",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "userAddress",
+              type: "address",
+            },
+          ],
+          name: "getUserId",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "userId",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
               internalType: "uint256",
               name: "amount",
               type: "uint256",
@@ -627,6 +748,46 @@ const deployedContracts = {
             },
           ],
           stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "referrerId",
+              type: "uint256",
+            },
+            {
+              components: [
+                {
+                  internalType: "contract IERC20",
+                  name: "token",
+                  type: "address",
+                },
+                {
+                  internalType: "uint256",
+                  name: "amount",
+                  type: "uint256",
+                },
+              ],
+              internalType: "struct ERC20TokenPayment",
+              name: "inPayment",
+              type: "tuple",
+            },
+            {
+              internalType: "address",
+              name: "outPairAddr",
+              type: "address",
+            },
+            {
+              internalType: "uint256",
+              name: "slippage",
+              type: "uint256",
+            },
+          ],
+          name: "registerAndSwap",
+          outputs: [],
+          stateMutability: "nonpayable",
           type: "function",
         },
         {
@@ -714,6 +875,67 @@ const deployedContracts = {
           name: "transferOwnership",
           outputs: [],
           stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "userCount",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          name: "userIdToAddress",
+          outputs: [
+            {
+              internalType: "address",
+              name: "",
+              type: "address",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "",
+              type: "address",
+            },
+          ],
+          name: "users",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "id",
+              type: "uint256",
+            },
+            {
+              internalType: "address",
+              name: "addr",
+              type: "address",
+            },
+            {
+              internalType: "uint256",
+              name: "referrerId",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
           type: "function",
         },
       ],

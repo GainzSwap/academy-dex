@@ -11,6 +11,7 @@ import "../pair/Pair.sol";
 import "../pair/BasePair.sol";
 
 import "../test-case/TestingBasePair.sol";
+import "./User.sol";
 
 library PairFactory {
 	function newPair(
@@ -38,7 +39,7 @@ library TestingPairFactory {
 	}
 }
 
-contract Router is Ownable {
+contract Router is Ownable, UserModule {
 	using EnumerableSet for EnumerableSet.AddressSet;
 	using Address for address;
 
@@ -122,6 +123,31 @@ contract Router is Ownable {
 	}
 
 	/**
+	 * @dev Becareful with parameter ordering for `ERC20TokenPayment`
+	 */
+	function registerAndSwap(
+		uint256 referrerId,
+		ERC20TokenPayment calldata inPayment,
+		address outPairAddr,
+		uint256 slippage
+	) public {
+		_createOrGetUserId(msg.sender, referrerId);
+		swap(inPayment, outPairAddr, slippage);
+
+		// TODO learn how to do this properly i.e delegating calls with complex in put parameters
+		// (bool success, ) = address(this).delegatecall(
+		// 	abi.encodeWithSignature(
+		// 		"swap(address,uint256,address,uint256)",
+		// 		address(inPayment.token),
+		// 		inPayment.amount,
+		// 		outPairAddr,
+		// 		slippage
+		// 	)
+		// );
+		// require(success, "Router: Delegate call not succeded");
+	}
+
+	/**
 	 * @notice Executes a trade between two pairs.
 	 * @param outPairAddr Address of the output pair.
 	 * @param inPayment Payment details for the trade.
@@ -131,7 +157,7 @@ contract Router is Ownable {
 		ERC20TokenPayment calldata inPayment,
 		address outPairAddr,
 		uint256 slippage
-	) external {
+	) public {
 		address inPairAddr = tokensPairAddress[address(inPayment.token)];
 
 		require(pairs.contains(inPairAddr), "Router: Input pair not found");
@@ -140,12 +166,14 @@ contract Router is Ownable {
 		Pair outPair = Pair(outPairAddr);
 		uint256 initialOutPairRewards = outPair.rewards();
 
+		(, address referrer) = getReferrer(msg.sender);
 		Pair(inPairAddr).sell(
 			msg.sender,
+			referrer,
 			inPayment,
 			outPair,
 			slippage,
-			computeFee(inPairAddr, inPayment.amount)
+			computeFeePercent(inPairAddr, inPayment.amount)
 		);
 
 		uint256 finalOutPairRewards = outPair.rewards();
@@ -159,16 +187,16 @@ contract Router is Ownable {
 	}
 
 	/**
-	 * @notice Computes the fee based on the pair's sales against the liquidity provided in other pairs.
-	 * @dev The more a pair is sold, the higher the fee. This is computed based on the pair's sales relative to the provided liquidity in other pairs.
-	 * @param pairAddress The address of the pair for which the fee is being computed.
-	 * @param inAmount The input amount for which the fee is being computed.
-	 * @return fee The computed fee based on the input amount and the pair's sales.
+	 * @notice Computes the feePercent based on the pair's sales against the liquidity provided in other pairs.
+	 * @dev The more a pair is sold, the higher the feePercent. This is computed based on the pair's sales relative to the provided liquidity in other pairs.
+	 * @param pairAddress The address of the pair for which the feePercent is being computed.
+	 * @param inAmount The input amount for which the feePercent is being computed.
+	 * @return feePercent The computed feePercent based on the input amount and the pair's sales.
 	 */
-	function computeFee(
+	function computeFeePercent(
 		address pairAddress,
 		uint256 inAmount
-	) public view returns (uint256 fee) {
+	) public view returns (uint256 feePercent) {
 		uint256 projectedRewardsChange = Amm.quote(
 			inAmount,
 			Pair(pairAddress).reserve(),
@@ -182,7 +210,7 @@ contract Router is Ownable {
 		uint256 salesDiff = pairSales > pairBuys ? pairSales - pairBuys : 0;
 
 		uint256 otherLiq = totalLiq - pairData[pairAddress].totalLiq;
-		fee = FeeUtil.feePercent(salesDiff, otherLiq, pairsCount());
+		feePercent = FeeUtil.feePercent(salesDiff, otherLiq, pairsCount());
 	}
 
 	/**
@@ -242,8 +270,8 @@ contract Router is Ownable {
 		uint256 inPairReserve = inputPair.reserve();
 		uint256 outPairReserve = outputPair.reserve();
 
-		// Calculate the fee using the Router's computeFee method
-		uint256 fee = computeFee(inPair, inAmount);
+		// Calculate the fee using the Router's computeFeePercent method
+		uint256 feePercent = computeFeePercent(inPair, inAmount);
 
 		// Adjust input amount for slippage
 		uint256 adjustedInAmount = Slippage.compute(inAmount, slippage);
@@ -252,8 +280,9 @@ contract Router is Ownable {
 		amountOut = Amm.getAmountOut(
 			adjustedInAmount,
 			inPairReserve,
-			outPairReserve,
-			fee
+			outPairReserve
 		);
+
+		amountOut -= (amountOut * feePercent) / FeeUtil.MAX_PERCENT;
 	}
 }

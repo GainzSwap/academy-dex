@@ -35,23 +35,10 @@ contract BasePair is Pair, IBasePair {
 	}
 
 	/**
-	 * @notice Burns a specified amount of fees.
-	 * @param amount Amount of fees to burn.
-	 */
-	function burnFee(uint256 amount) external isKnownPair(msg.sender) {
-		MintableERC20(address(tradeToken)).burn(amount);
-
-		// Transfer amount to rewards so that the effect
-		// will be felt on price
-		_takeFromReserve(amount);
-		rewards += amount;
-	}
-
-	/**
 	 * @notice Mints rewards to the calling pair address.
 	 * @param amount Amount of rewards to mint.
 	 */
-	function mintRewards(uint256 amount) external isKnownPair(msg.sender) {
+	function mintRewards(uint256 amount) external isKnownPair {
 		address pairAddress = msg.sender;
 		Pair pair = Pair(pairAddress);
 

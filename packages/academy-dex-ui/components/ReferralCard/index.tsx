@@ -1,18 +1,14 @@
+"use client";
+
 import { useMemo } from "react";
+import { useReferralInfo } from "./hooks";
 import { ReferralIDStructure } from "./structure";
 import { CopyButton } from "@multiversx/sdk-dapp/UI/CopyButton/CopyButton";
-import useSWR from "swr";
-import { useAccount } from "wagmi";
-import { RefIdData, getWindowLocation } from "~~/utils";
+import { getWindowLocation } from "~~/utils";
 
 export default function ReferralCard() {
-  const { address } = useAccount();
-  const { data: refIdData } = useSWR(
-    address ? { key: "refdata-getAffiliateDetails", address } : null,
-    ({ address }) =>
-      // TODO get user ID from Router contract or User maanger contract
-      new RefIdData(address, 0),
-  );
+  const { refIdData } = useReferralInfo();
+
   const joinLink = useMemo(() => {
     return typeof window !== "undefined" && refIdData?.refID
       ? `${getWindowLocation().origin}/${ReferralIDStructure.makeUrlSegment(refIdData.refID)}`

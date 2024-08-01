@@ -7,14 +7,21 @@ import "./Number.sol";
 library FeeUtil {
 	using Number for uint256;
 
+	uint256 constant MAX_PERCENT = 100_00;
+
+	struct Values {
+		uint256 toBurnValue;
+		uint256 referrerValue;
+		uint256 liqProvidersValue;
+	}
+
 	/// One to three decimal places
 	uint64 constant RATIO_BALANCE_FACTOR = 1_000;
 
-	/// 0.05%
 	uint64 constant MIN_FEE = 10;
 	uint64 constant FIRST_FEE = 30;
-	uint64 constant SECOND_FEE = 1_00;
-	uint64 constant THIRD_FEE = 100_00;
+	uint64 constant SECOND_FEE = 3_00;
+	uint64 constant THIRD_FEE = uint64(MAX_PERCENT);
 
 	function feePercent(
 		uint256 pairTotalSales,
@@ -86,12 +93,11 @@ library FeeUtil {
 		uint64 pairsCount
 	) private pure returns (uint64 ratio) {
 		uint256 value = (pairTotalSales * RATIO_BALANCE_FACTOR) /
-			_salesPerPair(totalLiq, pairsCount);
-
+			_liqRatio(totalLiq, pairsCount);
 		ratio = value.clamp(1, _maxRatioBalanceFactor(pairsCount));
 	}
 
-	function _salesPerPair(
+	function _liqRatio(
 		uint256 sales,
 		uint64 pairsCount
 	) private pure returns (uint256 gRatio) {
@@ -101,5 +107,27 @@ library FeeUtil {
 		if (gRatio <= 1) {
 			return 1;
 		}
+	}
+
+	/**
+	 * @dev Computes the total fee shares.
+	 * @param self The fee shares struct.
+	 * @return The total fee value.
+	 */
+	function total(Values memory self) internal pure returns (uint256) {
+		return self.toBurnValue + self.referrerValue + self.liqProvidersValue;
+	}
+
+	/**
+	 * @dev Splits the fee into shares for burning, referrer, and liquidity providers.
+	 * @param fee The total fee amount.
+	 * @return A Values struct with the split values.
+	 */
+	function splitFee(uint256 fee) internal pure returns (Values memory) {
+		uint256 toBurnValue = (fee * 5_00) / MAX_PERCENT; // 5%
+		uint256 referrerValue = (fee * 2_00) / MAX_PERCENT; // 2%
+		uint256 liqProvidersValue = fee - toBurnValue - referrerValue;
+
+		return Values(toBurnValue, referrerValue, liqProvidersValue);
 	}
 }

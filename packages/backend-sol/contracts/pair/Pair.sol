@@ -3,12 +3,16 @@ pragma solidity 0.8.26;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+
+import "../common/libs/Fee.sol";
 import "../common/libs/Slippage.sol";
 import "../common/libs/TokenPayments.sol";
+
 import "./contexts/AddLiquidity.sol";
+
+import "./Amm.sol";
 import "./Errors.sol";
 import "./SafePrice.sol";
-import "./Amm.sol";
 import "./Interface.sol";
 import "./Knowable.sol";
 
@@ -18,6 +22,7 @@ import "./Knowable.sol";
  */
 contract Pair is IPair, Ownable, KnowablePair {
 	using SafePriceUtil for SafePriceData;
+	using FeeUtil for FeeUtil.Values;
 
 	ERC20 public immutable tradeToken;
 	uint256 public deposits;
@@ -149,34 +154,47 @@ contract Pair is IPair, Ownable, KnowablePair {
 		emit BalanceUpdated(address(this), tradeToken.balanceOf(address(this)));
 	}
 
-	function _takeBasePairFee(
-		ERC20TokenPayment memory inPayment,
+	/**
+	 * @notice Takes fee and update balances of beneficiaries
+	 * @dev This must be called on the out pair side
+	 * @param referrer the user address to receive part of fee
+	 * @param amount amount to compute and deduct fee from
+	 * @param totalFeePercent the fee percentage
+	 */
+	function takeFees(
+		address referrer,
+		uint256 amount,
 		uint256 totalFeePercent
-	) internal returns (ERC20TokenPayment memory, uint256) {
-		// 20%
-		uint256 burnFeePercent = (totalFeePercent * 2) / 10;
-		uint256 removedAmt = (inPayment.amount * burnFeePercent) /
-			Amm.MAX_PERCENTAGE;
+	) external isKnownPair returns (uint256 amountOut) {
+		uint256 fee = (totalFeePercent * amount) / FeeUtil.MAX_PERCENT;
 
-		inPayment.amount -= removedAmt;
+		amountOut = amount - fee;
 
-		// Move the removedAmt to deposits, then remove the equivalent in basePair trade token
-		// from basePair's reserve and burn that amount from circulation
-		deposits += removedAmt;
-		uint256 feeToBurn = Amm.quote(
-			removedAmt,
-			reserve(),
-			basePair.reserve()
-		);
-		basePair.burnFee(feeToBurn);
+		FeeUtil.Values memory values = FeeUtil.splitFee(fee);
 
-		return (inPayment, totalFeePercent - burnFeePercent);
+		// Give liqProviders value
+		deposits += _takeFromReserve(values.liqProvidersValue);
+
+		uint256 toBurn = values.toBurnValue;
+		if (referrer != address(0) && values.referrerValue > 0) {
+			tradeToken.transfer(
+				referrer,
+				_takeFromReserve(values.referrerValue)
+			);
+		} else {
+			toBurn += values.referrerValue;
+		}
+
+		// Increasing sales genrally implies the `toBurn`
+		// is available for ecosystem wide usage
+		sales += _takeFromReserve(toBurn);
 	}
 
 	function _executeSell(
 		ERC20TokenPayment memory inPayment,
 		address from,
-		IPair outPair,
+		address referrer,
+		Pair outPair,
 		uint256 slippage,
 		uint256 totalFeePercent
 	) private {
@@ -203,9 +221,15 @@ contract Pair is IPair, Ownable, KnowablePair {
 		uint256 amountOutOptimal = Amm.getAmountOut(
 			inPayment.amount,
 			inTokenReserve,
-			outTokenReserve,
+			outTokenReserve
+		);
+
+		amountOutOptimal = outPair.takeFees(
+			referrer,
+			amountOutOptimal,
 			totalFeePercent
 		);
+
 		require(amountOutOptimal >= amountOutMin, "Slippage Exceeded");
 		require(amountOutOptimal != 0, "Zero out amount");
 
@@ -299,6 +323,7 @@ contract Pair is IPair, Ownable, KnowablePair {
 	/**
 	 * @notice Executes a sell order.
 	 * @param caller Address of the caller.
+	 * @param referrerOfCaller Address of the referrer of the caller.
 	 * @param inPayment Details of the payment for the sell order.
 	 * @param outPair Address of the pair to sell to.
 	 * @param slippage Maximum slippage allowed.
@@ -306,28 +331,29 @@ contract Pair is IPair, Ownable, KnowablePair {
 	 */
 	function sell(
 		address caller,
+		address referrerOfCaller,
 		ERC20TokenPayment calldata inPayment,
-		IPair outPair,
+		Pair outPair,
 		uint256 slippage,
 		uint256 totalFeePercent
 	) external onlyOwner {
 		_checkAndReceivePayment(inPayment, caller, 0);
-		(
-			ERC20TokenPayment memory inPaymentAfterFee,
-			uint256 feePercent
-		) = _takeBasePairFee(inPayment, totalFeePercent);
-		_executeSell(inPaymentAfterFee, caller, outPair, slippage, feePercent);
+		_executeSell(
+			inPayment,
+			caller,
+			referrerOfCaller,
+			outPair,
+			slippage,
+			totalFeePercent
+		);
 	}
 
 	/**
-	 * @notice Completes a sell order.
+	 * @notice Completes a sell order on the outPair side.
 	 * @param to Address to which the amount is transferred.
 	 * @param amount Amount to be transferred.
 	 */
-	function completeSell(
-		address to,
-		uint256 amount
-	) external isKnownPair(msg.sender) {
+	function completeSell(address to, uint256 amount) external isKnownPair {
 		tradeToken.transfer(to, _takeFromReserve(amount));
 		basePair.mintRewards(amount);
 		emit BalanceUpdated(to, tradeToken.balanceOf(to));
