@@ -67,10 +67,13 @@ const deployPairs: DeployFunction = async function (hre: HardhatRuntimeEnvironme
     args: [tradeTokenAddr!, pairAddress!],
   });
 
-  await Promise.all([
-    (await ethers.getSigner(deployer)).sendTransaction({ value: parseEther("99"), to: tester1 }),
-    (await ethers.getSigner(deployer)).sendTransaction({ value: parseEther("999"), to: tester2 }),
-  ]);
+  if (hre.network.name == "localhost") {
+    // Send network tokens
+    await Promise.all([
+      (await ethers.getSigner(deployer)).sendTransaction({ value: parseEther("99"), to: tester1 }),
+      (await ethers.getSigner(deployer)).sendTransaction({ value: parseEther("999"), to: tester2 }),
+    ]);
+  }
 };
 
 export default deployPairs;

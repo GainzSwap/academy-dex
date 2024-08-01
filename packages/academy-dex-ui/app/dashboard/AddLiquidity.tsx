@@ -1,17 +1,18 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import BigNumber from "bignumber.js";
 import { useFormik } from "formik";
 import useSWR from "swr";
 import { erc20Abi, parseUnits } from "viem";
-import { useAccount, usePublicClient, useReadContract, useWriteContract } from "wagmi";
+import { useAccount } from "wagmi";
 import FormErrorMessage from "~~/components/FormErrorMessage";
 import { useModalToShow } from "~~/components/Modals";
 import TokensSelect from "~~/components/Swap/TokensSelect";
 import { useSwapableTokens } from "~~/components/Swap/hooks";
 import { TokenData } from "~~/components/Swap/types";
 import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import useRawCallsInfo from "~~/hooks/useRawCallsInfo";
 import { useSpendERC20 } from "~~/hooks/useSpendERC20";
 
 export const AddLiquidityModal = ({ selectedToken_ }: { selectedToken_?: TokenData }) => {
@@ -20,7 +21,8 @@ export const AddLiquidityModal = ({ selectedToken_ }: { selectedToken_?: TokenDa
   const { tokens, updateSwapableTokens } = useSwapableTokens({ address });
   const [selectedToken, setSelectedToken] = useState<TokenData | undefined>(selectedToken_);
 
-  const client = usePublicClient();
+  const { client } = useRawCallsInfo();
+
   const { writeContractAsync: writeRouter } = useScaffoldWriteContract("Router");
   const { data: spendAllowance } = useSWR(
     selectedToken && address

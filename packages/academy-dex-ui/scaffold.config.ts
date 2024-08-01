@@ -11,14 +11,17 @@ export type ScaffoldConfig = {
 const scaffoldConfig = {
   // The networks on which your DApp is live
   targetNetworks: [
-    chains.hardhat,
     {
       id: 656476,
       name: "opencampus",
       nativeCurrency: { decimals: 18, name: "EDU Coin", symbol: "EDU" },
-      rpcUrls: { default: { http: ["https://opencampus-codex.blockscout.com"] } },
+      rpcUrls: {
+        default: { http: ["https://rpc.open-campus-codex.gelato.digital"] },
+        public: { http: ["https://rpc.open-campus-codex.gelato.digital"] },
+      },
       testnet: true,
     },
+    chains.hardhat,
   ],
 
   // The interval at which your front-end polls the RPC servers for new data

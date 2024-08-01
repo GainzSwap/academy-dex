@@ -1,13 +1,14 @@
 import { useCallback, useMemo } from "react";
+import useRawCallsInfo from "./useRawCallsInfo";
 import useSWR from "swr";
 import { erc20Abi } from "viem";
-import { useAccount, usePublicClient, useWriteContract } from "wagmi";
+import { useAccount, useWriteContract } from "wagmi";
 import { TokenData } from "~~/components/Swap/types";
 import { formatAmount } from "~~/utils/formatAmount";
 
 export const useSpendERC20 = ({ token }: { token?: TokenData }) => {
   const { address } = useAccount();
-  const client = usePublicClient();
+  const { client } = useRawCallsInfo();
   const { writeContractAsync } = useWriteContract();
 
   const { data: spendAllowance } = useSWR(

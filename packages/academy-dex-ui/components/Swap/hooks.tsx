@@ -6,8 +6,8 @@ import { useFormik } from "formik";
 import RcSlider from "rc-slider";
 import useSWR from "swr";
 import { erc20Abi, parseUnits } from "viem";
-import { useAccount, usePublicClient } from "wagmi";
-import { useDeployedContractInfo, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import { useAccount } from "wagmi";
+import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import useRawCallsInfo from "~~/hooks/useRawCallsInfo";
 import { useSpendERC20 } from "~~/hooks/useSpendERC20";
 import { getItem } from "~~/storage/session";
@@ -49,8 +49,7 @@ export const useSlippageAdjuster = () => {
 };
 
 export const useSwapableTokens = ({ address }: { address?: string }) => {
-  const client = usePublicClient();
-  const { data: router } = useDeployedContractInfo("Router");
+  const { client, router } = useRawCallsInfo();
 
   // Function to fetch token data
   const fetchTokenData = async (tokenAddress: string): Promise<TokenData> => {

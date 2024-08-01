@@ -1,11 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import BigNumber from "bignumber.js";
 import { ChartData } from "chart.js";
 import useSWR from "swr";
-import { useAccount, usePublicClient } from "wagmi";
+import { useAccount } from "wagmi";
 import { useSwapableTokens } from "~~/components/Swap/hooks";
 import { TokenData } from "~~/components/Swap/types";
-import { useDeployedContractInfo } from "~~/hooks/scaffold-eth";
+import useRawCallsInfo from "~~/hooks/useRawCallsInfo";
 import Chart from "~~/utils/chart";
 import { prettyFormatAmount } from "~~/utils/formatAmount";
 import getColor from "~~/utils/getColor";
@@ -37,8 +37,7 @@ export default function PortfolioDistribution() {
   const { tokens } = useSwapableTokens({ address });
 
   const doughnutChartRef = useRef<HTMLCanvasElement>(null);
-  const { data: pairInfo } = useDeployedContractInfo("Pair");
-  const client = usePublicClient();
+  const { client, pairInfo } = useRawCallsInfo();
 
   const { data: baseReserve } = useSWR(
     pairInfo && client ? { pairInfo, client, tokens } : null,
