@@ -70,9 +70,9 @@ export default function PortfolioDistribution() {
       return;
     }
 
-    let values: any[] = [];
-    let backgroundColor: string[] = [];
-    let labels: string[] = [];
+    const values: any[] = [];
+    const backgroundColor: string[] = [];
+    const labels: string[] = [];
 
     for (const { tradeTokenAddr, identifier, price } of coinsWithPrice) {
       values.push(price);
@@ -148,7 +148,7 @@ export default function PortfolioDistribution() {
           {coinsWithPrice
             ?.sort((a, b) => +BigNumber(b.price).minus(a.price))
             .reduce<TokenData[][]>((acc, curr, index) => {
-              let row = acc[index] || [];
+              const row = acc[index] || [];
               if (row.length < 2) {
                 acc[index] = [...row, curr];
               } else {

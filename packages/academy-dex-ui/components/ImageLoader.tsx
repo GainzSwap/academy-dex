@@ -5,7 +5,7 @@ const imageLoader: ImageLoader = ({ src, width, quality }) => {
 };
 
 const ServerImage = ({ alt, loader, ...props }: ImageProps) => {
-  return <Image loader={imageLoader} alt={alt} {...props} />;
+  return <Image loader={!!loader ? imageLoader : imageLoader} alt={alt} {...props} />;
 };
 
 export default ServerImage;

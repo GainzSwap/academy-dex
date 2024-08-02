@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import TokenIcon from "../TokenIcon";
 import { TokenData } from "./types";
 import Dropdown from "react-bootstrap/Dropdown";
@@ -14,8 +13,6 @@ export default function TokensSelect({
   selected?: TokenData;
   setSelected: (token: TokenData) => void;
 }) {
-  const id = `${title}-TokenDropdown`;
-
   // const tokens = useMemo(
   //   () => (title === "From" ? _tokens.filter(token => +token.balance != 0) : _tokens),
   //   [_tokens, title],
@@ -54,21 +51,5 @@ export default function TokensSelect({
         )}
       </Dropdown>
     </div>
-
-    //   <div >
-    //     <button
-    //       data-testid={`tokenSelect-${title}`}
-    //       className="form-control dropdown-toggle"
-    //       type="button"
-    //       id={id}
-    //       data-bs-toggle="dropdown"
-    //       aria-expanded="false"
-    //       style={{ overflow: "hidden" }}
-    //     >
-
-    //     </button>
-
-    //   </div>
-    // </div>
   );
 }

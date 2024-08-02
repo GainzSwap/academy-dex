@@ -1,9 +1,7 @@
-import { useEffect, useRef } from "react";
-
 // import { useWatchGenericTxs } from 'src/components/InstantGenericTxModal';
 // import TransactionWaitingIcon from 'src/components/TransactionWaitingIcon';
 
-export default function SwapButton({ onSwapComplete }: { onSwapComplete: () => void }) {
+export default function SwapButton({}: { onSwapComplete: () => void }) {
   // const { handleClick, iconReqState, isLoading } = useWatchGenericTxs([]);
 
   // Track iconReqState

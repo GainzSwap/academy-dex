@@ -1,13 +1,10 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useMemo, useState } from "react";
 import AddLiquidity from "./AddLiquidity";
 import BigNumber from "bignumber.js";
 import { useAccount } from "wagmi";
 import { useSwapableTokens } from "~~/components/Swap/hooks";
-import { TokenData } from "~~/components/Swap/types";
 import { useOnPathChange } from "~~/hooks/useContentPanel";
 import { prettyFormatAmount } from "~~/utils/formatAmount";
 
