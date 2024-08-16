@@ -13,6 +13,10 @@ import "../pair/BasePair.sol";
 import "../test-case/TestingBasePair.sol";
 import "./User.sol";
 
+import { LpToken } from "../modules/LpToken.sol";
+import { ADEX } from "../ADexToken/ADEX.sol";
+import { ADexInfo } from "../ADexToken/AdexInfo.sol";
+
 library PairFactory {
 	function newPair(
 		address tradeToken,
@@ -22,20 +26,8 @@ library PairFactory {
 	}
 
 	function newBasePair() external returns (BasePair) {
-		return new BasePair();
-	}
-}
-
-library TestingPairFactory {
-	function newPair(
-		address tradeToken,
-		address basePairAddr
-	) external returns (Pair) {
-		return new Pair(tradeToken, basePairAddr);
-	}
-
-	function newBasePair() external returns (BasePair) {
-		return new TestingBasePair();
+		ADEX adex = new ADEX();
+		return new BasePair(address(adex));
 	}
 }
 
@@ -58,23 +50,10 @@ contract Router is Ownable, UserModule {
 	uint256 totalLiq;
 	uint256 totalRewards;
 
-	/**
-	 * @notice Calls the BasePair contract to mint the initial supply of the base trade token.
-	 * @dev This function can only be called by the owner of the contract.
-	 *      It passes the owner of the Router contract as the recipient of the minted tokens.
-	 *      The base trade token is assumed to be the first token in the `pairs` set.
-	 * @param amount The amount of tokens to mint as the initial supply.
-	 */
-	function mintInitialSupply(uint256 amount) external onlyOwner {
-		// Get the address of the base pair, assumed to be the first token in the pairs set
-		address basePairAddress = basePairAddr();
+	LpToken public immutable lpToken;
 
-		// Instantiate the base pair contract
-		BasePair basePair = BasePair(basePairAddress);
-
-		// Call the mintInitialSupply function of the base pair contract,
-		// passing the owner of the Router contract as the recipient
-		basePair.mintInitialSupply(amount, owner());
+	constructor() {
+		lpToken = new LpToken();
 	}
 
 	/**
@@ -93,7 +72,11 @@ contract Router is Ownable, UserModule {
 
 		if (pairsCount() == 0) {
 			pair = PairFactory.newBasePair();
-			tradeToken = address(pair.tradeToken());
+			ERC20 adex = pair.tradeToken();
+			tradeToken = address(adex);
+
+			adex.transfer(address(pair), ADexInfo.ECOSYSTEM_DISTRIBUTION_FUNDS);
+			adex.transfer(owner(), ADexInfo.ICO_FUNDS);
 		} else {
 			pair = PairFactory.newPair(tradeToken, basePairAddr());
 		}
@@ -108,18 +91,20 @@ contract Router is Ownable, UserModule {
 	 * @param wholePayment Payment details for adding liquidity.
 	 */
 	function addLiquidity(ERC20TokenPayment calldata wholePayment) external {
+		address caller = msg.sender;
+
 		address tokenAddress = address(wholePayment.token);
 		address pairAddress = tokensPairAddress[tokenAddress];
 		require(pairAddress != address(0), "Router: Invalid pair address");
 
-		uint256 liqAdded = Pair(pairAddress).addLiquidity(
-			wholePayment,
-			msg.sender
-		);
+		(uint256 liqAdded, uint256 rewardPerShare) = Pair(pairAddress)
+			.addLiquidity(wholePayment, caller);
 
 		// Upadte liquidity data to be used for other computations like fee
 		totalLiq += liqAdded;
 		pairData[tokenAddress].totalLiq += liqAdded;
+
+		lpToken.mint(rewardPerShare, liqAdded, pairAddress, caller);
 	}
 
 	/**

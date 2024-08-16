@@ -22,9 +22,6 @@ library Amm {
 		uint256 reserveIn,
 		uint256 reserveOut
 	) internal pure returns (uint256) {
-		uint256 numerator = amountIn * reserveOut;
-		uint256 denominator = reserveIn + amountIn;
-
-		return numerator / denominator;
+		return quote(amountIn, reserveIn + amountIn, reserveOut);
 	}
 }

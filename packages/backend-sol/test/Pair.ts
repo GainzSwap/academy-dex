@@ -23,7 +23,7 @@ describe("Pair", function () {
 
     const basePairContract = await ethers.getContractAt("TestingBasePair", await router.basePairAddr());
     const baseTradeToken = await ethers.getContractAt("MintableERC20", await basePairContract.tradeToken());
-    await basePairContract.mint(user, ethers.parseEther("0.1"));
+    await baseTradeToken.connect(owner).transfer(user, ethers.parseEther("0.1"));
 
     let pairCount = 0;
     const createPair = async () => {
@@ -58,7 +58,8 @@ describe("Pair", function () {
       const basePayment = { amount: baseAmt, token: baseTradeToken };
       const pairPayment = { amount: pairAmt, token: pairTradeToken };
 
-      await basePairContract.mint(user, baseAmt);
+      await baseTradeToken.connect(owner).transfer(user, baseAmt);
+      const initialAdexBal = await baseTradeToken.balanceOf(basePairContract);
       await addLiquidity({ contract: basePairContract, tradeToken: baseTradeToken }, basePayment);
       expect(await basePairContract.reserve()).to.equal(basePayment.amount);
 
@@ -66,7 +67,7 @@ describe("Pair", function () {
       await addLiquidity({ contract: pairContract, tradeToken: pairTradeToken }, pairPayment);
       expect(await pairContract.reserve()).to.equal(pairPayment.amount);
 
-      expect(await baseTradeToken.balanceOf(basePairContract)).to.equal(basePayment.amount);
+      expect(await baseTradeToken.balanceOf(basePairContract)).to.equal(BigInt(basePayment.amount) + initialAdexBal);
       expect(await pairTradeToken.balanceOf(pairContract)).to.equal(pairPayment.amount);
     };
 
@@ -197,120 +198,6 @@ describe("Pair", function () {
       await sellToken({ buyContract: firstPairContract, sellContract: secondPairContract, sellAmt: 7000 });
       await sellToken({ buyContract: secondPairContract, sellContract: basePairContract, sellAmt: 7000 });
     });
-
-    it("keeps minting of base pair in a sensible valuation", async () => {
-      const {
-        pairContract,
-        basePairContract,
-        baseTradeToken,
-        pairTradeToken,
-        user,
-        addInitialLiq,
-        sellToken,
-        createPair,
-        addLiquidity,
-        otherUsers: [, , , , otherUser, someUser],
-      } = await loadFixture(deployPairFixture);
-      let pairAmt = 3_000_000;
-      const baseAmt = ethers.parseEther(pairAmt.toString());
-      await basePairContract.mint(user, baseAmt);
-      await addInitialLiq({ baseAmt, pairAmt });
-      const _format = (n: bigint) => format(n, 0);
-
-      while (pairAmt > 0) {
-        const sellAmt = 500_000;
-        pairAmt -= sellAmt;
-
-        await pairTradeToken.mint(someUser, ethers.parseEther(sellAmt.toString()));
-        await sellToken({
-          buyContract: basePairContract,
-          sellAmt,
-          sellContract: pairContract,
-          slippage: 100_00,
-          someUser,
-        });
-        let userBaseTokenBal = await baseTradeToken.balanceOf(someUser);
-        await sellToken({
-          buyContract: pairContract,
-          sellAmt: userBaseTokenBal,
-          sellContract: basePairContract,
-          slippage: 100_00,
-          someUser,
-        });
-        let userPairTokenBal = await pairTradeToken.balanceOf(someUser);
-        if (pairAmt <= 0) {
-          await sellToken({
-            buyContract: basePairContract,
-            sellAmt: userPairTokenBal,
-            sellContract: pairContract,
-            slippage: 100_00,
-            someUser,
-          });
-        }
-        userPairTokenBal = await pairTradeToken.balanceOf(someUser);
-        userBaseTokenBal = await baseTradeToken.balanceOf(someUser);
-
-        const pairTradingReserve = await pairContract.reserve();
-        const basePairRewards = await basePairContract.rewards();
-        const pairRewards = await pairContract.rewards();
-
-        // Add assertions to check the expected state
-        expect(pairTradingReserve).to.be.gt(0);
-        expect(basePairRewards).to.be.gt(0);
-        expect(pairRewards).to.be.gt(0);
-
-        // Optionally, log values for debugging purposes
-        // console.log({
-        //   rewards: {
-        //     basePairRewards: _format(basePairRewards),
-        //     pairRewards: _format(pairRewards),
-        //     totalMintedBaseToken: _format(basePairRewards.add(pairRewards)),
-        //   },
-        //   userBaseTokenBal: _format(userBaseTokenBal),
-        //   userPairTokenBal: _format(userPairTokenBal),
-        //   pairTradingReserve: _format(pairTradingReserve),
-        // });
-        // console.log("base supply: ", _format(await baseTradeToken.totalSupply()));
-      }
-
-      // Create new pair
-      const { pairContract: secondPairContract, pairTradeToken: secondTradeToken } = await createPair();
-      const amount = ethers.parseEther((0.8).toString());
-      await secondTradeToken.mint(otherUser, amount);
-      await addLiquidity(
-        { tradeToken: secondTradeToken, contract: secondPairContract, signer: otherUser },
-        { amount, token: secondTradeToken },
-      );
-
-      for (let i = 0; i < 15; i++) {
-        let sellAmt = ethers.parseEther((0.07 * (i + 1)).toFixed(8).toString());
-
-        await secondTradeToken.mint(otherUser, sellAmt);
-        await sellToken({
-          buyContract: pairContract,
-          sellContract: secondPairContract,
-          sellAmt,
-          slippage: 100_00,
-          someUser: otherUser,
-        });
-
-        if (i % 5 == 0) {
-          const { pairContract: newPairContract, pairTradeToken: newPairTradeToken } = await createPair();
-          await addLiquidity(
-            { tradeToken: newPairTradeToken, contract: newPairContract },
-            { amount: 80_000_000, token: newPairTradeToken },
-          );
-        }
-
-        // Optionally, log values for debugging purposes
-        // console.log("base supply: ", _format(await baseTradeToken.totalSupply()));
-        // console.log("pairRewards: ", _format(await pairContract.rewards()));
-      }
-
-      // Add assertions to check the final state
-      expect(await baseTradeToken.totalSupply()).to.be.gt(0);
-      expect(await pairContract.rewards()).to.be.gt(0);
-    });
   });
 
   describe("Edge Cases for Adding Liquidity", function () {
@@ -360,7 +247,7 @@ describe("Pair", function () {
 
       await expect(
         sellToken({ sellAmt: 0, sellContract: pairContract, buyContract: basePairContract, someUser: user }),
-      ).to.be.revertedWith("Zero out amount");
+      ).to.be.revertedWith("Pair: Zero out amount");
     });
 
     it("should revert when selling more tokens than user's balance", async function () {
@@ -402,13 +289,16 @@ describe("Pair", function () {
     it("should handle high slippage correctly", async function () {
       const { sellToken, basePairContract, pairContract, user, pairTradeToken, addInitialLiq } =
         await loadFixture(deployPairFixture);
-      await addInitialLiq({ baseAmt: ethers.parseEther("15.00554"), pairAmt: ethers.parseEther("9.943") });
 
-      await pairTradeToken.mint(user, ethers.parseEther("1000"));
-      await pairTradeToken.connect(user).approve(pairContract, ethers.parseEther("1000"));
+      const sellAmt = ethers.parseEther("1000");
+
+      await addInitialLiq({ baseAmt: ethers.parseEther("15.00554"), pairAmt: sellAmt });
+
+      await pairTradeToken.mint(user, sellAmt);
+      await pairTradeToken.connect(user).approve(pairContract, sellAmt);
       await expect(
         sellToken({
-          sellAmt: ethers.parseEther("1000"),
+          sellAmt,
           sellContract: pairContract,
           buyContract: basePairContract,
           someUser: user,

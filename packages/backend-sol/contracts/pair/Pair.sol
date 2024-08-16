@@ -24,12 +24,15 @@ contract Pair is IPair, Ownable, KnowablePair {
 	using SafePriceUtil for SafePriceData;
 	using FeeUtil for FeeUtil.Values;
 
-	ERC20 public immutable tradeToken;
+	// Reserve data
 	uint256 public deposits;
 	uint256 public sales;
 
 	uint256 public rewards;
+	uint256 public rewardsPershare;
 	uint256 public lpSupply;
+
+	ERC20 public immutable tradeToken;
 	IBasePair immutable basePair;
 
 	mapping(address => SafePriceData) safePrices;
@@ -231,7 +234,7 @@ contract Pair is IPair, Ownable, KnowablePair {
 		);
 
 		require(amountOutOptimal >= amountOutMin, "Slippage Exceeded");
-		require(amountOutOptimal != 0, "Zero out amount");
+		require(amountOutOptimal != 0, "Pair: Zero out amount");
 
 		_completeSell(inPayment, from, outPair, amountOutOptimal);
 
@@ -286,9 +289,8 @@ contract Pair is IPair, Ownable, KnowablePair {
 			newPaymentTokenReserve,
 			newBaseTokenReserve
 		);
-		if (initialK > newK) {
-			revert ErrorKInvariantFailed();
-		}
+
+		require(newK > initialK, "Pair: K Invariant Failed");
 	}
 
 	/**
@@ -300,7 +302,7 @@ contract Pair is IPair, Ownable, KnowablePair {
 	function addLiquidity(
 		ERC20TokenPayment calldata wholePayment,
 		address from
-	) external onlyOwner returns (uint256 liqAdded) {
+	) external onlyOwner returns (uint256 liqAdded, uint256 rps) {
 		_checkAndReceivePayment(wholePayment, from);
 
 		bool isBasePair = address(this) == address(basePair);
@@ -311,9 +313,9 @@ contract Pair is IPair, Ownable, KnowablePair {
 		} else {
 			_addPairLiq(wholePayment);
 		}
-
 		require(lpSupply > initalLp, "Pair: invalid liquidity addition");
 		liqAdded = lpSupply - initalLp;
+		rps = rewardsPershare;
 
 		emit LiquidityAdded(from, wholePayment.amount, liqAdded);
 		emit BalanceUpdated(from, tradeToken.balanceOf(from));
