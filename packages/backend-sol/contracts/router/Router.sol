@@ -16,6 +16,11 @@ import "./User.sol";
 import { LpToken } from "../modules/LpToken.sol";
 import { ADEX } from "../ADexToken/ADEX.sol";
 import { ADexInfo } from "../ADexToken/AdexInfo.sol";
+import { AdexEmission } from "../ADexToken/AdexEmission.sol";
+import { Amm } from "../common/Amm.sol";
+import { Epochs } from "../common/Epochs.sol";
+
+import "hardhat/console.sol";
 
 library PairFactory {
 	function newPair(
@@ -31,29 +36,193 @@ library PairFactory {
 	}
 }
 
+uint256 constant REWARDS_DIVISION_CONSTANT = 1e18;
+
 contract Router is Ownable, UserModule {
 	using EnumerableSet for EnumerableSet.AddressSet;
 	using Address for address;
+	using Epochs for Epochs.Storage;
 
 	struct PairData {
-		uint256 rewardsAgainst;
-		uint256 rewardsFor;
+		uint256 sellVolume;
+		uint256 buyVolume;
+		uint256 lpRewardsPershare;
+		uint256 tradeRewardsPershare;
 		uint256 totalLiq;
+		uint256 rewardsReserve;
 	}
+
+	struct GlobalData {
+		uint256 totalLiq;
+		uint256 rewardsReserve;
+		uint256 rewardsPerShare;
+		uint256 totalTradeVolume;
+		uint256 lastTimestamp;
+	}
+
+	Epochs.Storage private epochs;
 
 	EnumerableSet.AddressSet private pairs;
 	EnumerableSet.AddressSet private tradeTokens;
 
 	mapping(address => address) public tokensPairAddress;
-	mapping(address => PairData) public pairData;
-
-	uint256 totalLiq;
-	uint256 totalRewards;
+	mapping(address => PairData) public pairsData;
+	GlobalData public globalData;
 
 	LpToken public immutable lpToken;
 
 	constructor() {
 		lpToken = new LpToken();
+		epochs.initialize(24 hours);
+		globalData.lastTimestamp = block.timestamp;
+	}
+
+	function _computeEdgeEmissions(
+		uint256 epoch,
+		uint256 lastTimestamp,
+		uint256 latestTimestamp
+	) internal view returns (uint256) {
+		(uint256 startTimestamp, uint256 endTimestamp) = epochs
+			.epochEdgeTimestamps(epoch);
+
+		uint256 upperBoundTime = 0;
+		uint256 lowerBoundTime = 0;
+
+		if (
+			startTimestamp <= latestTimestamp && latestTimestamp <= endTimestamp
+		) {
+			upperBoundTime = latestTimestamp;
+			lowerBoundTime = startTimestamp;
+		} else if (
+			startTimestamp <= lastTimestamp && lastTimestamp <= endTimestamp
+		) {
+			upperBoundTime = latestTimestamp <= endTimestamp
+				? latestTimestamp
+				: endTimestamp;
+			lowerBoundTime = lastTimestamp;
+		} else {
+			console.log(startTimestamp, endTimestamp);
+			console.log(lastTimestamp, latestTimestamp);
+			revert("Router._computeEdgeEmissions: Invalid timestamps");
+		}
+
+		return
+			AdexEmission.throughTimeRange(
+				epoch,
+				upperBoundTime - lowerBoundTime,
+				epochs.epochLength
+			);
+	}
+
+	function _generateRewards(
+		PairData memory data
+	)
+		internal
+		view
+		returns (PairData memory newPairData, GlobalData memory newGlobalData)
+	{
+		newPairData = data;
+		newGlobalData = globalData;
+
+		uint256 currentTimestamp = block.timestamp;
+		uint256 lastTimestamp = newGlobalData.lastTimestamp;
+
+		if (
+			lastTimestamp < currentTimestamp && globalData.totalTradeVolume > 0
+		) {
+			uint256 lastGenerateEpoch = epochs.computeEpoch(lastTimestamp);
+			uint256 generatedRewards = _computeEdgeEmissions(
+				lastGenerateEpoch,
+				lastTimestamp,
+				currentTimestamp
+			);
+
+			uint256 currentEpoch = epochs.currentEpoch();
+			if (currentEpoch > lastGenerateEpoch) {
+				uint256 intermediateEpochs = currentEpoch -
+					lastGenerateEpoch -
+					1;
+
+				if (intermediateEpochs > 1) {
+					generatedRewards += AdexEmission.throughEpochRange(
+						lastGenerateEpoch,
+						lastGenerateEpoch + intermediateEpochs
+					);
+				}
+
+				generatedRewards += _computeEdgeEmissions(
+					currentEpoch,
+					lastTimestamp,
+					currentTimestamp
+				);
+			}
+
+			uint256 rpsIncrease = (generatedRewards *
+				REWARDS_DIVISION_CONSTANT) / globalData.totalTradeVolume;
+
+			newGlobalData.lastTimestamp = currentTimestamp;
+			newGlobalData.rewardsPerShare += rpsIncrease;
+			newGlobalData.rewardsReserve += generatedRewards;
+		}
+
+		if (newPairData.tradeRewardsPershare < newGlobalData.rewardsPerShare) {
+			if (newPairData.buyVolume > 0) {
+				// compute reward
+				uint256 computedReward = ((newGlobalData.rewardsPerShare -
+					newPairData.tradeRewardsPershare) * newPairData.buyVolume) /
+					REWARDS_DIVISION_CONSTANT;
+
+				// Transfer rewards
+				newGlobalData.rewardsReserve -= computedReward;
+				newPairData.rewardsReserve += computedReward;
+
+				if (newPairData.totalLiq > 0) {
+					uint256 rpsIncrease = (computedReward *
+						REWARDS_DIVISION_CONSTANT) / newPairData.totalLiq;
+
+					newPairData.lpRewardsPershare += rpsIncrease;
+				}
+			}
+
+			newPairData.tradeRewardsPershare = newGlobalData.rewardsPerShare;
+		}
+	}
+
+	function _computeRewardsClaimable(
+		LpToken.LpBalance memory balance
+	)
+		internal
+		view
+		returns (
+			uint256 claimable,
+			PairData memory newPairData,
+			GlobalData memory newGlobalData,
+			LpToken.LpAttributes memory newAttr
+		)
+	{
+		newAttr = balance.attributes;
+
+		newPairData = pairsData[newAttr.pair];
+		(newPairData, newGlobalData) = _generateRewards(newPairData);
+
+		if (newAttr.rewardPerShare < newPairData.lpRewardsPershare) {
+			// compute reward
+			claimable =
+				((newPairData.lpRewardsPershare - newAttr.rewardPerShare) *
+					balance.amount) /
+				REWARDS_DIVISION_CONSTANT;
+
+			newPairData.rewardsReserve -= claimable;
+		}
+	}
+
+	function _updatePairDataAfterRewardsGenerated(
+		PairData storage pairData,
+		PairData memory newPairData
+	) internal {
+		pairData.lpRewardsPershare = newPairData.lpRewardsPershare;
+		pairData.rewardsReserve = newPairData.rewardsReserve;
+		pairData.tradeRewardsPershare = newPairData.tradeRewardsPershare;
 	}
 
 	/**
@@ -75,7 +244,6 @@ contract Router is Ownable, UserModule {
 			ERC20 adex = pair.tradeToken();
 			tradeToken = address(adex);
 
-			adex.transfer(address(pair), ADexInfo.ECOSYSTEM_DISTRIBUTION_FUNDS);
 			adex.transfer(owner(), ADexInfo.ICO_FUNDS);
 		} else {
 			pair = PairFactory.newPair(tradeToken, basePairAddr());
@@ -97,14 +265,30 @@ contract Router is Ownable, UserModule {
 		address pairAddress = tokensPairAddress[tokenAddress];
 		require(pairAddress != address(0), "Router: Invalid pair address");
 
-		(uint256 liqAdded, uint256 rewardPerShare) = Pair(pairAddress)
-			.addLiquidity(wholePayment, caller);
+		uint256 liqAdded = Pair(pairAddress).addLiquidity(wholePayment, caller);
 
 		// Upadte liquidity data to be used for other computations like fee
-		totalLiq += liqAdded;
-		pairData[tokenAddress].totalLiq += liqAdded;
+		globalData.totalLiq += liqAdded;
 
-		lpToken.mint(rewardPerShare, liqAdded, pairAddress, caller);
+		PairData storage pairData = pairsData[pairAddress];
+
+		// Update pairData
+		(PairData memory newPairData, ) = _generateRewards(pairData);
+		_updatePairDataAfterRewardsGenerated(pairData, newPairData);
+		pairData.totalLiq += liqAdded;
+
+		lpToken.mint(pairData.lpRewardsPershare, liqAdded, pairAddress, caller);
+	}
+
+	function getClaimableRewards(
+		address user
+	) external view returns (uint256 totalClaimable) {
+		LpToken.LpBalance[] memory balances = lpToken.lpBalanceOf(user);
+
+		for (uint256 i = 0; i < balances.length; i++) {
+			(uint256 claimable, , , ) = _computeRewardsClaimable(balances[i]);
+			totalClaimable += claimable;
+		}
 	}
 
 	/**
@@ -149,26 +333,65 @@ contract Router is Ownable, UserModule {
 		require(pairs.contains(outPairAddr), "Router: Output pair not found");
 
 		Pair outPair = Pair(outPairAddr);
-		uint256 initialOutPairRewards = outPair.rewards();
+		Pair inPair = Pair(inPairAddr);
+
+		address basePairAddr_ = basePairAddr();
+		Pair basePair = Pair(basePairAddr_);
+
+		uint256 tradeVolume = Amm.quote(
+			inPayment.amount,
+			inPair.reserve(),
+			basePair.reserve()
+		);
 
 		(, address referrer) = getReferrer(msg.sender);
+
+		uint256 initialBaseReserve = basePair.reserve();
 		Pair(inPairAddr).sell(
 			msg.sender,
 			referrer,
 			inPayment,
 			outPair,
 			slippage,
-			computeFeePercent(inPairAddr, inPayment.amount)
+			_computeFeePercent(inPairAddr, tradeVolume)
 		);
+		uint256 finalBaseReserve = basePair.reserve();
 
-		uint256 finalOutPairRewards = outPair.rewards();
+		// TODO
+		// require(
+		// 	finalBaseReserve < initialBaseReserve,
+		// 	"Router: fees not collected"
+		// );
+		// uint256 feeCollectedInBase = initialBaseReserve - finalBaseReserve;
 
-		uint256 rewardsChange = finalOutPairRewards - initialOutPairRewards;
-		require(rewardsChange > 0, "Router: no rewards gianed for out pair");
+		// Update reward computation data
+		pairsData[inPairAddr].sellVolume += tradeVolume;
+		pairsData[outPairAddr].buyVolume += tradeVolume;
+		// pairsData[basePairAddr_].buyVolume += feeCollectedInBase;
+		globalData.totalTradeVolume += tradeVolume;
+	}
 
-		pairData[inPairAddr].rewardsAgainst += rewardsChange;
-		pairData[outPairAddr].rewardsFor += rewardsChange;
-		totalRewards += rewardsChange;
+	/**
+	 * @notice Computes the feePercent based on the pair's sales against the liquidity provided in other pairs.
+	 * @dev The more a pair is sold, the higher the feePercent. This is computed based on the pair's sales relative to the provided liquidity in other pairs.
+	 * @param pairAddress The address of the pair for which the feePercent is being computed.
+	 * @param tradeVolume The value in ADEX to be exchanged.
+	 * @return feePercent The computed feePercent based on the input amount and the pair's sales.
+	 */
+	function _computeFeePercent(
+		address pairAddress,
+		uint256 tradeVolume
+	) internal view returns (uint256 feePercent) {
+		PairData memory data = pairsData[pairAddress];
+		uint256 projectedSales = data.sellVolume + tradeVolume;
+		uint256 pairBuys = data.buyVolume;
+
+		uint256 salesDiff = projectedSales > pairBuys
+			? projectedSales - pairBuys
+			: 0;
+
+		uint256 otherLiq = globalData.totalLiq - data.totalLiq;
+		feePercent = FeeUtil.feePercent(salesDiff, otherLiq, pairsCount());
 	}
 
 	/**
@@ -182,20 +405,13 @@ contract Router is Ownable, UserModule {
 		address pairAddress,
 		uint256 inAmount
 	) public view returns (uint256 feePercent) {
-		uint256 projectedRewardsChange = Amm.quote(
+		uint256 tradeVolume = Amm.quote(
 			inAmount,
 			Pair(pairAddress).reserve(),
 			Pair(basePairAddr()).reserve()
 		);
 
-		uint256 pairSales = pairData[pairAddress].rewardsAgainst +
-			projectedRewardsChange;
-		uint256 pairBuys = pairData[pairAddress].rewardsFor;
-
-		uint256 salesDiff = pairSales > pairBuys ? pairSales - pairBuys : 0;
-
-		uint256 otherLiq = totalLiq - pairData[pairAddress].totalLiq;
-		feePercent = FeeUtil.feePercent(salesDiff, otherLiq, pairsCount());
+		feePercent = _computeFeePercent(pairAddress, tradeVolume);
 	}
 
 	/**

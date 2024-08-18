@@ -10,7 +10,7 @@ import "../common/libs/TokenPayments.sol";
 
 import "./contexts/AddLiquidity.sol";
 
-import "./Amm.sol";
+import "../common/Amm.sol";
 import "./Errors.sol";
 import "./SafePrice.sol";
 import "./Interface.sol";
@@ -28,8 +28,6 @@ contract Pair is IPair, Ownable, KnowablePair {
 	uint256 public deposits;
 	uint256 public sales;
 
-	uint256 public rewards;
-	uint256 public rewardsPershare;
 	uint256 public lpSupply;
 
 	ERC20 public immutable tradeToken;
@@ -51,7 +49,6 @@ contract Pair is IPair, Ownable, KnowablePair {
 		uint256 amountOut,
 		uint256 fee
 	);
-	event RewardReceived(address indexed from, uint256 amount);
 	event BalanceUpdated(address indexed user, uint256 balance);
 
 	/**
@@ -157,6 +154,8 @@ contract Pair is IPair, Ownable, KnowablePair {
 		emit BalanceUpdated(address(this), tradeToken.balanceOf(address(this)));
 	}
 
+	event BurntFees(address indexed pair, uint256 fee);
+
 	/**
 	 * @notice Takes fee and update balances of beneficiaries
 	 * @dev This must be called on the out pair side
@@ -191,6 +190,7 @@ contract Pair is IPair, Ownable, KnowablePair {
 		// Increasing sales genrally implies the `toBurn`
 		// is available for ecosystem wide usage
 		sales += _takeFromReserve(toBurn);
+		emit BurntFees(address(this), toBurn);
 	}
 
 	function _executeSell(
@@ -302,7 +302,7 @@ contract Pair is IPair, Ownable, KnowablePair {
 	function addLiquidity(
 		ERC20TokenPayment calldata wholePayment,
 		address from
-	) external onlyOwner returns (uint256 liqAdded, uint256 rps) {
+	) external onlyOwner returns (uint256 liqAdded) {
 		_checkAndReceivePayment(wholePayment, from);
 
 		bool isBasePair = address(this) == address(basePair);
@@ -315,7 +315,6 @@ contract Pair is IPair, Ownable, KnowablePair {
 		}
 		require(lpSupply > initalLp, "Pair: invalid liquidity addition");
 		liqAdded = lpSupply - initalLp;
-		rps = rewardsPershare;
 
 		emit LiquidityAdded(from, wholePayment.amount, liqAdded);
 		emit BalanceUpdated(from, tradeToken.balanceOf(from));
@@ -357,7 +356,6 @@ contract Pair is IPair, Ownable, KnowablePair {
 	 */
 	function completeSell(address to, uint256 amount) external isKnownPair {
 		tradeToken.transfer(to, _takeFromReserve(amount));
-		basePair.mintRewards(amount);
 		emit BalanceUpdated(to, tradeToken.balanceOf(to));
 		emit BalanceUpdated(address(this), tradeToken.balanceOf(address(this)));
 	}
@@ -368,19 +366,5 @@ contract Pair is IPair, Ownable, KnowablePair {
 	 */
 	function reserve() public view returns (uint256) {
 		return deposits + sales;
-	}
-
-	function receiveReward(
-		ERC20TokenPayment calldata payment
-	) external onlyBasePair {
-		// TODO check that payment is base pair's token
-		require(
-			payment.token == Pair(address(basePair)).tradeToken(),
-			"Pair: invalid reward token"
-		);
-		TokenPayments.receiveERC20(payment);
-		rewards += payment.amount;
-		emit RewardReceived(msg.sender, payment.amount);
-		emit BalanceUpdated(address(this), tradeToken.balanceOf(address(this)));
 	}
 }
