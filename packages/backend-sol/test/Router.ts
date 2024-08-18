@@ -115,4 +115,54 @@ describe("Router", function () {
       expect((await router.getClaimableRewards(user)) - gainAfterSmallTime).to.be.greaterThan(0);
     });
   });
+
+  describe("Fee Calculation and Distribution", function () {
+    it("should correctly calculate fees for Base LPs and Referrer", async function () {
+      const {
+        baseTradeToken,
+        basePairContract,
+        addLiquidity,
+        createPair,
+        router,
+        owner,
+        user,
+        otherUsers: [, , , referred, referrer],
+      } = await loadFixture(deployRouterFixture);
+
+      const { pairContract: buyContract, pairTradeToken: buyToken } = await createPair();
+      const { pairContract: sellContract, pairTradeToken: sellToken } = await createPair();
+
+      // Add base liq, must do so that trading will occur
+      await addLiquidity(
+        { tradeToken: baseTradeToken, contract: basePairContract, signer: owner },
+        { amount: parseEther("8274.4294279"), token: baseTradeToken },
+      );
+
+      const userLiq = { amount: parseEther("7487464.385"), token: buyToken };
+      await buyToken.mint(user, userLiq.amount);
+      await addLiquidity({ tradeToken: userLiq.token, contract: buyContract }, userLiq);
+
+      userLiq.token = sellToken;
+      await sellToken.mint(user, userLiq.amount);
+      await addLiquidity({ tradeToken: userLiq.token, contract: sellContract }, userLiq);
+
+      expect((await router.pairsData(basePairContract)).buyVolume).to.equal(0);
+
+      const referrerInPayment = { token: buyToken, amount: parseEther("0.0024846") };
+      await referrerInPayment.token.connect(owner).mint(referrer, referrerInPayment.amount);
+      await referrerInPayment.token.connect(referrer).approve(buyContract, referrerInPayment.amount);
+      await router.connect(referrer).registerAndSwap(0, referrerInPayment, sellContract, 1_00);
+
+      expect(await buyToken.balanceOf(referrer)).to.equal(0);
+
+      const referredInPayment = { token: sellToken, amount: parseEther("65.767") };
+      await referredInPayment.token.connect(owner).mint(referred, referredInPayment.amount);
+      await referredInPayment.token.connect(referred).approve(sellContract, referredInPayment.amount);
+      await router.connect(referred).registerAndSwap(1, referredInPayment, buyContract, 1_00);
+
+      // referrer receives trade fee
+      expect(await buyToken.balanceOf(referrer)).to.be.greaterThan(0);
+      expect((await router.pairsData(basePairContract)).buyVolume).to.be.greaterThan(0);
+    });
+  });
 });

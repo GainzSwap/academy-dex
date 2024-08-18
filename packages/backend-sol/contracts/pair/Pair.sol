@@ -49,7 +49,6 @@ contract Pair is IPair, Ownable, KnowablePair {
 		uint256 amountOut,
 		uint256 fee
 	);
-	event BalanceUpdated(address indexed user, uint256 balance);
 
 	/**
 	 * @dev Constructor for initializing the Pair contract.
@@ -142,101 +141,102 @@ contract Pair is IPair, Ownable, KnowablePair {
 		}
 	}
 
-	function _completeSell(
-		ERC20TokenPayment memory inPayment,
-		address from,
-		IPair outPair,
-		uint256 outAmount
-	) internal virtual {
-		sales += inPayment.amount;
-		outPair.completeSell(from, outAmount);
-		emit BalanceUpdated(from, tradeToken.balanceOf(from));
-		emit BalanceUpdated(address(this), tradeToken.balanceOf(address(this)));
-	}
-
 	event BurntFees(address indexed pair, uint256 fee);
 
 	/**
 	 * @notice Takes fee and update balances of beneficiaries
 	 * @dev This must be called on the out pair side
 	 * @param referrer the user address to receive part of fee
+	 * @param receiver the address buying this token
 	 * @param amount amount to compute and deduct fee from
 	 * @param totalFeePercent the fee percentage
 	 */
-	function takeFees(
+	function takeFeesAndTransferTokens(
+		address receiver,
 		address referrer,
 		uint256 amount,
 		uint256 totalFeePercent
-	) external isKnownPair returns (uint256 amountOut) {
-		uint256 fee = (totalFeePercent * amount) / FeeUtil.MAX_PERCENT;
+	) external isKnownPair returns (uint256 amountOut, uint256 toBurn) {
+		_takeFromReserve(amount);
 
+		uint256 fee = (totalFeePercent * amount) / FeeUtil.MAX_PERCENT;
 		amountOut = amount - fee;
+
+		require(amountOut != 0, "Pair: Zero out amount");
 
 		FeeUtil.Values memory values = FeeUtil.splitFee(fee);
 
-		// Give liqProviders value
-		deposits += _takeFromReserve(values.liqProvidersValue);
+		toBurn = values.toBurnValue;
+		// Distribute values
+		{
+			if (referrer != address(0) && values.referrerValue > 0) {
+				tradeToken.transfer(referrer, values.referrerValue);
+			} else {
+				toBurn += values.referrerValue;
+			}
 
-		uint256 toBurn = values.toBurnValue;
-		if (referrer != address(0) && values.referrerValue > 0) {
-			tradeToken.transfer(
-				referrer,
-				_takeFromReserve(values.referrerValue)
-			);
-		} else {
-			toBurn += values.referrerValue;
+			// Increasing sales genrally implies the `toBurn`
+			// is available for ecosystem wide usage
+			require(toBurn > 0, "Pair: no burnt fees");
+			sales += toBurn;
+
+			// Give liqProviders value
+			deposits += values.liqProvidersValue;
+
+			// Send bought tokens to receiver
+			tradeToken.transfer(receiver, amountOut);
 		}
-
-		// Increasing sales genrally implies the `toBurn`
-		// is available for ecosystem wide usage
-		sales += _takeFromReserve(toBurn);
 		emit BurntFees(address(this), toBurn);
 	}
 
 	function _executeSell(
-		ERC20TokenPayment memory inPayment,
+		uint256 amountIn,
 		address from,
 		address referrer,
 		Pair outPair,
 		uint256 slippage,
 		uint256 totalFeePercent
-	) private {
+	) private returns (uint256 burntFee) {
 		uint256 inTokenReserve = reserve();
 		uint256 outTokenReserve = outPair.reserve();
 
 		uint256 amountOutMin = Amm.quote(
-			Slippage.compute(inPayment.amount, slippage),
+			Slippage.compute(amountIn, slippage),
 			inTokenReserve,
 			outTokenReserve
 		);
 		require(outTokenReserve > amountOutMin, "Pair: not enough reserve");
 
-		safePrices[address(outPair)].updateSafePrice(
-			inTokenReserve,
-			outTokenReserve
-		);
+		{
+			safePrices[address(outPair)].updateSafePrice(
+				inTokenReserve,
+				outTokenReserve
+			);
+		}
 
 		uint256 initialK = Amm.calculateKConstant(
 			inTokenReserve,
 			outTokenReserve
 		);
 
-		uint256 amountOutOptimal = Amm.getAmountOut(
-			inPayment.amount,
-			inTokenReserve,
-			outTokenReserve
-		);
+		uint256 amountOut = 0;
+		{
+			uint256 amountOutOptimal = Amm.getAmountOut(
+				amountIn,
+				inTokenReserve,
+				outTokenReserve
+			);
+			(amountOut, burntFee) = outPair.takeFeesAndTransferTokens(
+				from,
+				referrer,
+				amountOutOptimal,
+				totalFeePercent
+			);
 
-		amountOutOptimal = outPair.takeFees(
-			referrer,
-			amountOutOptimal,
-			totalFeePercent
-		);
+			require(amountOut >= amountOutMin, "Pair: Slippage Exceeded");
 
-		require(amountOutOptimal >= amountOutMin, "Slippage Exceeded");
-		require(amountOutOptimal != 0, "Pair: Zero out amount");
-
-		_completeSell(inPayment, from, outPair, amountOutOptimal);
+			sales += amountIn;
+		}
 
 		uint256 newK = Amm.calculateKConstant(reserve(), outPair.reserve());
 		require(initialK <= newK, "ERROR_K_INVARIANT_FAILED");
@@ -244,8 +244,8 @@ contract Pair is IPair, Ownable, KnowablePair {
 		emit SellExecuted(
 			from,
 			address(outPair),
-			inPayment.amount,
-			amountOutOptimal,
+			amountIn,
+			amountOut,
 			totalFeePercent
 		);
 	}
@@ -317,8 +317,6 @@ contract Pair is IPair, Ownable, KnowablePair {
 		liqAdded = lpSupply - initalLp;
 
 		emit LiquidityAdded(from, wholePayment.amount, liqAdded);
-		emit BalanceUpdated(from, tradeToken.balanceOf(from));
-		emit BalanceUpdated(address(this), tradeToken.balanceOf(address(this)));
 	}
 
 	/**
@@ -337,27 +335,16 @@ contract Pair is IPair, Ownable, KnowablePair {
 		Pair outPair,
 		uint256 slippage,
 		uint256 totalFeePercent
-	) external onlyOwner {
+	) external onlyOwner returns (uint256 burntFee) {
 		_checkAndReceivePayment(inPayment, caller, 0);
-		_executeSell(
-			inPayment,
+		burntFee = _executeSell(
+			inPayment.amount,
 			caller,
 			referrerOfCaller,
 			outPair,
 			slippage,
 			totalFeePercent
 		);
-	}
-
-	/**
-	 * @notice Completes a sell order on the outPair side.
-	 * @param to Address to which the amount is transferred.
-	 * @param amount Amount to be transferred.
-	 */
-	function completeSell(address to, uint256 amount) external isKnownPair {
-		tradeToken.transfer(to, _takeFromReserve(amount));
-		emit BalanceUpdated(to, tradeToken.balanceOf(to));
-		emit BalanceUpdated(address(this), tradeToken.balanceOf(address(this)));
 	}
 
 	/**

@@ -40,13 +40,11 @@ export default function TokensSelect({
               overflowY: "scroll",
             }}
           >
-            
-              {tokens.map(token => (
-                <Dropdown.Item key={token.identifier} onClick={() => setSelected(token)}>
-                  <TokenIcon src={token.iconSrc} identifier={""} /> {token.identifier}
-                </Dropdown.Item>
-              ))}
-           
+            {tokens.map(token => (
+              <Dropdown.Item key={token.identifier} onClick={() => setSelected(token)}>
+                <TokenIcon src={token.iconSrc} identifier={""} /> {token.identifier}
+              </Dropdown.Item>
+            ))}
           </Dropdown.Menu>
         )}
       </Dropdown>

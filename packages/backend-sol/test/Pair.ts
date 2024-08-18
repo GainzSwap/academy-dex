@@ -71,10 +71,10 @@ describe("Pair", function () {
         baseTradeToken,
       } = await loadFixture(deployPairFixture);
       const runAssert = (args: { buyContract: Pair; sellContract: Pair; sellAmt: BigNumberish }) =>
-        sellToken({ ...args, someUser });
+        sellToken({ ...args, someUser, slippage: 50_00 });
       await addInitialLiq({ baseAmt: 15_000_000, pairAmt: 15_000_000 });
 
-      const sellAmt = 7000n;
+      const sellAmt = 7_000_000n;
       await pairTradeToken.mint(someUser, sellAmt);
 
       await runAssert({ buyContract: basePairContract, sellAmt, sellContract: pairContract });
@@ -96,8 +96,9 @@ describe("Pair", function () {
         sellToken,
       } = await loadFixture(deployPairFixture);
       await addInitialLiq({ baseAmt: 15_000_000, pairAmt: 900_000_000 });
+      const sellAmt = 7_000_000;
 
-      await sellToken({ buyContract: basePairContract, sellContract: firstPairContract, sellAmt: 7000 });
+      await sellToken({ buyContract: basePairContract, sellContract: firstPairContract, sellAmt });
 
       // Create new pair
       const { pairContract: secondPairContract, pairTradeToken: secondTradeToken } = await createPair();
@@ -106,8 +107,8 @@ describe("Pair", function () {
         { amount: 80_000_000, token: secondTradeToken },
       );
 
-      await sellToken({ buyContract: firstPairContract, sellContract: secondPairContract, sellAmt: 7000 });
-      await sellToken({ buyContract: secondPairContract, sellContract: basePairContract, sellAmt: 7000 });
+      await sellToken({ buyContract: firstPairContract, sellContract: secondPairContract, sellAmt, slippage: 50_00 });
+      await sellToken({ buyContract: secondPairContract, sellContract: basePairContract, sellAmt, slippage: 50_00 });
     });
   });
 
@@ -216,36 +217,6 @@ describe("Pair", function () {
           slippage: 100_00,
         }),
       ).to.not.be.reverted;
-    });
-  });
-
-  describe("Fee Calculation and Burning", function () {
-    // FIXME sales state is not updating here, but updates in contract
-    it.skip("should correctly calculate and burn fees during sale", async function () {
-      const {
-        sellToken,
-        basePairContract: buyContract,
-        pairContract: sellContract,
-        user,
-        addInitialLiq,
-      } = await loadFixture(deployPairFixture);
-
-      await addInitialLiq({ baseAmt: ethers.parseEther("1500554"), pairAmt: ethers.parseEther("1900.943") });
-
-      const initialSales = await buyContract.sales();
-
-      await sellToken({
-        sellAmt: ethers.parseEther("1000"),
-        sellContract,
-        buyContract,
-        someUser: user,
-        slippage: 100_00,
-      });
-
-      // Increase in buyContract sales indicates burn fee collection, the other fee
-      // is added to deposits
-      const finalSales = await buyContract.sales();
-      expect(finalSales).to.be.greaterThan(initialSales);
     });
   });
 });

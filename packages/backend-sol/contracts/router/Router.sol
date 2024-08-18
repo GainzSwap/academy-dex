@@ -20,8 +20,6 @@ import { AdexEmission } from "../ADexToken/AdexEmission.sol";
 import { Amm } from "../common/Amm.sol";
 import { Epochs } from "../common/Epochs.sol";
 
-import "hardhat/console.sol";
-
 library PairFactory {
 	function newPair(
 		address tradeToken,
@@ -101,8 +99,6 @@ contract Router is Ownable, UserModule {
 				: endTimestamp;
 			lowerBoundTime = lastTimestamp;
 		} else {
-			console.log(startTimestamp, endTimestamp);
-			console.log(lastTimestamp, latestTimestamp);
 			revert("Router._computeEdgeEmissions: Invalid timestamps");
 		}
 
@@ -346,8 +342,7 @@ contract Router is Ownable, UserModule {
 
 		(, address referrer) = getReferrer(msg.sender);
 
-		uint256 initialBaseReserve = basePair.reserve();
-		Pair(inPairAddr).sell(
+		uint256 feeBurnt = Pair(inPairAddr).sell(
 			msg.sender,
 			referrer,
 			inPayment,
@@ -355,20 +350,19 @@ contract Router is Ownable, UserModule {
 			slippage,
 			_computeFeePercent(inPairAddr, tradeVolume)
 		);
-		uint256 finalBaseReserve = basePair.reserve();
-
-		// TODO
-		// require(
-		// 	finalBaseReserve < initialBaseReserve,
-		// 	"Router: fees not collected"
-		// );
-		// uint256 feeCollectedInBase = initialBaseReserve - finalBaseReserve;
 
 		// Update reward computation data
 		pairsData[inPairAddr].sellVolume += tradeVolume;
 		pairsData[outPairAddr].buyVolume += tradeVolume;
-		// pairsData[basePairAddr_].buyVolume += feeCollectedInBase;
-		globalData.totalTradeVolume += tradeVolume;
+
+		uint256 feeCollected = Amm.quote(
+			feeBurnt,
+			outPair.reserve(),
+			basePair.reserve()
+		);
+		pairsData[basePairAddr_].buyVolume += feeCollected;
+
+		globalData.totalTradeVolume += tradeVolume + feeCollected;
 	}
 
 	/**
