@@ -20,7 +20,9 @@ contract LpToken is SFT {
 	/// @notice Returns the SFT balance of a user including detailed attributes.
 	/// @param user The address of the user to check.
 	/// @return An array of `LpBalance` containing the user's balance details.
-	function lpBalanceOf(address user) public view returns (LpBalance[] memory) {
+	function lpBalanceOf(
+		address user
+	) public view returns (LpBalance[] memory) {
 		SftBalance[] memory _sftBals = _sftBalance(user);
 		LpBalance[] memory balance = new LpBalance[](_sftBals.length);
 
@@ -50,5 +52,22 @@ contract LpToken is SFT {
 		);
 
 		_mint(to, lpAmount, attributes);
+	}
+
+	function getBalanceAt(
+		address user,
+		uint256 nonce
+	) public view returns (LpBalance memory) {
+		require(hasSFT(user, nonce), "No Lp balance found at nonce for user");
+
+		return
+			LpBalance({
+				nonce: nonce,
+				amount: balanceOf(user, nonce),
+				attributes: abi.decode(
+					_getRawTokenAttributes(nonce),
+					(LpAttributes)
+				)
+			});
 	}
 }

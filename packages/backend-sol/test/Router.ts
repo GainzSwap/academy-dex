@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { loadFixture, time } from "@nomicfoundation/hardhat-toolbox/network-helpers";
-import { parseEther } from "ethers";
+import { AddressLike, Addressable, parseEther, Typed, BigNumberish } from "ethers";
 import deployRouterFixture from "./deployRouterFixture";
 
 describe("Router", function () {
@@ -163,6 +163,137 @@ describe("Router", function () {
       // referrer receives trade fee
       expect(await buyToken.balanceOf(referrer)).to.be.greaterThan(0);
       expect((await router.pairsData(basePairContract)).buyVolume).to.be.greaterThan(0);
+    });
+  });
+
+  describe("Router: claimRewards", function () {
+    async function claimRewardsFixture() {
+      const {
+        router,
+        user,
+        basePairContract,
+        createPair,
+        baseTradeToken: adex,
+        owner,
+        addLiquidity,
+        ...fixtures
+      } = await loadFixture(deployRouterFixture);
+
+      const { pairContract, pairTradeToken } = await createPair();
+
+      const addInitialLiq = async ({ baseAmt, pairAmt }: { baseAmt: BigNumberish; pairAmt: BigNumberish }) => {
+        const basePayment = { amount: baseAmt, token: adex };
+        const pairPayment = { amount: pairAmt, token: pairTradeToken };
+
+        await adex.connect(owner).transfer(user, baseAmt);
+        const initialAdexBal = await adex.balanceOf(basePairContract);
+        await addLiquidity({ contract: basePairContract, tradeToken: adex }, basePayment);
+        expect(await basePairContract.reserve()).to.equal(basePayment.amount);
+
+        await pairTradeToken.mint(user, pairAmt);
+        await addLiquidity({ contract: pairContract, tradeToken: pairTradeToken }, pairPayment);
+        expect(await pairContract.reserve()).to.equal(pairPayment.amount);
+
+        expect(await adex.balanceOf(basePairContract)).to.equal(BigInt(basePayment.amount) + initialAdexBal);
+        expect(await pairTradeToken.balanceOf(pairContract)).to.equal(pairPayment.amount);
+      };
+
+      await addInitialLiq({ baseAmt: parseEther("7284.4846"), pairAmt: parseEther("745334000.4746") });
+
+      return { ...fixtures, adex, router, user, basePairContract, createPair, owner, pairContract, addLiquidity };
+    }
+
+    it("should allow users to claim rewards from a pair with valid nonces", async function () {
+      const { router, basePairContract, user, pairContract, sellToken, adex } = await loadFixture(claimRewardsFixture);
+
+      // Simulate trading activity to generate rewards
+      await sellToken({
+        buyContract: pairContract,
+        sellAmt: ethers.parseEther("0.05"),
+        sellContract: basePairContract,
+        mint: true,
+      });
+
+      const nonces = [1, 2];
+
+      // Claim rewards
+      await router.connect(user).claimRewards(nonces);
+
+      // Check user's balance after claiming rewards
+      const balanceAfterClaim = await adex.balanceOf(user);
+      expect(balanceAfterClaim).to.be.gt(0);
+    });
+
+    it("should revert if there are no rewards to claim", async function () {
+      const { router, user } = await loadFixture(claimRewardsFixture);
+      const nonces = [1];
+      await expect(router.connect(user).claimRewards(nonces)).to.be.revertedWith("No rewards available to claim");
+    });
+
+    it("should correctly update LP attributes and pair data after claiming", async function () {
+      const { router, basePairContract, createPair, user, addLiquidity, sellToken, lpTokenContract } =
+        await loadFixture(claimRewardsFixture);
+
+      const { pairContract, pairTradeToken } = await createPair();
+
+      // Add liquidity and generate rewards
+      await addLiquidity(
+        { contract: pairContract, tradeToken: pairTradeToken },
+        { token: pairTradeToken, amount: ethers.parseEther("0.1") },
+      );
+      await sellToken({
+        buyContract: pairContract,
+        sellAmt: ethers.parseEther("0.05"),
+        sellContract: basePairContract,
+        mint: true,
+      });
+
+      let nonces = (await lpTokenContract.getNonces(user)).map(val => val);
+
+      // Get the initial state before claiming rewards
+      const initialLpAttributes = await lpTokenContract.getBalanceAt(user, nonces[0]);
+      const initialPairData = await router.pairsData(pairContract);
+
+      // Claim rewards
+      await router.connect(user).claimRewards(nonces);
+      // Nonces update after claim
+      nonces = (await lpTokenContract.getNonces(user)).map(val => val);
+
+      // Check that LP attributes and pair data have been updated correctly
+      const updatedLpAttributes = await lpTokenContract.getBalanceAt(user, nonces[0]);
+      const updatedPairData = await router.pairsData(pairContract);
+
+      expect(updatedLpAttributes.attributes).to.not.equal(initialLpAttributes.attributes);
+      expect(updatedPairData).to.not.equal(initialPairData);
+    });
+
+    it("should transfer the correct amount of rewards to the user", async function () {
+      const { router, basePairContract, createPair, user, addLiquidity, adex, sellToken } =
+        await loadFixture(claimRewardsFixture);
+
+      const { pairContract, pairTradeToken } = await createPair();
+
+      // Add liquidity and generate rewards
+      await addLiquidity(
+        { contract: pairContract, tradeToken: pairTradeToken },
+        { token: pairTradeToken, amount: ethers.parseEther("0.1") },
+      );
+      await sellToken({
+        buyContract: pairContract,
+        sellAmt: ethers.parseEther("0.05"),
+        sellContract: basePairContract,
+        mint: true,
+      });
+
+      const nonces = [1, 2]; // Valid nonce for the test
+
+      // Claim rewards and check transfer
+      const balanceBeforeClaim = await adex.balanceOf(user);
+
+      await router.connect(user).claimRewards(nonces);
+
+      const balanceAfterClaim = await adex.balanceOf(user);
+      expect(balanceAfterClaim).to.be.greaterThan(balanceBeforeClaim);
     });
   });
 });

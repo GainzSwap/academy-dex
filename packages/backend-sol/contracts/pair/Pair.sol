@@ -250,17 +250,12 @@ contract Pair is IPair, Ownable, KnowablePair {
 		);
 	}
 
-	function _addBaseLiq(ERC20TokenPayment calldata wholePayment) internal {
-		uint256 value = wholePayment.amount;
-		_insertLiqValues(AddLiquidityContext({ deposit: value, liq: value }));
-	}
-
 	function _insertLiqValues(AddLiquidityContext memory context) internal {
 		deposits += context.deposit;
 		lpSupply += context.liq;
 	}
 
-	function _addPairLiq(ERC20TokenPayment calldata wholePayment) internal {
+	function _addLiq(ERC20TokenPayment calldata wholePayment) internal virtual {
 		uint256 liqAdded = _getLiqAdded(wholePayment);
 
 		(
@@ -305,14 +300,10 @@ contract Pair is IPair, Ownable, KnowablePair {
 	) external onlyOwner returns (uint256 liqAdded) {
 		_checkAndReceivePayment(wholePayment, from);
 
-		bool isBasePair = address(this) == address(basePair);
-
 		uint256 initalLp = lpSupply;
-		if (isBasePair) {
-			_addBaseLiq(wholePayment);
-		} else {
-			_addPairLiq(wholePayment);
-		}
+
+		_addLiq(wholePayment);
+
 		require(lpSupply > initalLp, "Pair: invalid liquidity addition");
 		liqAdded = lpSupply - initalLp;
 

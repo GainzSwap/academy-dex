@@ -5,10 +5,15 @@ import { ERC20TokenPaymentStruct } from "../typechain-types/contracts/pair/BaseP
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { expect } from "chai";
 
+// Helper function for token approval
+async function approveToken(signer: HardhatEthersSigner, token: ERC20, amount: BigNumberish, contract: Pair) {
+  await token.connect(signer).approve(contract, amount);
+}
+
 export default async function deployRouterFixture() {
   const [user, owner, ...otherUsers] = await ethers.getSigners();
 
-  // Deploy the PairFactory and Router contracts
+  // Deploy contracts and ensure they are deployed
   const PairFactory = await ethers.getContractFactory("TestingPairFactory");
   const pairFactoryInstance = await PairFactory.deploy();
   await pairFactoryInstance.waitForDeployment();
@@ -18,7 +23,6 @@ export default async function deployRouterFixture() {
     libraries: { PairFactory: await pairFactoryInstance.getAddress() },
   });
 
-  // Create the base pair and get the contract instances
   await router.createPair(ZeroAddress);
   const basePairContract = await ethers.getContractAt("TestingBasePair", await router.basePairAddr());
   const baseTradeToken = await ethers.getContractAt("ADEX", await basePairContract.tradeToken());
@@ -29,7 +33,6 @@ export default async function deployRouterFixture() {
   let pairCount = 0;
   const createPair = async () => {
     pairCount++;
-
     const pairTradeToken = await ethers.deployContract("MintableERC20", ["PairTradeToken", `${pairCount}PTK`], {
       signer: owner,
     });
@@ -45,8 +48,7 @@ export default async function deployRouterFixture() {
     ...args: Parameters<Router["addLiquidity"]>
   ) => {
     const payment = args[0] as ERC20TokenPaymentStruct;
-
-    await tradeToken.connect(signer).approve(contract, payment.amount);
+    await approveToken(signer, tradeToken, payment.amount, contract);
     return router.connect(signer).addLiquidity(...args);
   };
 
@@ -67,7 +69,14 @@ export default async function deployRouterFixture() {
   }) => {
     const buyToken = await ethers.getContractAt("ERC20", await buyContract.tradeToken());
     const sellToken = await ethers.getContractAt("MintableERC20", await sellContract.tradeToken());
-    mint && (await sellToken.connect(owner).mint(someUser, sellAmt));
+    mint &&
+      (await (async () => {
+        if ((await sellToken.getAddress()) == (await baseTradeToken.getAddress())) {
+          return baseTradeToken.connect(owner).transfer(someUser, sellAmt);
+        } else {
+          return sellToken.connect(owner).mint(someUser, sellAmt);
+        }
+      })());
 
     const tokenApprovalTx = await sellToken.connect(someUser).approve(sellContract, sellAmt);
     await tokenApprovalTx.wait();
@@ -114,5 +123,6 @@ export default async function deployRouterFixture() {
     addLiquidity,
     sellToken,
     otherUsers,
+    approveToken,
   };
 }

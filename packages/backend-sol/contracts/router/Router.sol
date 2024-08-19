@@ -209,6 +209,7 @@ contract Router is Ownable, UserModule {
 				REWARDS_DIVISION_CONSTANT;
 
 			newPairData.rewardsReserve -= claimable;
+			newAttr.rewardPerShare = newPairData.lpRewardsPershare;
 		}
 	}
 
@@ -274,6 +275,53 @@ contract Router is Ownable, UserModule {
 		pairData.totalLiq += liqAdded;
 
 		lpToken.mint(pairData.lpRewardsPershare, liqAdded, pairAddress, caller);
+	}
+
+	/**
+	 * @notice Claims rewards for a user across all pairs in which they hold LP tokens.
+	 * @param nonces The desired SFTs to claim from.
+	 */
+	function claimRewards(uint256[] calldata nonces) external {
+		address user = msg.sender;
+		uint256 totalClaimed = 0;
+
+		// Loop through all nonces to calculate and claim rewards
+		for (uint256 i = 0; i < nonces.length; i++) {
+			LpToken.LpBalance memory balance = lpToken.getBalanceAt(
+				user,
+				nonces[i]
+			);
+
+			(
+				uint256 claimable,
+				PairData memory newPairData,
+				GlobalData memory newGlobalData,
+				LpToken.LpAttributes memory newAttr
+			) = _computeRewardsClaimable(balance);
+
+			// Claim the rewards if available
+			if (claimable > 0) {
+				totalClaimed += claimable;
+
+				// Update LP attributes and data
+				lpToken.update(
+					user,
+					balance.nonce,
+					balance.amount,
+					abi.encode(newAttr)
+				);
+
+				PairData storage pairData = pairsData[newAttr.pair];
+				_updatePairDataAfterRewardsGenerated(pairData, newPairData);
+				globalData = newGlobalData;
+			}
+		}
+
+		require(totalClaimed > 0, "No rewards available to claim");
+
+		// Transfer the claimed rewards to the user
+		ERC20 adex = Pair(basePairAddr()).tradeToken();
+		require(adex.transfer(user, totalClaimed), "Reward transfer failed");
 	}
 
 	function getClaimableRewards(
