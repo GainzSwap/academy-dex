@@ -69,6 +69,14 @@ contract Router is Ownable, UserModule {
 
 	LpToken public immutable lpToken;
 
+	event LiquidityRemoved(
+		address indexed user,
+		address indexed pair,
+		uint256 liquidityRemoved,
+		uint256 tradeTokenAmount,
+		uint256 baseTokenAmount
+	);
+
 	constructor() {
 		lpToken = new LpToken();
 		epochs.initialize(24 hours);
@@ -262,7 +270,8 @@ contract Router is Ownable, UserModule {
 		address pairAddress = tokensPairAddress[tokenAddress];
 		require(pairAddress != address(0), "Router: Invalid pair address");
 
-		uint256 liqAdded = Pair(pairAddress).addLiquidity(wholePayment, caller);
+		(uint256 liqAdded, uint256 depValuePerShare) = Pair(pairAddress)
+			.addLiquidity(wholePayment, caller);
 
 		// Upadte liquidity data to be used for other computations like fee
 		globalData.totalLiq += liqAdded;
@@ -274,7 +283,13 @@ contract Router is Ownable, UserModule {
 		_updatePairDataAfterRewardsGenerated(pairData, newPairData);
 		pairData.totalLiq += liqAdded;
 
-		lpToken.mint(pairData.lpRewardsPershare, liqAdded, pairAddress, caller);
+		lpToken.mint(
+			pairData.lpRewardsPershare,
+			liqAdded,
+			pairAddress,
+			caller,
+			depValuePerShare
+		);
 	}
 
 	/**
@@ -324,6 +339,81 @@ contract Router is Ownable, UserModule {
 		require(adex.transfer(user, totalClaimed), "Reward transfer failed");
 	}
 
+	/**
+	 * @notice Removes liquidity from a pair and claims the corresponding rewards.
+	 * @param nonce The SFT nonce representing the LP tokens to burn.
+	 * @param liqRemoval The amount of LP tokens to burn.
+	 */
+	function removeLiquidity(uint256 nonce, uint256 liqRemoval) external {
+		require(liqRemoval > 0, "Router: Amount must be greater than zero");
+
+		// Retrieve the user's LP balance and ensure sufficient balance for removal
+		LpToken.LpBalance memory liquidity = lpToken.getBalanceAt(
+			msg.sender,
+			nonce
+		);
+		require(
+			liquidity.amount >= liqRemoval,
+			"Router: Insufficient LP balance"
+		);
+
+		// Get pair address and corresponding pair data
+		address pairAddr = liquidity.attributes.pair;
+		PairData storage pairData = pairsData[pairAddr];
+
+		// Compute rewards claimable before removing liquidity
+		(
+			uint256 claimable,
+			PairData memory newPairData,
+			GlobalData memory newGlobalData,
+			LpToken.LpAttributes memory newAttr
+		) = _computeRewardsClaimable(liquidity);
+
+		// Update liquidity attributes and pair/global data after computing rewards
+		liquidity.attributes = newAttr;
+		_updatePairDataAfterRewardsGenerated(pairData, newPairData);
+		globalData = newGlobalData;
+
+		// Remove liquidity and get the amount of trade tokens claimed
+		Pair pair = Pair(pairAddr);
+		uint256 tradeTokenAmount = 0;
+		(liquidity, tradeTokenAmount) = pair.removeLiquidity(
+			liquidity,
+			liqRemoval,
+			msg.sender
+		);
+
+		// Update LP token balance with the new attributes after liquidity removal
+		lpToken.update(
+			msg.sender,
+			liquidity.nonce,
+			liquidity.amount,
+			abi.encode(liquidity.attributes)
+		);
+
+		// Update total liquidity for the pair and globally
+		pairData.totalLiq -= liqRemoval;
+		globalData.totalLiq -= liqRemoval;
+
+		// Transfer rewards if any are claimable
+		if (claimable > 0) {
+			ERC20 tradeToken = Pair(basePairAddr()).tradeToken();
+			require(
+				tradeToken.transfer(msg.sender, claimable),
+				"Reward transfer failed"
+			);
+		}
+
+		// Emit event for liquidity removal
+		emit LiquidityRemoved(
+			msg.sender,
+			pairAddr,
+			liqRemoval,
+			tradeTokenAmount,
+			claimable
+		);
+	}
+
 	function getClaimableRewards(
 		address user
 	) external view returns (uint256 totalClaimable) {
@@ -346,18 +436,6 @@ contract Router is Ownable, UserModule {
 	) public {
 		_createOrGetUserId(msg.sender, referrerId);
 		swap(inPayment, outPairAddr, slippage);
-
-		// TODO learn how to do this properly i.e delegating calls with complex in put parameters
-		// (bool success, ) = address(this).delegatecall(
-		// 	abi.encodeWithSignature(
-		// 		"swap(address,uint256,address,uint256)",
-		// 		address(inPayment.token),
-		// 		inPayment.amount,
-		// 		outPairAddr,
-		// 		slippage
-		// 	)
-		// );
-		// require(success, "Router: Delegate call not succeded");
 	}
 
 	/**

@@ -102,7 +102,7 @@ contract SFT is ERC1155, Ownable {
 		bytes memory attr
 	) external onlyOwner returns (uint256) {
 		_burn(user, nonce, amount);
-		return _mint(user, amount, attr);
+		return amount > 0 ? _mint(user, amount, attr) : 0;
 	}
 
 	/// @dev Returns the balance of the user with their token attributes.

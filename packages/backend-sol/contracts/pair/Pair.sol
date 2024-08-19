@@ -16,6 +16,10 @@ import "./SafePrice.sol";
 import "./Interface.sol";
 import "./Knowable.sol";
 
+import { LpToken } from "../modules/LpToken.sol";
+
+uint256 constant RPS_DIVISION_CONSTANT = 1e36;
+
 /**
  * @title Pair
  * @dev This contract manages a trading pair in the DEX, handling liquidity, trading, and fee mechanisms.
@@ -27,6 +31,7 @@ contract Pair is IPair, Ownable, KnowablePair {
 	// Reserve data
 	uint256 public deposits;
 	uint256 public sales;
+	uint256 private depValuePerShare;
 
 	uint256 public lpSupply;
 
@@ -134,7 +139,7 @@ contract Pair is IPair, Ownable, KnowablePair {
 
 		if ((deposits + sales) >= amount) {
 			taken = amount;
-			deposits -= taken - sales;
+			_takeFromDeposits(taken - sales);
 			sales = 0;
 		} else {
 			revert("Amount to be taken is too large");
@@ -177,11 +182,15 @@ contract Pair is IPair, Ownable, KnowablePair {
 
 			// Increasing sales genrally implies the `toBurn`
 			// is available for ecosystem wide usage
-			require(toBurn > 0, "Pair: no burnt fees");
+			require(toBurn > 0, "Pair: Swap amount too low");
 			sales += toBurn;
 
 			// Give liqProviders value
-			deposits += values.liqProvidersValue;
+			if (lpSupply > 0) {
+				_addToDeposits(values.liqProvidersValue);
+			} else {
+				sales += values.liqProvidersValue;
+			}
 
 			// Send bought tokens to receiver
 			tradeToken.transfer(receiver, amountOut);
@@ -251,8 +260,8 @@ contract Pair is IPair, Ownable, KnowablePair {
 	}
 
 	function _insertLiqValues(AddLiquidityContext memory context) internal {
-		deposits += context.deposit;
 		lpSupply += context.liq;
+		_addToDeposits(context.deposit);
 	}
 
 	function _addLiq(ERC20TokenPayment calldata wholePayment) internal virtual {
@@ -288,6 +297,28 @@ contract Pair is IPair, Ownable, KnowablePair {
 		require(newK > initialK, "Pair: K Invariant Failed");
 	}
 
+	function _takeFromDeposits(uint256 deduction) internal {
+		uint256 rpsDecrease = (deduction * RPS_DIVISION_CONSTANT) / lpSupply;
+		require(
+			rpsDecrease > 0 &&
+				rpsDecrease <= depValuePerShare &&
+				deduction <= deposits,
+			"Pair: Invalid deposits deduction"
+		);
+
+		depValuePerShare -= rpsDecrease;
+		deposits -= deduction;
+	}
+
+	function _addToDeposits(uint256 addition) internal {
+		uint256 rpsIncrease = (addition * RPS_DIVISION_CONSTANT) / lpSupply;
+
+		require(rpsIncrease > 0, "Pair: Invalid deposit addition");
+
+		depValuePerShare += rpsIncrease;
+		deposits += addition;
+	}
+
 	/**
 	 * @notice Adds liquidity to the pair.
 	 * @param wholePayment Details of the payment for adding liquidity.
@@ -297,17 +328,87 @@ contract Pair is IPair, Ownable, KnowablePair {
 	function addLiquidity(
 		ERC20TokenPayment calldata wholePayment,
 		address from
-	) external onlyOwner returns (uint256 liqAdded) {
+	) external onlyOwner returns (uint256 liqAdded, uint256 rps) {
 		_checkAndReceivePayment(wholePayment, from);
 
 		uint256 initalLp = lpSupply;
 
+		rps = depValuePerShare;
 		_addLiq(wholePayment);
 
 		require(lpSupply > initalLp, "Pair: invalid liquidity addition");
 		liqAdded = lpSupply - initalLp;
 
 		emit LiquidityAdded(from, wholePayment.amount, liqAdded);
+	}
+
+	/**
+	 * @notice Removes liquidity from the pool and claims the corresponding deposit.
+	 * @dev This function updates the LP's liquidity balance and claims a proportionate amount of the deposit.
+	 *      It ensures that the LP's deposit value per share is up-to-date before calculating the deposit to be claimed.
+	 * @param liquidity The current liquidity balance of the LP token, including attributes like `depValuePerShare`.
+	 * @param liqToRemove The amount of liquidity to be removed from the pool.
+	 * @param from The address from which the liquidity is being removed.
+	 * @return liq The updated liquidity balance after removal.
+	 * @return depositClaimed The amount of deposit claimed by the LP.
+	 */
+	function removeLiquidity(
+		LpToken.LpBalance memory liquidity,
+		uint256 liqToRemove,
+		address from
+	)
+		external
+		onlyOwner
+		returns (LpToken.LpBalance memory liq, uint256 depositClaimed)
+	{
+		require(liquidity.amount > 0, "Pair: LP balance is zero");
+		require(
+			liqToRemove <= liquidity.amount && liqToRemove <= lpSupply,
+			"Pair: Invalid liquidity removal amount"
+		);
+
+		// Calculate the total deposit that can be claimed based on the updated depValuePerShare
+		uint256 totalDepositClaimed = 0;
+		if (liquidity.attributes.depValuePerShare < depValuePerShare) {
+			totalDepositClaimed =
+				((depValuePerShare - liquidity.attributes.depValuePerShare) *
+					liquidity.amount) /
+				RPS_DIVISION_CONSTANT;
+		}
+
+		// Update the global deposits after claiming
+		_takeFromDeposits(totalDepositClaimed);
+
+		// Reduce global lpSupply by the LP's total liquidity amount
+		lpSupply -= liquidity.amount;
+
+		// Update the LP's deposit value per share to the current depValuePerShare
+		liquidity.attributes.depValuePerShare = depValuePerShare;
+
+		// Calculate the deposit to be claimed based on the liquidity being removed
+		depositClaimed = (liqToRemove * totalDepositClaimed) / liquidity.amount;
+		liquidity.amount -= liqToRemove;
+
+		// If there is remaining liquidity, update the pool with the remaining deposit and liquidity
+		if (liquidity.amount > 0) {
+			_insertLiqValues(
+				AddLiquidityContext({
+					deposit: totalDepositClaimed - depositClaimed,
+					liq: liquidity.amount
+				})
+			);
+		}
+
+		// Transfer the claimed deposit to the `from` address
+		if (depositClaimed > 0) {
+			require(
+				tradeToken.transfer(from, depositClaimed),
+				"Pair: Deposit transfer failed"
+			);
+		}
+
+		// Return the updated liquidity balance and claimed deposit
+		return (liquidity, depositClaimed);
 	}
 
 	/**

@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { loadFixture, time } from "@nomicfoundation/hardhat-toolbox/network-helpers";
-import { AddressLike, Addressable, parseEther, Typed, BigNumberish } from "ethers";
+import { parseEther, BigNumberish } from "ethers";
 import deployRouterFixture from "./deployRouterFixture";
 
 describe("Router", function () {
@@ -165,44 +165,54 @@ describe("Router", function () {
       expect((await router.pairsData(basePairContract)).buyVolume).to.be.greaterThan(0);
     });
   });
+  async function claimRewardsFixture() {
+    const {
+      router,
+      user,
+      basePairContract,
+      createPair,
+      baseTradeToken: adex,
+      owner,
+      addLiquidity,
+      ...fixtures
+    } = await loadFixture(deployRouterFixture);
+
+    const { pairContract, pairTradeToken } = await createPair();
+
+    const addInitialLiq = async ({ baseAmt, pairAmt }: { baseAmt: BigNumberish; pairAmt: BigNumberish }) => {
+      const basePayment = { amount: baseAmt, token: adex };
+      const pairPayment = { amount: pairAmt, token: pairTradeToken };
+
+      await adex.connect(owner).transfer(user, baseAmt);
+      const initialAdexBal = await adex.balanceOf(basePairContract);
+      await addLiquidity({ contract: basePairContract, tradeToken: adex }, basePayment);
+      expect(await basePairContract.reserve()).to.equal(basePayment.amount);
+
+      await pairTradeToken.mint(user, pairAmt);
+      await addLiquidity({ contract: pairContract, tradeToken: pairTradeToken }, pairPayment);
+      expect(await pairContract.reserve()).to.equal(pairPayment.amount);
+
+      expect(await adex.balanceOf(basePairContract)).to.equal(BigInt(basePayment.amount) + initialAdexBal);
+      expect(await pairTradeToken.balanceOf(pairContract)).to.equal(pairPayment.amount);
+    };
+
+    await addInitialLiq({ baseAmt: parseEther("7284.4846"), pairAmt: parseEther("745334000.4746") });
+
+    return {
+      ...fixtures,
+      adex,
+      router,
+      user,
+      basePairContract,
+      createPair,
+      owner,
+      pairContract,
+      pairTradeToken,
+      addLiquidity,
+    };
+  }
 
   describe("Router: claimRewards", function () {
-    async function claimRewardsFixture() {
-      const {
-        router,
-        user,
-        basePairContract,
-        createPair,
-        baseTradeToken: adex,
-        owner,
-        addLiquidity,
-        ...fixtures
-      } = await loadFixture(deployRouterFixture);
-
-      const { pairContract, pairTradeToken } = await createPair();
-
-      const addInitialLiq = async ({ baseAmt, pairAmt }: { baseAmt: BigNumberish; pairAmt: BigNumberish }) => {
-        const basePayment = { amount: baseAmt, token: adex };
-        const pairPayment = { amount: pairAmt, token: pairTradeToken };
-
-        await adex.connect(owner).transfer(user, baseAmt);
-        const initialAdexBal = await adex.balanceOf(basePairContract);
-        await addLiquidity({ contract: basePairContract, tradeToken: adex }, basePayment);
-        expect(await basePairContract.reserve()).to.equal(basePayment.amount);
-
-        await pairTradeToken.mint(user, pairAmt);
-        await addLiquidity({ contract: pairContract, tradeToken: pairTradeToken }, pairPayment);
-        expect(await pairContract.reserve()).to.equal(pairPayment.amount);
-
-        expect(await adex.balanceOf(basePairContract)).to.equal(BigInt(basePayment.amount) + initialAdexBal);
-        expect(await pairTradeToken.balanceOf(pairContract)).to.equal(pairPayment.amount);
-      };
-
-      await addInitialLiq({ baseAmt: parseEther("7284.4846"), pairAmt: parseEther("745334000.4746") });
-
-      return { ...fixtures, adex, router, user, basePairContract, createPair, owner, pairContract, addLiquidity };
-    }
-
     it("should allow users to claim rewards from a pair with valid nonces", async function () {
       const { router, basePairContract, user, pairContract, sellToken, adex } = await loadFixture(claimRewardsFixture);
 
@@ -294,6 +304,113 @@ describe("Router", function () {
 
       const balanceAfterClaim = await adex.balanceOf(user);
       expect(balanceAfterClaim).to.be.greaterThan(balanceBeforeClaim);
+    });
+  });
+
+  describe("Liquidity Provision and Swapping Scenario", function () {
+    it("should swap pairs until depletion, then withdraw liquidity and check if original investment increased", async function () {
+      const {
+        basePairContract,
+        adex: baseTradeToken,
+        addLiquidity,
+        createPair,
+        router,
+        lpTokenContract,
+        sellToken,
+        otherUsers: [investor1, investor2, trader],
+      } = await loadFixture(claimRewardsFixture);
+
+      // Create two pairs
+      const { pairContract: pair1Contract, pairTradeToken: pair1Token } = await createPair();
+      const { pairContract: pair2Contract, pairTradeToken: pair2Token } = await createPair();
+
+      // Investors add liquidity to the pairs
+      const investor1PairAmount = parseEther("0.0000534");
+      const investor2PairAmount = parseEther("0.0000453");
+
+      await pair1Token.mint(investor1, investor1PairAmount);
+      await addLiquidity(
+        { contract: pair1Contract, tradeToken: pair1Token, signer: investor1 },
+        { amount: investor1PairAmount, token: pair1Token },
+      );
+
+      await pair2Token.mint(investor2, investor2PairAmount);
+      await addLiquidity(
+        { contract: pair2Contract, tradeToken: pair2Token, signer: investor2 },
+        { amount: investor2PairAmount, token: pair2Token },
+      );
+
+      // Save initial balances for comparison later
+      const initialInvestor1Balance = await pair1Token.balanceOf(investor1);
+      const initialInvestor2Balance = await pair2Token.balanceOf(investor2);
+
+      // Trader swaps between pairs until depletion
+      let swapAmount = (investor1PairAmount * 9n) / 10n;
+      await pair1Token.mint(trader, swapAmount);
+
+      while (swapAmount > 500_000) {
+        await sellToken({
+          buyContract: pair2Contract,
+          sellContract: pair1Contract,
+          sellAmt: swapAmount,
+          someUser: trader,
+          mint: false,
+          slippage: 100_00,
+        });
+
+        swapAmount = await pair2Token.balanceOf(trader);
+        // Mint more pair2Tokens
+        const prevBal = swapAmount;
+        swapAmount *= 1005n;
+        swapAmount /= 1000n;
+        await pair2Token.mint(trader, swapAmount - prevBal);
+
+        await sellToken({
+          buyContract: pair1Contract,
+          sellContract: pair2Contract,
+          sellAmt: swapAmount,
+          someUser: trader,
+          mint: false,
+          slippage: 100_00,
+        });
+
+        swapAmount = await pair1Token.balanceOf(trader);
+
+        await time.increase(1000); // Increase time after each swap
+      }
+
+      // Investors withdraw their liquidity
+      const [investor1LpTokens] = await lpTokenContract.lpBalanceOf(investor1);
+      const [investor2LpTokens] = await lpTokenContract.lpBalanceOf(investor2);
+
+      await router.connect(investor1).removeLiquidity(investor1LpTokens.nonce, investor1LpTokens.amount);
+      await router.connect(investor2).removeLiquidity(investor2LpTokens.nonce, investor2LpTokens.amount);
+
+      // Convert all base tokens to the initial liquidity token provision
+      await sellToken({
+        buyContract: pair1Contract,
+        sellContract: basePairContract,
+        sellAmt: await baseTradeToken.balanceOf(investor1),
+        someUser: investor1,
+        mint: false,
+        slippage: 100_00,
+      });
+
+      await sellToken({
+        buyContract: pair2Contract,
+        sellContract: basePairContract,
+        sellAmt: await baseTradeToken.balanceOf(investor2),
+        someUser: investor2,
+        mint: false,
+        slippage: 100_00,
+      });
+
+      // Check if the original investment tokens increased
+      const finalInvestor1Balance = await pair1Token.balanceOf(investor1);
+      const finalInvestor2Balance = await pair2Token.balanceOf(investor2);
+
+      expect(finalInvestor1Balance).to.be.gt(initialInvestor1Balance);
+      expect(finalInvestor2Balance).to.be.gt(initialInvestor2Balance);
     });
   });
 });

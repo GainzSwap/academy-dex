@@ -23,12 +23,22 @@ const deployPairs: DeployFunction = async function (hre: HardhatRuntimeEnvironme
     ["HouseX", "AKU"],
     ["ExistenceToken", "HTH"],
   ]) {
-    const value = (Math.random() ** 10 * 30_000_000_000).toString();
-    const liq = ethers.parseEther(value);
+    const value = (Math.random() * 30_000)
+      .toString()
+      .split(".")
+      .reduce((acc, cur, index) => {
+        if (index == 0) {
+          acc = cur;
+        } else {
+          acc + "." + cur.substring(0, 15);
+        }
 
+        return acc;
+      }, "");
+
+    const liq = ethers.parseEther(value);
     if (pairsCount === 0) {
       await Router.createPair(ethers.ZeroAddress);
-      await Router.mintInitialSupply(liq);
       pairAddress = await Router.basePairAddr();
 
       const basePair = await ethers.getContractAt("BasePair", pairAddress);

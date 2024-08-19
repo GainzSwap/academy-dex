@@ -6,6 +6,7 @@ import { SFT } from "./SFT.sol";
 contract LpToken is SFT {
 	struct LpAttributes {
 		uint256 rewardPerShare;
+		uint256 depValuePerShare;
 		address pair;
 	}
 
@@ -43,12 +44,17 @@ contract LpToken is SFT {
 		uint256 rewardPerShare,
 		uint256 lpAmount,
 		address pair,
-		address to
+		address to,
+		uint256 depValuePerShare
 	) external onlyOwner {
 		require(lpAmount > 0, "LpToken: LP Amount must be greater than 0");
 
 		bytes memory attributes = abi.encode(
-			LpAttributes({ rewardPerShare: rewardPerShare, pair: pair })
+			LpAttributes({
+				rewardPerShare: rewardPerShare,
+				pair: pair,
+				depValuePerShare: depValuePerShare
+			})
 		);
 
 		_mint(to, lpAmount, attributes);
