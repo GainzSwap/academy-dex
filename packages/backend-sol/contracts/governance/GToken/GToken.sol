@@ -11,6 +11,8 @@ import { TokenPayment } from "../../common/libs/TokenPayments.sol";
 contract GTokens is SFT {
 	using GToken for GToken.Attributes;
 
+	uint256 private _totalStakeWeight;
+
 	struct GovernanceBalance {
 		uint256 nonce;
 		uint256 amount;
@@ -120,5 +122,36 @@ contract GTokens is SFT {
 		}
 
 		return balance;
+	}
+
+	function totalStakeWeight() public view returns (uint256) {
+		return _totalStakeWeight;
+	}
+
+	function _beforeTokenTransfer(
+		address operator,
+		address from,
+		address to,
+		uint256[] memory ids,
+		uint256[] memory amounts,
+		bytes memory data
+	) internal override {
+		super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
+
+		for (uint256 i; i < ids.length; i++) {
+			uint256 id = ids[i];
+			GToken.Attributes memory attr = abi.decode(
+				_getRawTokenAttributes(id),
+				(GToken.Attributes)
+			);
+
+			if (from == address(0) && to != address(0)) {
+				// We are minting, so increease staking weight
+				_totalStakeWeight += attr.stakeWeight;
+			} else if (from != address(0) && to == address(0)) {
+				// We are burning, so decrease staking weight
+				_totalStakeWeight -= attr.stakeWeight;
+			}
+		}
 	}
 }

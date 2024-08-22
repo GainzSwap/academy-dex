@@ -18,9 +18,16 @@ export default async function deployRouterFixture() {
   const pairFactoryInstance = await PairFactory.deploy();
   await pairFactoryInstance.waitForDeployment();
 
+  const DeployGovernanceFactory = await ethers.getContractFactory("DeployGovernance");
+  const deployGovernance = await DeployGovernanceFactory.deploy();
+  await deployGovernance.waitForDeployment();
+
   const router = await ethers.deployContract("Router", {
     signer: owner,
-    libraries: { PairFactory: await pairFactoryInstance.getAddress() },
+    libraries: {
+      PairFactory: await pairFactoryInstance.getAddress(),
+      DeployGovernance: await deployGovernance.getAddress(),
+    },
   });
 
   await router.createPair(ZeroAddress);
@@ -91,6 +98,8 @@ export default async function deployRouterFixture() {
     const initialOutBal = await buyToken.balanceOf(someUser);
     const initialInBal = await sellToken.balanceOf(someUser);
 
+    const estimatedAmountOut = await router.estimateOutAmount(sellContract, buyContract, sellAmt, slippage);
+
     await expect(router.connect(someUser).swap({ token: sellToken, amount: sellAmt }, buyContract, slippage)).to.emit(
       buyContract,
       "BurntFees",
@@ -110,6 +119,8 @@ export default async function deployRouterFixture() {
     ].forEach(([bigger, smaller], index) => {
       expect(bigger > smaller).to.equal(true, `Expected balance comparison after sale fialed at index: ${index}`);
     });
+
+    expect(estimatedAmountOut).to.be.lessThanOrEqual(finalOutBal - initialOutBal);
   };
 
   return {

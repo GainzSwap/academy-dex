@@ -4,7 +4,11 @@ pragma solidity 0.8.26;
 import "./TestingBasePair.sol";
 import { ADEX, ADexInfo } from "../ADexToken/ADEX.sol";
 
-contract MintableADEX is ADEX {}
+contract MintableADEX is ADEX {
+	function mint(address to, uint256 amt) external onlyOwner {
+		this.transfer(to, amt);
+	}
+}
 
 library TestingPairFactory {
 	function newPair(
@@ -15,7 +19,7 @@ library TestingPairFactory {
 	}
 
 	function newBasePair() external returns (BasePair) {
-		ADEX adex = new ADEX();
+		ADEX adex = new MintableADEX();
 
 		return new TestingBasePair(address(adex));
 	}

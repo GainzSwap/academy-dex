@@ -2,7 +2,7 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
 import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
-import { ZeroAddress } from "ethers";
+import { parseEther, ZeroAddress } from "ethers";
 
 describe("Governance Contract", function () {
   async function deployGovernanceFixture() {
@@ -13,12 +13,17 @@ describe("Governance Contract", function () {
     const lpToken = await LpTokenFactory.deploy();
     await lpToken.waitForDeployment();
 
-    // Mint LP tokens to the user
+    // Deploy the LP Token contract
+    const AdexTokenFactory = await ethers.getContractFactory("MintableADEX");
+    const adexToken = await AdexTokenFactory.deploy();
+    await adexToken.waitForDeployment();
+
+    // Mint  tokens to the user
     await lpToken.mint(0, 10_000, ZeroAddress, user, 0);
 
     // Deploy the Governance contract
     const GovernanceFactory = await ethers.getContractFactory("Governance");
-    const governance = await GovernanceFactory.deploy(await lpToken.getAddress(), {
+    const governance = await GovernanceFactory.deploy(await lpToken.getAddress(), await adexToken.getAddress(), {
       epochLength: 24 * 60 * 60,
       genesis: await time.latest(),
     });
@@ -52,6 +57,7 @@ describe("Governance Contract", function () {
       otherUsers,
       governance,
       gTokens,
+      adexToken,
       lpToken,
       enterGovernance,
       validPayment,
@@ -146,6 +152,95 @@ describe("Governance Contract", function () {
       await expect(governance.connect(user).enterGovernance([invalidPayment], 10)).to.be.revertedWith(
         "Governance: Invalid LpPayments sent",
       );
+    });
+  });
+
+  describe("receiveRewards", function () {
+    const REWARD_AMOUNT = parseEther("8265.09877");
+
+    it("should receive rewards from the owner and update rewardPerShare correctly when totalStakeWeight is greater than zero", async function () {
+      const {
+        owner,
+        user,
+        adexToken: token,
+        governance,
+        enterGovernance,
+        validPayment,
+      } = await loadFixture(deployGovernanceFixture);
+
+      // Assume some GTokens have been staked
+      await enterGovernance(user, [validPayment], 120);
+
+      // Define a valid TokenPayment
+      const payment = {
+        token,
+        amount: REWARD_AMOUNT,
+        nonce: 0,
+      };
+
+      // Approve the governance contract to transfer tokens
+      await token.connect(owner).approve(governance, REWARD_AMOUNT);
+
+      // Call receiveRewards as the owner
+      await governance.connect(owner).receiveRewards(payment);
+
+      // Check that the rewardPerShare was updated correctly
+      const rewardPerShare = await governance.rewardPerShare();
+      expect(rewardPerShare).to.be.gt(0);
+
+      // Check that the rewardsReserve was updated correctly
+      const rewardsReserve = await governance.rewardsReserve();
+      expect(rewardsReserve).to.equal(REWARD_AMOUNT);
+    });
+
+    it("should not update rewardPerShare if totalStakeWeight is zero", async function () {
+      const { owner, adexToken: token, governance } = await loadFixture(deployGovernanceFixture);
+
+      const payment = {
+        token,
+        amount: REWARD_AMOUNT,
+        nonce: 0,
+      };
+
+      // Approve the governance contract to transfer tokens
+      await token.connect(owner).approve(governance, REWARD_AMOUNT);
+
+      // Call receiveRewards as the owner
+      await governance.connect(owner).receiveRewards(payment);
+
+      // Check that the rewardPerShare was not updated
+      const rewardPerShare = await governance.rewardPerShare();
+      expect(rewardPerShare).to.equal(0);
+
+      // Check that the rewardsReserve was updated correctly
+      const rewardsReserve = await governance.rewardsReserve();
+      expect(rewardsReserve).to.equal(REWARD_AMOUNT);
+    });
+
+    it("should revert if the reward amount is zero", async function () {
+      const { owner, adexToken: token, governance } = await loadFixture(deployGovernanceFixture);
+
+      const payment = {
+        token,
+        amount: 0,
+        nonce: 0,
+      };
+
+      await expect(governance.connect(owner).receiveRewards(payment)).to.be.revertedWith(
+        "Governance: Reward amount must be greater than zero",
+      );
+    });
+
+    it("should revert if the payment token is invalid", async function () {
+      const { owner, governance } = await loadFixture(deployGovernanceFixture);
+
+      const payment = {
+        token: ZeroAddress,
+        amount: REWARD_AMOUNT,
+        nonce: 0,
+      };
+
+      await expect(governance.connect(owner).receiveRewards(payment)).to.be.revertedWith("Governance: Invalid payment");
     });
   });
 });

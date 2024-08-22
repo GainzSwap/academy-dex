@@ -19,7 +19,7 @@ import { ADexInfo } from "../ADexToken/AdexInfo.sol";
 import { AdexEmission } from "../ADexToken/AdexEmission.sol";
 import { Amm } from "../common/Amm.sol";
 import { Epochs } from "../common/Epochs.sol";
-import { Governance } from "../governance/Governance.sol";
+import { DeployGovernance, Governance } from "../governance/Governance.sol";
 
 import "../common/libs/Number.sol";
 
@@ -73,7 +73,8 @@ contract Router is Ownable, UserModule {
 	GlobalData public globalData;
 
 	LpToken public immutable lpToken;
-	Governance public immutable governance;
+	Governance public governance;
+	address private adexTokenAddress;
 
 	event LiquidityRemoved(
 		address indexed user,
@@ -87,7 +88,6 @@ contract Router is Ownable, UserModule {
 		epochs.initialize(24 hours);
 
 		lpToken = new LpToken();
-		governance = new Governance(address(lpToken), epochs);
 
 		globalData.lastTimestamp = block.timestamp;
 	}
@@ -237,13 +237,31 @@ contract Router is Ownable, UserModule {
 		}
 	}
 
-	function _updatePairDataAfterRewardsGenerated(
+	function _runUpdatesAfterRewardsGenerated(
 		PairData storage pairData,
-		PairData memory newPairData
+		PairData memory newPairData,
+		GlobalData memory newGlobalData
 	) internal {
 		pairData.lpRewardsPershare = newPairData.lpRewardsPershare;
 		pairData.rewardsReserve = newPairData.rewardsReserve;
 		pairData.tradeRewardsPershare = newPairData.tradeRewardsPershare;
+
+		globalData = newGlobalData;
+
+		uint256 taxRewards = globalData.taxRewards;
+
+		if (taxRewards > 0) {
+			globalData.taxRewards = 0;
+
+			IERC20(adexTokenAddress).approve(address(governance), taxRewards);
+			governance.receiveRewards(
+				TokenPayment({
+					token: adexTokenAddress,
+					nonce: 0,
+					amount: taxRewards
+				})
+			);
+		}
 	}
 
 	/**
@@ -264,8 +282,14 @@ contract Router is Ownable, UserModule {
 			pair = PairFactory.newBasePair();
 			ERC20 adex = pair.tradeToken();
 			tradeToken = address(adex);
+			adexTokenAddress = tradeToken;
 
 			adex.transfer(owner(), ADexInfo.ICO_FUNDS);
+			governance = DeployGovernance.newGovernance(
+				address(lpToken),
+				tradeToken,
+				epochs
+			);
 		} else {
 			pair = PairFactory.newPair(tradeToken, basePairAddr());
 		}
@@ -295,8 +319,11 @@ contract Router is Ownable, UserModule {
 		PairData storage pairData = pairsData[pairAddress];
 
 		// Update pairData
-		(PairData memory newPairData, ) = _generateRewards(pairData);
-		_updatePairDataAfterRewardsGenerated(pairData, newPairData);
+		(
+			PairData memory newPairData,
+			GlobalData memory newGlobalData
+		) = _generateRewards(pairData);
+		_runUpdatesAfterRewardsGenerated(pairData, newPairData, newGlobalData);
 		pairData.totalLiq += liqAdded;
 
 		lpToken.mint(
@@ -343,8 +370,11 @@ contract Router is Ownable, UserModule {
 				);
 
 				PairData storage pairData = pairsData[newAttr.pair];
-				_updatePairDataAfterRewardsGenerated(pairData, newPairData);
-				globalData = newGlobalData;
+				_runUpdatesAfterRewardsGenerated(
+					pairData,
+					newPairData,
+					newGlobalData
+				);
 			}
 		}
 
@@ -387,8 +417,7 @@ contract Router is Ownable, UserModule {
 
 		// Update liquidity attributes and pair/global data after computing rewards
 		liquidity.attributes = newAttr;
-		_updatePairDataAfterRewardsGenerated(pairData, newPairData);
-		globalData = newGlobalData;
+		_runUpdatesAfterRewardsGenerated(pairData, newPairData, newGlobalData);
 
 		// Remove liquidity and get the amount of trade tokens claimed
 		Pair pair = Pair(pairAddr);
