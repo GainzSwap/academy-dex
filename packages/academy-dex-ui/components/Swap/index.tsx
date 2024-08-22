@@ -176,7 +176,7 @@ export function SwapTokensBody() {
                   <TokenIcon src={fromToken!.iconSrc} identifier={fromToken!.identifier} /> 1{"  "}≃{"  "}
                   {+values.receiveAmt / +values.sendAmt}{" "}
                   <TokenIcon src={toToken.iconSrc} identifier={toToken.identifier} />
-                </small>{"    "}
+                </small>
                 @&nbsp;
                 <span
                   style={{ display: "inline-block" }}

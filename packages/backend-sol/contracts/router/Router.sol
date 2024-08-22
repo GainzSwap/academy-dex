@@ -19,6 +19,9 @@ import { ADexInfo } from "../ADexToken/AdexInfo.sol";
 import { AdexEmission } from "../ADexToken/AdexEmission.sol";
 import { Amm } from "../common/Amm.sol";
 import { Epochs } from "../common/Epochs.sol";
+import { Governance } from "../governance/Governance.sol";
+
+import "../common/libs/Number.sol";
 
 library PairFactory {
 	function newPair(
@@ -40,6 +43,7 @@ contract Router is Ownable, UserModule {
 	using EnumerableSet for EnumerableSet.AddressSet;
 	using Address for address;
 	using Epochs for Epochs.Storage;
+	using Number for uint256;
 
 	struct PairData {
 		uint256 sellVolume;
@@ -51,11 +55,12 @@ contract Router is Ownable, UserModule {
 	}
 
 	struct GlobalData {
-		uint256 totalLiq;
 		uint256 rewardsReserve;
+		uint256 taxRewards;
 		uint256 rewardsPerShare;
 		uint256 totalTradeVolume;
 		uint256 lastTimestamp;
+		uint256 totalLiq;
 	}
 
 	Epochs.Storage private epochs;
@@ -68,6 +73,7 @@ contract Router is Ownable, UserModule {
 	GlobalData public globalData;
 
 	LpToken public immutable lpToken;
+	Governance public immutable governance;
 
 	event LiquidityRemoved(
 		address indexed user,
@@ -78,8 +84,11 @@ contract Router is Ownable, UserModule {
 	);
 
 	constructor() {
-		lpToken = new LpToken();
 		epochs.initialize(24 hours);
+
+		lpToken = new LpToken();
+		governance = new Governance(address(lpToken), epochs);
+
 		globalData.lastTimestamp = block.timestamp;
 	}
 
@@ -161,12 +170,19 @@ contract Router is Ownable, UserModule {
 				);
 			}
 
+			// Tax is set at 7.5%, this can be changed by governance
+			uint256 taxRewards;
+			(generatedRewards, taxRewards) = generatedRewards.take(
+				(generatedRewards * 7_5) / 100_0
+			);
+
 			uint256 rpsIncrease = (generatedRewards *
 				REWARDS_DIVISION_CONSTANT) / globalData.totalTradeVolume;
 
 			newGlobalData.lastTimestamp = currentTimestamp;
 			newGlobalData.rewardsPerShare += rpsIncrease;
 			newGlobalData.rewardsReserve += generatedRewards;
+			newGlobalData.taxRewards += taxRewards;
 		}
 
 		if (newPairData.tradeRewardsPershare < newGlobalData.rewardsPerShare) {

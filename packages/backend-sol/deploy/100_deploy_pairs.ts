@@ -2,7 +2,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 import { ethers } from "hardhat";
 import { MintableERC20, Router } from "../typechain-types";
-import { parseEther } from "ethers";
+import { parseEther, ZeroAddress } from "ethers";
 
 const deployPairs: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
@@ -75,6 +75,21 @@ const deployPairs: DeployFunction = async function (hre: HardhatRuntimeEnvironme
     from: deployer,
     gasLimit: 30_000_000,
     args: [tradeTokenAddr!, pairAddress!],
+  });
+  await hre.deployments.deploy("Governance", {
+    from: deployer,
+    gasLimit: 30_000_000,
+    args: [
+      ZeroAddress,
+      {
+        epochLength: 0,
+        genesis: 0,
+      },
+    ],
+  });
+  await hre.deployments.deploy("GTokens", {
+    from: deployer,
+    gasLimit: 30_000_000,
   });
 
   if (hre.network.name == "localhost") {

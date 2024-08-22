@@ -48,9 +48,9 @@ library Epochs {
 	}
 
 	function epochEdgeTimestamps(
-		Storage storage self,
+		Storage memory self,
 		uint256 epoch
-	) internal view returns (uint256 epochStart, uint256 epochEnd) {
+	) internal pure returns (uint256 epochStart, uint256 epochEnd) {
 		epochStart = self.genesis + (epoch * self.epochLength);
 		epochEnd = epochStart + self.epochLength - 1;
 	}
