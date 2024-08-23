@@ -1,8 +1,8 @@
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { ethers } from "hardhat";
-import { expect } from "chai";
+import { expect, use } from "chai";
 import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
-import { parseEther, ZeroAddress } from "ethers";
+import { BigNumberish, parseEther, ZeroAddress } from "ethers";
 
 import { claimRewardsFixture } from "./fixtures";
 import { TokenPaymentStruct } from "../typechain-types/contracts/governance/Governance";
@@ -272,7 +272,7 @@ describe("Governance Contract", function () {
         { token: adexTokenContract, amount: parseEther("874.9904") },
       );
 
-      // Trader sells different tokens
+      // Trader sells different tokens to initiate rewards generation
       for (let i = 0; i < 4; i++) {
         let mintForAdex = false;
         await sellToken({
@@ -309,7 +309,7 @@ describe("Governance Contract", function () {
       await lpTokenContract.setApprovalForAll(governanceContract, true);
       await governanceContract.connect(user).enterGovernance(lpPayments, 120);
 
-      // Move forward in time
+      // Move forward in time to generate rewards
       await time.increase(30 * 24 * 3600);
 
       // User claims rewards from governance
@@ -317,6 +317,7 @@ describe("Governance Contract", function () {
 
       // This will claim only lpRewards
       await governanceContract.connect(user).claimRewards(1);
+      // Move forward in time to generate more  rewards
       await time.increase(30 * 24 * 3600);
       // This should claim both lpReewards and Governance rewards
       await governanceContract.connect(user).claimRewards(2);
@@ -326,6 +327,127 @@ describe("Governance Contract", function () {
 
       // Assertions
       expect(claimedRewards).to.be.gt(0, "Rewards should be greater than zero");
+    });
+  });
+
+  describe("exitGovernance", function () {
+    async function exitGovernanceFixture() {
+      const {
+        addLiquidity,
+        pairContract,
+        pairTradeToken,
+        user,
+        adex,
+        basePairContract,
+        lpTokenContract,
+        governanceContract,
+      } = await claimRewardsFixture();
+
+      const addLiquidityAndEnterGovernance = async (times: number) => {
+        while (times > 0) {
+          times--;
+          // User adds liquidity
+          await addLiquidity(
+            { tradeToken: pairTradeToken, contract: pairContract, signer: user },
+            { token: pairTradeToken, amount: parseEther("500") },
+          );
+          await addLiquidity(
+            { tradeToken: adex, contract: basePairContract, signer: user },
+            { token: adex, amount: parseEther("900") },
+          );
+        }
+
+        // User enters governance
+        const lpContractAddr = await lpTokenContract.getAddress();
+        const lpPayments: TokenPaymentStruct[] = await lpTokenContract
+          .lpBalanceOf(user)
+          .then(balances => balances.map(({ amount, nonce }) => ({ amount, nonce, token: lpContractAddr })));
+        await lpTokenContract.setApprovalForAll(governanceContract, true);
+        await governanceContract.connect(user).enterGovernance(lpPayments, 120);
+
+        return lpPayments;
+      };
+
+      const computeLpBalance = <T extends { amount: BigNumberish }>(payments: T[]) =>
+        payments.reduce((acc, cur) => acc + BigInt(cur.amount), 0n);
+
+      return {
+        computeLpBalance,
+        addLiquidityAndEnterGovernance,
+        governanceContract,
+        user,
+        lpTokenContract,
+        epochLength: (await governanceContract.epochs()).epochLength,
+      };
+    }
+    it("should exit governance before lock epochs elapse, returning locked LP tokens correctly", async function () {
+      const {
+        addLiquidityAndEnterGovernance,
+        governanceContract,
+        user,
+        lpTokenContract,
+        epochLength,
+        computeLpBalance,
+      } = await loadFixture(exitGovernanceFixture);
+
+      const initialLpTokens = await addLiquidityAndEnterGovernance(1);
+
+      // Move forward in time, but not enough to elapse lock epochs
+      await time.increase(Math.floor(+(epochLength / 100n).toString()));
+
+      // User exits governance
+      await governanceContract.connect(user).exitGovernance(1);
+      const finalLpTokens = await lpTokenContract.lpBalanceOf(user);
+
+      // Assertions
+      expect(finalLpTokens[0].amount).to.be.gt(0, "Must return some LP amount");
+      expect(computeLpBalance(finalLpTokens)).to.be.lt(
+        computeLpBalance(initialLpTokens),
+        "Some LP amounts should be forfeited for early unstake",
+      );
+    });
+
+    it("should exit governance after lock epochs elapse, returning all staked LP tokens", async function () {
+      const {
+        addLiquidityAndEnterGovernance,
+        governanceContract,
+        user,
+        lpTokenContract,
+        epochLength,
+        computeLpBalance,
+      } = await loadFixture(exitGovernanceFixture);
+
+      const initialLpTokens = await addLiquidityAndEnterGovernance(1);
+
+      // Move forward in time to elapse lock epochs
+      await time.increase(130n * epochLength); // 130 epochs (more than the lock period)
+
+      // User exits governance
+      await governanceContract.connect(user).exitGovernance(1);
+      const finalLpTokens = await lpTokenContract.lpBalanceOf(user);
+
+      // Assertions
+      expect(computeLpBalance(finalLpTokens)).to.be.equal(
+        computeLpBalance(initialLpTokens),
+        "All LP tokens should be returned after lock epochs elapse",
+      );
+      expect(initialLpTokens.length).to.equal(
+        finalLpTokens.length,
+        "All LP tokens should be returned after lock epochs elapse",
+      );
+    });
+
+    it("should correctly handle multiple liquidity positions during governance exit", async function () {
+      const { addLiquidityAndEnterGovernance, governanceContract, user, epochLength } =
+        await loadFixture(exitGovernanceFixture);
+
+      await addLiquidityAndEnterGovernance(4);
+
+      // Move forward in time to elapse lock epochs
+      await time.increase(130n * epochLength); // 130 days (more than the lock period)
+
+      // User exits governance
+      await governanceContract.connect(user).exitGovernance(1);
     });
   });
 });

@@ -75,17 +75,11 @@ library GToken {
 
 	/// @notice Calculates the number of epochs since the last reward claim.
 	/// @param self The Attributes struct of the participant.
-	/// @param currentEpoch The current epoch.
 	/// @return The number of epochs since the last claim.
 	function epochsUnclaimed(
-		Attributes storage self,
-		uint256 currentEpoch
-	) internal view returns (uint256) {
-		require(
-			currentEpoch >= self.lastClaimEpoch,
-			"Invalid last claim epoch"
-		);
-		return currentEpoch - self.lastClaimEpoch;
+		Attributes memory self
+	) internal pure returns (uint256) {
+		return self.epochsLocked - self.lastClaimEpoch;
 	}
 
 	/// @notice Calculates the amount of value to keep based on epochs elapsed and locked.
@@ -94,10 +88,10 @@ library GToken {
 	/// @param currentEpoch The current epoch.
 	/// @return The amount of value to keep after applying penalties.
 	function valueToKeep(
-		Attributes storage self,
+		Attributes memory self,
 		uint256 value,
 		uint256 currentEpoch
-	) internal view returns (uint256) {
+	) internal pure returns (uint256) {
 		// Calculate percentage loss based on epochs locked
 		uint256 epochsLockedPercentLoss = MathUtil.linearInterpolation(
 			MIN_EPOCHS_LOCK,
@@ -109,7 +103,6 @@ library GToken {
 
 		// Calculate the percentage of the value to keep after penalties
 		uint256 percentLost = epochsElapsedPercentLoss(
-			epochsUnclaimed(self, currentEpoch),
 			epochsElapsed(self, currentEpoch),
 			epochsLockedPercentLoss,
 			self.epochsLocked
@@ -120,29 +113,24 @@ library GToken {
 	}
 
 	/// @notice Calculates the percentage loss of the reward based on elapsed epochs.
-	/// @param unclaimed The number of epochs unclaimed.
 	/// @param elapsed The number of epochs elapsed since staking.
 	/// @param lockedPercentLoss The percentage loss based on epochs locked.
 	/// @param locked The total epochs locked.
 	/// @return The percentage loss based on epochs elapsed.
 	function epochsElapsedPercentLoss(
-		uint256 unclaimed,
 		uint256 elapsed,
 		uint256 lockedPercentLoss,
 		uint256 locked
 	) private pure returns (uint256) {
-		uint256 maxIn = elapsed + (MAX_EPOCHS_LOCK - locked);
-		uint256 currentIn = elapsed + unclaimed;
-		if (currentIn > maxIn) {
-			maxIn = currentIn;
-		}
+		uint256 remainingTime = elapsed > locked ? 0 : locked - elapsed;
+
 		return
 			MathUtil.linearInterpolation(
 				0,
-				maxIn,
-				currentIn,
-				lockedPercentLoss,
-				0
+				locked,
+				remainingTime,
+				0,
+				lockedPercentLoss
 			);
 	}
 }

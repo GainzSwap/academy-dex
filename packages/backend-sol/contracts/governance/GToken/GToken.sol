@@ -64,9 +64,11 @@ contract GTokens is SFT {
 	function update(
 		address user,
 		uint256 nonce,
+		uint256 amount,
 		GToken.Attributes memory attr
 	) external onlyOwner returns (uint256) {
-		return super.update(user, nonce, GTOKEN_MINT_AMOUNT, abi.encode(attr));
+		require(amount <= GTOKEN_MINT_AMOUNT, "GToken: Invalid update amount");
+		return super.update(user, nonce, amount, abi.encode(attr));
 	}
 
 	/**

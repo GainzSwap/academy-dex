@@ -4,8 +4,8 @@ pragma solidity 0.8.26;
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-import { TokenPayment, TokenPayments, IERC20 } from "../common/libs/TokenPayments.sol";
-import { GTokens, GToken } from "./GToken/GToken.sol";
+import { TokenPayment, TokenPayments, IERC20, SFT } from "../common/libs/TokenPayments.sol";
+import { GTokens, GToken, GTOKEN_MINT_AMOUNT } from "./GToken/GToken.sol";
 import { Epochs } from "../common/Epochs.sol";
 
 import "../router/IRouter.sol";
@@ -26,6 +26,7 @@ library DeployGovernance {
 contract Governance is ERC1155Holder, Ownable {
 	using TokenPayments for TokenPayment;
 	using Epochs for Epochs.Storage;
+	using GToken for GToken.Attributes;
 
 	uint256 constant REWARDS_DIVISION_SAFETY_CONSTANT = 1e18;
 
@@ -44,7 +45,7 @@ contract Governance is ERC1155Holder, Ownable {
 	IRouter private immutable _router;
 
 	// Storage for epochs management
-	Epochs.Storage epochs;
+	Epochs.Storage public epochs;
 
 	// Constants for minimum and maximum LP tokens that can be locked
 	uint256 public constant MIN_LP_TOKENS = 1;
@@ -227,7 +228,7 @@ contract Governance is ERC1155Holder, Ownable {
 		// Transfer the claimable reward to the user
 		IERC20(adexTokenAddress).transfer(user, total);
 
-		return gtokens.update(user, nonce, attributes);
+		return gtokens.update(user, nonce, GTOKEN_MINT_AMOUNT, attributes);
 	}
 
 	function _getLpNonces(
@@ -250,5 +251,52 @@ contract Governance is ERC1155Holder, Ownable {
 
 		uint256[] memory nonces = _getLpNonces(attributes);
 		totalClaimable += _router.getClaimableRewardsByNonces(nonces);
+	}
+
+	/// @notice Exits governance by burning GTokens and unlocking the user's staked LP tokens.
+	/// @param nonce The nonce representing the user's specific staking position.
+	function exitGovernance(uint256 nonce) external {
+		address user = msg.sender;
+
+		// Retrieve the user's GToken attributes for the specified nonce
+		GToken.Attributes memory attributes = gtokens
+			.getBalanceAt(user, nonce)
+			.attributes;
+
+		// Calculate the amount of LP tokens to return to the user
+		uint256 lpAmountToReturn = attributes.valueToKeep(
+			attributes.lpAmount,
+			epochs.currentEpoch()
+		);
+		TokenPayment[] memory lpPayments = attributes.lpPayments;
+		// Process each LP payment associated with the staking position
+		for (uint256 i; i < lpPayments.length; i++) {
+			TokenPayment memory lpPayment = lpPayments[i];
+
+			// Adjust the LP payment amount based on the remaining LP amount to return
+			if (lpAmountToReturn == 0) {
+				lpPayment.amount = 0;
+				lpPayment.nonce = 0;
+			} else if (lpAmountToReturn > lpPayment.amount) {
+				lpAmountToReturn -= lpPayment.amount;
+			} else {
+				lpPayment.amount = lpAmountToReturn;
+				lpAmountToReturn = 0;
+			}
+
+			// Transfer the LP tokens back to the user if there's an amount to return
+			if (lpPayment.amount > 0) {
+				SFT(lpTokenAddress).safeTransferFrom(
+					address(this),
+					user,
+					lpPayment.nonce,
+					lpPayment.amount,
+					""
+				);
+			}
+		}
+
+		// Burn the user's GToken by setting the amount to 0
+		gtokens.update(user, nonce, 0, attributes);
 	}
 }
