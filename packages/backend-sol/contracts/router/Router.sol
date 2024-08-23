@@ -335,6 +335,7 @@ contract Router is IRouter, Ownable, UserModule {
 			pairData.lpRewardsPershare,
 			liqAdded,
 			pairAddress,
+			tokenAddress,
 			caller,
 			depValuePerShare
 		);
@@ -601,6 +602,14 @@ contract Router is IRouter, Ownable, UserModule {
 	 */
 	function tradeableTokens() public view returns (address[] memory) {
 		return tradeTokens.values();
+	}
+
+	function tokenIsListed(address tokenAddress) public view returns (bool) {
+		require(
+			tokenAddress != address(0),
+			"Router: Invalid trade token address"
+		);
+		return tradeTokens.contains(tokenAddress);
 	}
 
 	/**

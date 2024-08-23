@@ -4,6 +4,7 @@ import { ERC20, MintableERC20, Pair, Router } from "../typechain-types";
 import { ERC20TokenPaymentStruct } from "../typechain-types/contracts/pair/BasePair";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { expect } from "chai";
+import { TokenPaymentStruct } from "../typechain-types/contracts/governance/Governance";
 
 // Helper function for token approval
 async function approveToken(signer: HardhatEthersSigner, token: ERC20, amount: BigNumberish, contract: Pair) {
@@ -148,8 +149,14 @@ export async function claimRewardsFixture() {
     baseTradeToken: adex,
     owner,
     addLiquidity,
+    governanceContract,
+    lpTokenContract,
     ...fixtures
   } = await deployRouterFixture();
+
+  // Get the GTokens contract instance
+  const gTokensAddress = await governanceContract.gtokens();
+  const gTokens = await ethers.getContractAt("GTokens", gTokensAddress);
 
   const { pairContract, pairTradeToken } = await createPair();
 
@@ -172,8 +179,44 @@ export async function claimRewardsFixture() {
 
   await addInitialLiq({ baseAmt: parseEther("7284.4846"), pairAmt: parseEther("745334000.4746") });
 
+  const addLiquidityAndEnterGovernance = async (
+    times: number,
+    signer = user,
+  ) => {
+    while (times > 0) {
+      times--;
+      // User adds liquidity
+      await addLiquidity(
+        { tradeToken: pairTradeToken, contract: pairContract, signer },
+        { token: pairTradeToken, amount: parseEther("500") },
+      );
+      await addLiquidity(
+        { tradeToken: adex, contract: basePairContract, signer },
+        { token: adex, amount: parseEther("900") },
+      );
+    }
+
+    // User enters governance
+    const lpContractAddr = await lpTokenContract.getAddress();
+    const lpPayments: TokenPaymentStruct[] = await lpTokenContract
+      .lpBalanceOf(signer)
+      .then(balances => balances.map(({ amount, nonce }) => ({ amount, nonce, token: lpContractAddr })));
+    await lpTokenContract.connect(signer).setApprovalForAll(governanceContract, true);
+    await governanceContract.connect(signer).enterGovernance(lpPayments, 120);
+
+    return lpPayments;
+  };
+
+  const computeLpBalance = <T extends { amount: BigNumberish }>(payments: T[]) =>
+    payments.reduce((acc, cur) => acc + BigInt(cur.amount), 0n);
+
   return {
     ...fixtures,
+    lpTokenContract,
+    governanceContract,
+    computeLpBalance,
+    addLiquidityAndEnterGovernance,
+    LISTING_FEE: await governanceContract.LISTING_FEE(),
     adex,
     router,
     user,
@@ -183,5 +226,7 @@ export async function claimRewardsFixture() {
     pairContract,
     pairTradeToken,
     addLiquidity,
+    gTokens,
+    gTokensAddress,
   };
 }

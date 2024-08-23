@@ -4,11 +4,15 @@ pragma solidity 0.8.26;
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-import { TokenPayment, TokenPayments, IERC20, SFT } from "../common/libs/TokenPayments.sol";
+import { TokenPayment, TokenPayments, IERC20 } from "../common/libs/TokenPayments.sol";
 import { GTokens, GToken, GTOKEN_MINT_AMOUNT } from "./GToken/GToken.sol";
 import { Epochs } from "../common/Epochs.sol";
 
 import "../router/IRouter.sol";
+import "../common/libs/Number.sol";
+import "../common/utils.sol";
+
+import { LpToken } from "../modules/LpToken.sol";
 
 library DeployGovernance {
 	function newGovernance(
@@ -16,7 +20,15 @@ library DeployGovernance {
 		address adex,
 		Epochs.Storage memory epochs
 	) external returns (Governance) {
-		return new Governance(lpToken, adex, epochs);
+		address caller = msg.sender;
+		(, bytes memory owner) = caller.call(
+			abi.encodeWithSignature("owner()")
+		);
+
+		address feeCollector = owner.length > 0
+			? abi.decode(owner, (address))
+			: caller;
+		return new Governance(lpToken, adex, epochs, feeCollector);
 	}
 }
 
@@ -27,12 +39,19 @@ contract Governance is ERC1155Holder, Ownable {
 	using TokenPayments for TokenPayment;
 	using Epochs for Epochs.Storage;
 	using GToken for GToken.Attributes;
+	using Number for uint256;
 
 	uint256 constant REWARDS_DIVISION_SAFETY_CONSTANT = 1e18;
+
+	// This could be set by governance
+	uint256 public constant LISTING_FEE = 20e18;
 
 	// Reward per share for governance users
 	uint256 public rewardPerShare;
 	uint256 public rewardsReserve;
+
+	uint256 public protocolFees;
+	address immutable protocolFeesCollector;
 
 	// Instance of GTokens contract
 	GTokens public immutable gtokens;
@@ -51,13 +70,22 @@ contract Governance is ERC1155Holder, Ownable {
 	uint256 public constant MIN_LP_TOKENS = 1;
 	uint256 public constant MAX_LP_TOKENS = 10;
 
+	struct TokenListing {
+		address tradeToken;
+		address owner;
+		uint256 gTokenNonce;
+	}
+
+	TokenListing public activeListing;
+
 	/// @notice Constructor to initialize the Governance contract.
 	/// @param _lpToken The address of the LP token contract.
 	/// @param epochs_ The epochs storage instance for managing epochs.
 	constructor(
 		address _lpToken,
 		address _adex,
-		Epochs.Storage memory epochs_
+		Epochs.Storage memory epochs_,
+		address protocolFeesCollector_
 	) {
 		lpTokenAddress = _lpToken;
 		adexTokenAddress = _adex;
@@ -66,6 +94,20 @@ contract Governance is ERC1155Holder, Ownable {
 		epochs = epochs_;
 
 		_router = IRouter(msg.sender);
+
+		require(
+			protocolFeesCollector_ != address(0),
+			"Invalid Protocol Fees collector"
+		);
+		protocolFeesCollector = protocolFeesCollector_;
+	}
+
+	function takeProtocolFees() external {
+		address caller = msg.sender;
+		require(caller == protocolFeesCollector, "Not allowed");
+
+		IERC20(adexTokenAddress).transfer(protocolFeesCollector, protocolFees);
+		protocolFees = 0;
 	}
 
 	/// @notice Internal function to validate if a TokenPayment is a valid LP token payment.
@@ -78,6 +120,35 @@ contract Governance is ERC1155Holder, Ownable {
 			payment.nonce > 0 &&
 			payment.token == lpTokenAddress &&
 			payment.amount > 0;
+	}
+
+	function _addReward(TokenPayment calldata payment) private {
+		uint256 rewardAmount = payment.amount;
+		require(
+			rewardAmount > 0,
+			"Governance: Reward amount must be greater than zero"
+		);
+		require(
+			payment.token == adexTokenAddress,
+			"Governance: Invalid reward payment"
+		);
+		payment.receiveToken();
+
+		uint256 protocolAmount;
+		(rewardAmount, protocolAmount) = rewardAmount.take(
+			(rewardAmount * 3) / 10
+		); // 30% for protocol fee
+
+		uint256 totalStakeWeight = gtokens.totalStakeWeight();
+		// We will receive rewards regardless of if Governance staking has begun
+		if (totalStakeWeight > 0) {
+			rewardPerShare +=
+				(rewardAmount * REWARDS_DIVISION_SAFETY_CONSTANT) /
+				totalStakeWeight;
+		}
+
+		protocolFees += protocolAmount;
+		rewardsReserve += rewardAmount;
 	}
 
 	/// @notice Function to enter governance by locking LP tokens and minting GTokens.
@@ -154,25 +225,7 @@ contract Governance is ERC1155Holder, Ownable {
 	 * - "Governance: Invalid payment" if the payment token is not the ADEX token.
 	 */
 	function receiveRewards(TokenPayment calldata payment) external onlyOwner {
-		uint256 rewardAmount = payment.amount;
-		require(
-			rewardAmount > 0,
-			"Governance: Reward amount must be greater than zero"
-		);
-		require(
-			payment.token == adexTokenAddress,
-			"Governance: Invalid payment"
-		);
-		payment.receiveToken();
-
-		uint256 totalStakeWeight = gtokens.totalStakeWeight();
-		// We will receive rewards regardless of if Governance staking has begun
-		if (totalStakeWeight > 0) {
-			rewardPerShare +=
-				(rewardAmount * REWARDS_DIVISION_SAFETY_CONSTANT) /
-				totalStakeWeight;
-		}
-		rewardsReserve += rewardAmount;
+		_addReward(payment);
 	}
 
 	function _calculateClaimableReward(
@@ -286,7 +339,7 @@ contract Governance is ERC1155Holder, Ownable {
 
 			// Transfer the LP tokens back to the user if there's an amount to return
 			if (lpPayment.amount > 0) {
-				SFT(lpTokenAddress).safeTransferFrom(
+				LpToken(lpTokenAddress).safeTransferFrom(
 					address(this),
 					user,
 					lpPayment.nonce,
@@ -298,5 +351,84 @@ contract Governance is ERC1155Holder, Ownable {
 
 		// Burn the user's GToken by setting the amount to 0
 		gtokens.update(user, nonce, 0, attributes);
+	}
+
+	/// @notice Proposes a new pair listing by submitting the required listing fee and GToken payment.
+	/// @param listingFeePayment The payment details for the listing fee.
+	/// @param gTokenPayment The payment details for the GToken required for the listing.
+	/// @param tradeToken The address of the trade token to be listed.
+	function proposeNewPairListing(
+		TokenPayment calldata listingFeePayment,
+		TokenPayment calldata gTokenPayment,
+		address tradeToken
+	) external {
+		// Ensure there is no active listing proposal
+		require(
+			activeListing.tradeToken == address(0),
+			"Governance: Previous proposal not completed"
+		);
+		// Validate the trade token and ensure it is not already listed
+		require(
+			isERC20(tradeToken) && !_router.tokenIsListed(tradeToken),
+			"Governance: Invalid Trade token"
+		);
+		// Check if the correct listing fee amount is provided
+		require(
+			listingFeePayment.amount == LISTING_FEE,
+			"Governance: Invalid sent listing fee"
+		);
+		// Add the listing fee to the rewards pool
+		_addReward(listingFeePayment);
+
+		// Validate the GToken payment for the listing
+		require(
+			_isValidGTokenForListing(gTokenPayment),
+			"Governance: Invalid GToken Payment for proposal"
+		);
+		// Process the GToken payment
+		gTokenPayment.receiveToken();
+
+		// Update the active listing with the new proposal details
+		activeListing.owner = msg.sender;
+		activeListing.tradeToken = tradeToken;
+		activeListing.gTokenNonce = gTokenPayment.nonce;
+	}
+
+	/// @notice Validates the GToken payment for the listing based on the total base amount in liquidity.
+	/// @param payment The payment details for the GToken.
+	/// @return bool indicating if the GToken payment is valid.
+	function _isValidGTokenForListing(
+		TokenPayment calldata payment
+	) private view returns (bool) {
+		// Ensure the payment token is the correct GToken contract
+		if (payment.token != address(gtokens)) {
+			return false;
+		}
+
+		// Retrieve the GToken attributes for the specified nonce
+		GToken.Attributes memory attributes = gtokens
+			.getBalanceAt(msg.sender, payment.nonce)
+			.attributes;
+
+		uint256 totalBaseAmtInLiq = 0;
+		// Iterate through the LP payments to calculate the total base amount in liquidity
+		for (uint256 i; i < attributes.lpPayments.length; i++) {
+			TokenPayment memory lpPayment = attributes.lpPayments[i];
+			LpToken.LpBalance memory lpBalance = LpToken(lpTokenAddress)
+				.getBalanceAt(address(this), lpPayment.nonce);
+
+			// Accumulate the base amount if the trade token matches the specified address
+			if (lpBalance.attributes.tradeToken == adexTokenAddress) {
+				totalBaseAmtInLiq += lpBalance.amount;
+			}
+
+			// Return true if the total base amount meets the required threshold
+			if (totalBaseAmtInLiq >= 1000e18) {
+				return true;
+			}
+		}
+
+		// Return false if the total base amount is insufficient
+		return false;
 	}
 }

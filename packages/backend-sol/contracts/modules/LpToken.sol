@@ -8,6 +8,7 @@ contract LpToken is SFT {
 		uint256 rewardPerShare;
 		uint256 depValuePerShare;
 		address pair;
+		address tradeToken;
 	}
 
 	struct LpBalance {
@@ -44,6 +45,7 @@ contract LpToken is SFT {
 		uint256 rewardPerShare,
 		uint256 lpAmount,
 		address pair,
+		address tradeToken,
 		address to,
 		uint256 depValuePerShare
 	) external onlyOwner {
@@ -53,6 +55,7 @@ contract LpToken is SFT {
 			LpAttributes({
 				rewardPerShare: rewardPerShare,
 				pair: pair,
+				tradeToken: tradeToken,
 				depValuePerShare: depValuePerShare
 			})
 		);

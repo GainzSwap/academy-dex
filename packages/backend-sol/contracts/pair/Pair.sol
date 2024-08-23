@@ -17,6 +17,7 @@ import "./Interface.sol";
 import "./Knowable.sol";
 
 import { LpToken } from "../modules/LpToken.sol";
+import "../common/utils.sol";
 
 uint256 constant RPS_DIVISION_CONSTANT = 1e36;
 
@@ -36,7 +37,7 @@ contract Pair is IPair, Ownable, KnowablePair {
 	uint256 public lpSupply;
 
 	ERC20 public immutable tradeToken;
-	IBasePair immutable basePair;
+	IBasePair basePair;
 
 	mapping(address => SafePriceData) safePrices;
 
@@ -64,18 +65,18 @@ contract Pair is IPair, Ownable, KnowablePair {
 		require(tradeToken_ != address(0), "Pair: Invalid trade token address");
 		require(basePairAddr != address(0), "Pair: Invalid base pair address");
 
+		require(isERC20(tradeToken_), "Pair: Invalid trade token");
 		tradeToken = ERC20(tradeToken_);
-		require(
-			bytes(tradeToken.symbol()).length > 0,
-			"Pair: Invalid trade token"
-		);
 
+		_setBasePair(basePairAddr);
+	}
+
+	function _setBasePair(address basePairAddr) internal virtual {
 		basePair = IBasePair(basePairAddr);
-		// TODO Write checks to ensure that base pair trade token is valid ERC20 token
-		// require(
-		// 	bytes(ERC20(Pair(basePairAddr).tradeToken()).symbol()).length > 0,
-		// 	"Pair: Invalid base pair contract"
-		// );
+		require(
+			isERC20(address(Pair(basePairAddr).tradeToken())),
+			"Pair: Invalid base pair contract"
+		);
 	}
 
 	modifier onlyBasePair() {

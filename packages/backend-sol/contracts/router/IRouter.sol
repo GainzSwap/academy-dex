@@ -9,4 +9,6 @@ interface IRouter {
 	function getClaimableRewardsByNonces(
 		uint256[] memory nonces
 	) external view returns (uint256 totalClaimable);
+
+	function tokenIsListed(address tokenAddress) external view returns (bool);
 }
