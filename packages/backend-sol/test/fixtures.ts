@@ -1,6 +1,6 @@
-import { BigNumberish, ZeroAddress } from "ethers";
+import { BigNumberish, parseEther, ZeroAddress } from "ethers";
 import { ethers } from "hardhat";
-import { ERC20, Pair, Router } from "../typechain-types";
+import { ERC20, MintableERC20, Pair, Router } from "../typechain-types";
 import { ERC20TokenPaymentStruct } from "../typechain-types/contracts/pair/BasePair";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { expect } from "chai";
@@ -10,7 +10,7 @@ async function approveToken(signer: HardhatEthersSigner, token: ERC20, amount: B
   await token.connect(signer).approve(contract, amount);
 }
 
-export default async function deployRouterFixture() {
+export async function deployRouterFixture() {
   const [user, owner, ...otherUsers] = await ethers.getSigners();
 
   // Deploy contracts and ensure they are deployed
@@ -32,7 +32,7 @@ export default async function deployRouterFixture() {
 
   await router.createPair(ZeroAddress);
   const basePairContract = await ethers.getContractAt("TestingBasePair", await router.basePairAddr());
-  const baseTradeToken = await ethers.getContractAt("ADEX", await basePairContract.tradeToken());
+  const baseTradeToken = await ethers.getContractAt("MintableADEX", await basePairContract.tradeToken());
 
   const lpTokenContract = await ethers.getContractAt("LpToken", await router.lpToken());
 
@@ -51,10 +51,15 @@ export default async function deployRouterFixture() {
   };
 
   const addLiquidity = async (
-    { tradeToken, contract, signer = user }: { contract: Pair; tradeToken: ERC20; signer?: HardhatEthersSigner },
+    {
+      tradeToken,
+      contract,
+      signer = user,
+    }: { contract: Pair; tradeToken: MintableERC20; signer?: HardhatEthersSigner },
     ...args: Parameters<Router["addLiquidity"]>
   ) => {
     const payment = args[0] as ERC20TokenPaymentStruct;
+    await tradeToken.connect(owner).mint(signer, payment.amount);
     await approveToken(signer, tradeToken, payment.amount, contract);
     return router.connect(signer).addLiquidity(...args);
   };
@@ -76,14 +81,7 @@ export default async function deployRouterFixture() {
   }) => {
     const buyToken = await ethers.getContractAt("ERC20", await buyContract.tradeToken());
     const sellToken = await ethers.getContractAt("MintableERC20", await sellContract.tradeToken());
-    mint &&
-      (await (async () => {
-        if ((await sellToken.getAddress()) == (await baseTradeToken.getAddress())) {
-          return baseTradeToken.connect(owner).transfer(someUser, sellAmt);
-        } else {
-          return sellToken.connect(owner).mint(someUser, sellAmt);
-        }
-      })());
+    mint && (await sellToken.connect(owner).mint(someUser, sellAmt));
 
     const tokenApprovalTx = await sellToken.connect(someUser).approve(sellContract, sellAmt);
     await tokenApprovalTx.wait();
@@ -123,6 +121,8 @@ export default async function deployRouterFixture() {
     expect(estimatedAmountOut).to.be.lessThanOrEqual(finalOutBal - initialOutBal);
   };
 
+  const governanceContract = await ethers.getContractAt("Governance", await router.governance());
+
   return {
     router,
     basePairContract,
@@ -135,5 +135,53 @@ export default async function deployRouterFixture() {
     sellToken,
     otherUsers,
     approveToken,
+    governanceContract,
+  };
+}
+
+export async function claimRewardsFixture() {
+  const {
+    router,
+    user,
+    basePairContract,
+    createPair,
+    baseTradeToken: adex,
+    owner,
+    addLiquidity,
+    ...fixtures
+  } = await deployRouterFixture();
+
+  const { pairContract, pairTradeToken } = await createPair();
+
+  const addInitialLiq = async ({ baseAmt, pairAmt }: { baseAmt: BigNumberish; pairAmt: BigNumberish }) => {
+    const basePayment = { amount: baseAmt, token: adex };
+    const pairPayment = { amount: pairAmt, token: pairTradeToken };
+
+    await adex.connect(owner).transfer(user, baseAmt);
+    const initialAdexBal = await adex.balanceOf(basePairContract);
+    await addLiquidity({ contract: basePairContract, tradeToken: adex }, basePayment);
+    expect(await basePairContract.reserve()).to.equal(basePayment.amount);
+
+    await pairTradeToken.mint(user, pairAmt);
+    await addLiquidity({ contract: pairContract, tradeToken: pairTradeToken }, pairPayment);
+    expect(await pairContract.reserve()).to.equal(pairPayment.amount);
+
+    expect(await adex.balanceOf(basePairContract)).to.equal(BigInt(basePayment.amount) + initialAdexBal);
+    expect(await pairTradeToken.balanceOf(pairContract)).to.equal(pairPayment.amount);
+  };
+
+  await addInitialLiq({ baseAmt: parseEther("7284.4846"), pairAmt: parseEther("745334000.4746") });
+
+  return {
+    ...fixtures,
+    adex,
+    router,
+    user,
+    basePairContract,
+    createPair,
+    owner,
+    pairContract,
+    pairTradeToken,
+    addLiquidity,
   };
 }

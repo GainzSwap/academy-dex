@@ -1,8 +1,8 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { loadFixture, time } from "@nomicfoundation/hardhat-toolbox/network-helpers";
-import { parseEther, BigNumberish } from "ethers";
-import deployRouterFixture from "./deployRouterFixture";
+import { parseEther } from "ethers";
+import { deployRouterFixture, claimRewardsFixture } from "./fixtures";
 
 describe("Router", function () {
   describe("addLiquidity", function () {
@@ -165,52 +165,6 @@ describe("Router", function () {
       expect((await router.pairsData(basePairContract)).buyVolume).to.be.greaterThan(0);
     });
   });
-  async function claimRewardsFixture() {
-    const {
-      router,
-      user,
-      basePairContract,
-      createPair,
-      baseTradeToken: adex,
-      owner,
-      addLiquidity,
-      ...fixtures
-    } = await loadFixture(deployRouterFixture);
-
-    const { pairContract, pairTradeToken } = await createPair();
-
-    const addInitialLiq = async ({ baseAmt, pairAmt }: { baseAmt: BigNumberish; pairAmt: BigNumberish }) => {
-      const basePayment = { amount: baseAmt, token: adex };
-      const pairPayment = { amount: pairAmt, token: pairTradeToken };
-
-      await adex.connect(owner).transfer(user, baseAmt);
-      const initialAdexBal = await adex.balanceOf(basePairContract);
-      await addLiquidity({ contract: basePairContract, tradeToken: adex }, basePayment);
-      expect(await basePairContract.reserve()).to.equal(basePayment.amount);
-
-      await pairTradeToken.mint(user, pairAmt);
-      await addLiquidity({ contract: pairContract, tradeToken: pairTradeToken }, pairPayment);
-      expect(await pairContract.reserve()).to.equal(pairPayment.amount);
-
-      expect(await adex.balanceOf(basePairContract)).to.equal(BigInt(basePayment.amount) + initialAdexBal);
-      expect(await pairTradeToken.balanceOf(pairContract)).to.equal(pairPayment.amount);
-    };
-
-    await addInitialLiq({ baseAmt: parseEther("7284.4846"), pairAmt: parseEther("745334000.4746") });
-
-    return {
-      ...fixtures,
-      adex,
-      router,
-      user,
-      basePairContract,
-      createPair,
-      owner,
-      pairContract,
-      pairTradeToken,
-      addLiquidity,
-    };
-  }
 
   describe("Router: claimRewards", function () {
     it("should allow users to claim rewards from a pair with valid nonces", async function () {

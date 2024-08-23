@@ -4,6 +4,9 @@ import { expect } from "chai";
 import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 import { parseEther, ZeroAddress } from "ethers";
 
+import { claimRewardsFixture } from "./fixtures";
+import { TokenPaymentStruct } from "../typechain-types/contracts/governance/Governance";
+
 describe("Governance Contract", function () {
   async function deployGovernanceFixture() {
     const [owner, user, ...otherUsers] = await ethers.getSigners();
@@ -241,6 +244,88 @@ describe("Governance Contract", function () {
       };
 
       await expect(governance.connect(owner).receiveRewards(payment)).to.be.revertedWith("Governance: Invalid payment");
+    });
+  });
+
+  describe("claimRewards", function () {
+    it("should claim rewards in GToken and lpToken", async function () {
+      const {
+        lpTokenContract,
+        pairContract,
+        basePairContract,
+        pairTradeToken,
+        addLiquidity,
+        user,
+        sellToken,
+        otherUsers: [, , trader],
+        governanceContract,
+        adex: adexTokenContract,
+      } = await loadFixture(claimRewardsFixture);
+
+      // User adds liquidity
+      await addLiquidity(
+        { tradeToken: pairTradeToken, contract: pairContract, signer: user },
+        { token: pairTradeToken, amount: parseEther("483.99004") },
+      );
+      await addLiquidity(
+        { tradeToken: adexTokenContract, contract: basePairContract, signer: user },
+        { token: adexTokenContract, amount: parseEther("874.9904") },
+      );
+
+      // Trader sells different tokens
+      for (let i = 0; i < 4; i++) {
+        let mintForAdex = false;
+        await sellToken({
+          buyContract: pairContract,
+          sellAmt: await (async () => {
+            let sellAmt = await adexTokenContract.balanceOf(trader);
+
+            if (sellAmt <= 0) {
+              mintForAdex = true;
+              sellAmt = parseEther("234.453");
+            }
+
+            return sellAmt;
+          })(),
+          sellContract: basePairContract,
+          someUser: trader,
+          slippage: 100_00,
+          mint: mintForAdex,
+        });
+        await sellToken({
+          buyContract: basePairContract,
+          sellAmt: await pairTradeToken.balanceOf(trader),
+          sellContract: pairContract,
+          someUser: trader,
+          slippage: 100_00,
+        });
+      }
+
+      // User enters governance
+      const lpContractAddr = await lpTokenContract.getAddress();
+      const lpPayments: TokenPaymentStruct[] = await lpTokenContract
+        .lpBalanceOf(user)
+        .then(balances => balances.map(({ amount, nonce }) => ({ amount, nonce, token: lpContractAddr })));
+      await lpTokenContract.setApprovalForAll(governanceContract, true);
+      await governanceContract.connect(user).enterGovernance(lpPayments, 120);
+
+      // Move forward in time
+      await time.increase(30 * 24 * 3600);
+
+      // User claims rewards from governance
+      const initialUserBalance = await adexTokenContract.balanceOf(user);
+
+      // This will claim only lpRewards
+      await governanceContract.connect(user).claimRewards(1);
+      await time.increase(30 * 24 * 3600);
+      // This should claim both lpReewards and Governance rewards
+      await governanceContract.connect(user).claimRewards(2);
+
+      const finalUserBalance = await adexTokenContract.balanceOf(user.address);
+      const claimedRewards = finalUserBalance - initialUserBalance;
+
+      // Assertions
+      expect(claimedRewards).to.be.gt(0, "Rewards should be greater than zero");
     });
   });
 });

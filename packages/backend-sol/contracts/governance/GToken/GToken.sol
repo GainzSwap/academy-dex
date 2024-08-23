@@ -5,6 +5,14 @@ import { GToken } from "./GTokenAttributes.sol";
 import { SFT } from "../../modules/SFT.sol";
 import { TokenPayment } from "../../common/libs/TokenPayments.sol";
 
+struct GTokensBalance {
+	uint256 nonce;
+	uint256 amount;
+	GToken.Attributes attributes;
+}
+
+uint256 constant GTOKEN_MINT_AMOUNT = 1;
+
 /// @title GTokens Contract
 /// @notice This contract handles the minting of governance tokens (GTokens) used in the ADEX platform.
 /// @dev The contract extends a semi-fungible token (SFT) and uses GToken attributes for staking.
@@ -12,12 +20,6 @@ contract GTokens is SFT {
 	using GToken for GToken.Attributes;
 
 	uint256 private _totalStakeWeight;
-
-	struct GovernanceBalance {
-		uint256 nonce;
-		uint256 amount;
-		GToken.Attributes attributes;
-	}
 
 	/// @notice Constructor to initialize the GTokens contract.
 	/// @dev Sets the name and symbol of the SFT for GTokens.
@@ -56,7 +58,15 @@ contract GTokens is SFT {
 		);
 
 		// Mint the GToken with the specified attributes and return the token ID
-		return _mint(to, 1, attributes);
+		return _mint(to, GTOKEN_MINT_AMOUNT, attributes);
+	}
+
+	function update(
+		address user,
+		uint256 nonce,
+		GToken.Attributes memory attr
+	) external onlyOwner returns (uint256) {
+		return super.update(user, nonce, GTOKEN_MINT_AMOUNT, abi.encode(attr));
 	}
 
 	/**
@@ -68,7 +78,7 @@ contract GTokens is SFT {
 	 * @param user The address of the user whose balance is being queried.
 	 * @param nonce The nonce for the specific GToken to retrieve.
 	 *
-	 * @return GovernanceBalance A struct containing the nonce, amount, and attributes of the GToken.
+	 * @return GTokensBalance A struct containing the nonce, amount, and attributes of the GToken.
 	 *
 	 * Requirements:
 	 * - The user must have a GToken balance at the specified nonce.
@@ -76,14 +86,14 @@ contract GTokens is SFT {
 	function getBalanceAt(
 		address user,
 		uint256 nonce
-	) public view returns (GovernanceBalance memory) {
+	) public view returns (GTokensBalance memory) {
 		require(
 			hasSFT(user, nonce),
 			"No GToken balance found at nonce for user"
 		);
 
 		return
-			GovernanceBalance({
+			GTokensBalance({
 				nonce: nonce,
 				amount: balanceOf(user, nonce),
 				attributes: abi.decode(
@@ -100,21 +110,19 @@ contract GTokens is SFT {
 	 *
 	 * @param user The address of the user whose balances are being queried.
 	 *
-	 * @return GovernanceBalance[] An array of structs, each containing the nonce, amount, and attributes
+	 * @return GTokensBalance[] An array of structs, each containing the nonce, amount, and attributes
 	 * of the user's GTokens.
 	 */
 	function getGTokenBalance(
 		address user
-	) public view returns (GovernanceBalance[] memory) {
+	) public view returns (GTokensBalance[] memory) {
 		SftBalance[] memory _sftBals = _sftBalance(user);
-		GovernanceBalance[] memory balance = new GovernanceBalance[](
-			_sftBals.length
-		);
+		GTokensBalance[] memory balance = new GTokensBalance[](_sftBals.length);
 
 		for (uint256 i = 0; i < _sftBals.length; i++) {
 			SftBalance memory _sftBal = _sftBals[i];
 
-			balance[i] = GovernanceBalance({
+			balance[i] = GTokensBalance({
 				nonce: _sftBal.nonce,
 				amount: _sftBal.amount,
 				attributes: abi.decode(_sftBal.attributes, (GToken.Attributes))

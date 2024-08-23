@@ -22,6 +22,7 @@ import { Epochs } from "../common/Epochs.sol";
 import { DeployGovernance, Governance } from "../governance/Governance.sol";
 
 import "../common/libs/Number.sol";
+import { IRouter } from "./IRouter.sol";
 
 library PairFactory {
 	function newPair(
@@ -39,7 +40,7 @@ library PairFactory {
 
 uint256 constant REWARDS_DIVISION_CONSTANT = 1e18;
 
-contract Router is Ownable, UserModule {
+contract Router is IRouter, Ownable, UserModule {
 	using EnumerableSet for EnumerableSet.AddressSet;
 	using Address for address;
 	using Epochs for Epochs.Storage;
@@ -268,15 +269,17 @@ contract Router is Ownable, UserModule {
 	 * @notice Creates a new pair.
 	 * @dev The first pair becomes the base pair -- For now, called by only owner..when DAO is implemented, DAO can call this
 	 * @param tradeToken Address of the trade token for the pair.
-	 * @return pair Address of the newly created pair.
+	 * @return pairAddress Address of the newly created pair.
 	 */
 	function createPair(
 		address tradeToken
-	) external onlyOwner returns (Pair pair) {
+	) external onlyOwner returns (address pairAddress) {
 		require(
 			tokensPairAddress[tradeToken] == address(0),
 			"Token already added"
 		);
+
+		Pair pair;
 
 		if (pairsCount() == 0) {
 			pair = PairFactory.newBasePair();
@@ -294,9 +297,11 @@ contract Router is Ownable, UserModule {
 			pair = PairFactory.newPair(tradeToken, basePairAddr());
 		}
 
-		pairs.add(address(pair));
+		pairAddress = address(pair);
+
+		pairs.add(pairAddress);
 		tradeTokens.add(tradeToken);
-		tokensPairAddress[tradeToken] = address(pair);
+		tokensPairAddress[tradeToken] = pairAddress;
 	}
 
 	/**
@@ -339,9 +344,11 @@ contract Router is Ownable, UserModule {
 	 * @notice Claims rewards for a user across all pairs in which they hold LP tokens.
 	 * @param nonces The desired SFTs to claim from.
 	 */
-	function claimRewards(uint256[] calldata nonces) external {
+	function claimRewards(
+		uint256[] memory nonces
+	) external returns (uint256 totalClaimed, uint256[] memory newNonces) {
 		address user = msg.sender;
-		uint256 totalClaimed = 0;
+		newNonces = nonces;
 
 		// Loop through all nonces to calculate and claim rewards
 		for (uint256 i = 0; i < nonces.length; i++) {
@@ -362,12 +369,13 @@ contract Router is Ownable, UserModule {
 				totalClaimed += claimable;
 
 				// Update LP attributes and data
-				lpToken.update(
+				uint256 newNonce = lpToken.update(
 					user,
 					balance.nonce,
 					balance.amount,
 					abi.encode(newAttr)
 				);
+				newNonces[i] = newNonce;
 
 				PairData storage pairData = pairsData[newAttr.pair];
 				_runUpdatesAfterRewardsGenerated(
@@ -650,5 +658,25 @@ contract Router is Ownable, UserModule {
 		);
 
 		amountOut -= (amountOut * feePercent) / FeeUtil.MAX_PERCENT;
+	}
+
+	/**
+	 * @notice Computes claimable rewards for a list of nonces.
+	 * @param nonces Array of nonces to compute claimable rewards for.
+	 * @return totalClaimable Total claimable rewards for all provided nonces.
+	 */
+	function getClaimableRewardsByNonces(
+		uint256[] calldata nonces
+	) external view returns (uint256 totalClaimable) {
+		for (uint256 i = 0; i < nonces.length; i++) {
+			LpToken.LpBalance memory balance = lpToken.getBalanceAt(
+				msg.sender,
+				nonces[i]
+			);
+
+			(uint256 claimable, , , ) = _computeRewardsClaimable(balance);
+
+			totalClaimable += claimable;
+		}
 	}
 }

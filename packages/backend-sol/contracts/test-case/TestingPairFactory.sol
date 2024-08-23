@@ -5,8 +5,8 @@ import "./TestingBasePair.sol";
 import { ADEX, ADexInfo } from "../ADexToken/ADEX.sol";
 
 contract MintableADEX is ADEX {
-	function mint(address to, uint256 amt) external onlyOwner {
-		this.transfer(to, amt);
+	function mint(address to, uint256 amt) external {
+		_transfer(owner(), to, amt);
 	}
 }
 

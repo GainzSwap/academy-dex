@@ -44,16 +44,6 @@ library GToken {
 		return self;
 	}
 
-	/// @notice Updates the last claim epoch for the participant.
-	/// @param self The Attributes struct of the participant.
-	/// @param currentEpoch The current epoch to be set as the last claim epoch.
-	function setLastClaim(
-		Attributes storage self,
-		uint256 currentEpoch
-	) internal {
-		self.lastClaimEpoch = currentEpoch;
-	}
-
 	/// @notice Calculates the number of epochs that have elapsed since staking.
 	/// @param self The Attributes struct of the participant.
 	/// @param currentEpoch The current epoch.
@@ -98,14 +88,14 @@ library GToken {
 		return currentEpoch - self.lastClaimEpoch;
 	}
 
-	/// @notice Calculates the amount of reward to keep based on epochs elapsed and locked.
+	/// @notice Calculates the amount of value to keep based on epochs elapsed and locked.
 	/// @param self The Attributes struct of the participant.
-	/// @param reward The total reward amount.
+	/// @param value The total value amount.
 	/// @param currentEpoch The current epoch.
-	/// @return The amount of reward to keep after applying penalties.
-	function rewardToKeep(
+	/// @return The amount of value to keep after applying penalties.
+	function valueToKeep(
 		Attributes storage self,
-		uint256 reward,
+		uint256 value,
 		uint256 currentEpoch
 	) internal view returns (uint256) {
 		// Calculate percentage loss based on epochs locked
@@ -117,7 +107,7 @@ library GToken {
 			MAX_EPOCHS_LOCK_PERCENT_LOSS
 		);
 
-		// Calculate the percentage of the reward to keep after penalties
+		// Calculate the percentage of the value to keep after penalties
 		uint256 percentLost = epochsElapsedPercentLoss(
 			epochsUnclaimed(self, currentEpoch),
 			epochsElapsed(self, currentEpoch),
@@ -126,7 +116,7 @@ library GToken {
 		);
 
 		uint256 percentToKeep = MAX_PERCENT_LOSS - percentLost;
-		return (reward * percentToKeep) / MAX_PERCENT_LOSS;
+		return (value * percentToKeep) / MAX_PERCENT_LOSS;
 	}
 
 	/// @notice Calculates the percentage loss of the reward based on elapsed epochs.

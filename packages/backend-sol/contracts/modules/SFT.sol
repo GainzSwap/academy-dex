@@ -100,7 +100,7 @@ contract SFT is ERC1155, Ownable {
 		uint256 nonce,
 		uint256 amount,
 		bytes memory attr
-	) external onlyOwner returns (uint256) {
+	) public onlyOwner returns (uint256) {
 		_burn(user, nonce, amount);
 		return amount > 0 ? _mint(user, amount, attr) : 0;
 	}

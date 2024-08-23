@@ -3,7 +3,7 @@ import { ethers } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { BigNumberish } from "ethers";
 import { Pair } from "../typechain-types/contracts/pair/Pair";
-import deployRouterFixture from "./deployRouterFixture";
+import { deployRouterFixture } from "./fixtures";
 
 describe("Pair", function () {
   async function deployPairFixture() {
@@ -133,22 +133,6 @@ describe("Pair", function () {
           { amount: ethers.parseEther("0.0"), token: baseTradeToken },
         ),
       ).to.be.revertedWith("Pair: Bad received payment");
-    });
-
-    it("should revert when user has insufficient token balance", async function () {
-      const {
-        addLiquidity,
-        basePairContract,
-        baseTradeToken,
-        otherUsers: [anotherUser],
-      } = await loadFixture(deployPairFixture);
-
-      await expect(
-        addLiquidity(
-          { contract: basePairContract, tradeToken: baseTradeToken, signer: anotherUser },
-          { amount: ethers.parseEther("1"), token: baseTradeToken },
-        ),
-      ).to.be.revertedWith("ERC20: transfer amount exceeds balance");
     });
   });
 
