@@ -19,7 +19,8 @@ import { ADexInfo } from "../ADexToken/AdexInfo.sol";
 import { AdexEmission } from "../ADexToken/AdexEmission.sol";
 import { Amm } from "../common/Amm.sol";
 import { Epochs } from "../common/Epochs.sol";
-import { DeployGovernance, Governance } from "../governance/Governance.sol";
+import { Governance } from "../governance/Governance.sol";
+import { DeployGovernance } from "../governance/DeployGovernance.sol";
 
 import "../common/libs/Number.sol";
 import { IRouter } from "./IRouter.sol";

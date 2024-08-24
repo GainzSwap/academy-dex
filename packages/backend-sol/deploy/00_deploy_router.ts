@@ -9,10 +9,21 @@ const deployRouterContract: DeployFunction = async function (hre: HardhatRuntime
   const pairFactoryInstance = await PairFactory.deploy();
   await pairFactoryInstance.waitForDeployment();
 
+  const DeployGovernanceFactory = await hre.ethers.getContractFactory("DeployGovernance", {
+    libraries: {
+      NewGTokens: await (await hre.ethers.deployContract("NewGTokens")).getAddress(),
+    },
+  });
+  const deployGovernance = await DeployGovernanceFactory.deploy();
+  await deployGovernance.waitForDeployment();
+
   await deploy("Router", {
     from: deployer,
     autoMine: true,
-    libraries: { PairFactory: await pairFactoryInstance.getAddress() },
+    libraries: {
+      PairFactory: await pairFactoryInstance.getAddress(),
+      DeployGovernance: await deployGovernance.getAddress(),
+    },
   });
 };
 

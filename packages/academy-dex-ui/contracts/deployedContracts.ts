@@ -6,7 +6,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   31337: {
     GTokens: {
-      address: "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8",
+      address: "0x95401dc811bb5740090279Ba06cfA8fcF6113778",
       abi: [
         {
           inputs: [],
@@ -285,7 +285,7 @@ const deployedContracts = {
                   type: "tuple",
                 },
               ],
-              internalType: "struct GTokens.GovernanceBalance",
+              internalType: "struct GTokensBalance",
               name: "",
               type: "tuple",
             },
@@ -375,7 +375,7 @@ const deployedContracts = {
                   type: "tuple",
                 },
               ],
-              internalType: "struct GTokens.GovernanceBalance[]",
+              internalType: "struct GTokensBalance[]",
               name: "",
               type: "tuple[]",
             },
@@ -679,6 +679,32 @@ const deployedContracts = {
           type: "function",
         },
         {
+          inputs: [],
+          name: "totalLpAmount",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "totalStakeWeight",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
           inputs: [
             {
               internalType: "address",
@@ -688,6 +714,94 @@ const deployedContracts = {
           ],
           name: "transferOwnership",
           outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "user",
+              type: "address",
+            },
+            {
+              internalType: "uint256",
+              name: "nonce",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "amount",
+              type: "uint256",
+            },
+            {
+              components: [
+                {
+                  internalType: "uint256",
+                  name: "rewardPerShare",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "epochStaked",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "epochsLocked",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "lastClaimEpoch",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "lpAmount",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "stakeWeight",
+                  type: "uint256",
+                },
+                {
+                  components: [
+                    {
+                      internalType: "address",
+                      name: "token",
+                      type: "address",
+                    },
+                    {
+                      internalType: "uint256",
+                      name: "amount",
+                      type: "uint256",
+                    },
+                    {
+                      internalType: "uint256",
+                      name: "nonce",
+                      type: "uint256",
+                    },
+                  ],
+                  internalType: "struct TokenPayment[]",
+                  name: "lpPayments",
+                  type: "tuple[]",
+                },
+              ],
+              internalType: "struct GToken.Attributes",
+              name: "attr",
+              type: "tuple",
+            },
+          ],
+          name: "update",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
           stateMutability: "nonpayable",
           type: "function",
         },
@@ -748,13 +862,18 @@ const deployedContracts = {
       inheritedFunctions: {},
     },
     Governance: {
-      address: "0xa82fF9aFd8f496c3d6ac40E2a0F282E47488CFc9",
+      address: "0xf5059a5D33d5853360D16C683c16e67980206f36",
       abi: [
         {
           inputs: [
             {
               internalType: "address",
               name: "_lpToken",
+              type: "address",
+            },
+            {
+              internalType: "address",
+              name: "_adex",
               type: "address",
             },
             {
@@ -774,9 +893,46 @@ const deployedContracts = {
               name: "epochs_",
               type: "tuple",
             },
+            {
+              internalType: "address",
+              name: "protocolFeesCollector_",
+              type: "address",
+            },
           ],
           stateMutability: "nonpayable",
           type: "constructor",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "address",
+              name: "previousOwner",
+              type: "address",
+            },
+            {
+              indexed: true,
+              internalType: "address",
+              name: "newOwner",
+              type: "address",
+            },
+          ],
+          name: "OwnershipTransferred",
+          type: "event",
+        },
+        {
+          inputs: [],
+          name: "LISTING_FEE",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
         },
         {
           inputs: [],
@@ -794,6 +950,104 @@ const deployedContracts = {
         {
           inputs: [],
           name: "MIN_LP_TOKENS",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "activeListing",
+          outputs: [
+            {
+              internalType: "address",
+              name: "tradeToken",
+              type: "address",
+            },
+            {
+              internalType: "address",
+              name: "owner",
+              type: "address",
+            },
+            {
+              internalType: "uint256",
+              name: "gTokenNonce",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "yesVote",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "noVote",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "totalLpAmount",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "endEpoch",
+              type: "uint256",
+            },
+            {
+              internalType: "address",
+              name: "launchPadAddress",
+              type: "address",
+            },
+            {
+              internalType: "address",
+              name: "priceDiscoveryPadAddress",
+              type: "address",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "adexTokenAddress",
+          outputs: [
+            {
+              internalType: "address",
+              name: "",
+              type: "address",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "nonce",
+              type: "uint256",
+            },
+          ],
+          name: "claimRewards",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "currentEpoch",
           outputs: [
             {
               internalType: "uint256",
@@ -841,6 +1095,61 @@ const deployedContracts = {
         },
         {
           inputs: [],
+          name: "epochs",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "genesis",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "epochLength",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "nonce",
+              type: "uint256",
+            },
+          ],
+          name: "exitGovernance",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "user",
+              type: "address",
+            },
+            {
+              internalType: "uint256",
+              name: "nonce",
+              type: "uint256",
+            },
+          ],
+          name: "getClaimableRewards",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "totalClaimable",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
           name: "gtokens",
           outputs: [
             {
@@ -850,6 +1159,84 @@ const deployedContracts = {
             },
           ],
           stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "nonce",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "extraEpochs",
+              type: "uint256",
+            },
+          ],
+          name: "increaseEpochsLocked",
+          outputs: [
+            {
+              components: [
+                {
+                  internalType: "uint256",
+                  name: "rewardPerShare",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "epochStaked",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "epochsLocked",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "lastClaimEpoch",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "lpAmount",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "stakeWeight",
+                  type: "uint256",
+                },
+                {
+                  components: [
+                    {
+                      internalType: "address",
+                      name: "token",
+                      type: "address",
+                    },
+                    {
+                      internalType: "uint256",
+                      name: "amount",
+                      type: "uint256",
+                    },
+                    {
+                      internalType: "uint256",
+                      name: "nonce",
+                      type: "uint256",
+                    },
+                  ],
+                  internalType: "struct TokenPayment[]",
+                  name: "lpPayments",
+                  type: "tuple[]",
+                },
+              ],
+              internalType: "struct GToken.Attributes",
+              name: "attributes",
+              type: "tuple",
+            },
+          ],
+          stateMutability: "nonpayable",
           type: "function",
         },
         {
@@ -944,6 +1331,231 @@ const deployedContracts = {
           type: "function",
         },
         {
+          inputs: [],
+          name: "owner",
+          outputs: [
+            {
+              internalType: "address",
+              name: "",
+              type: "address",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "",
+              type: "address",
+            },
+          ],
+          name: "pairOwnerListing",
+          outputs: [
+            {
+              internalType: "address",
+              name: "tradeToken",
+              type: "address",
+            },
+            {
+              internalType: "address",
+              name: "owner",
+              type: "address",
+            },
+            {
+              internalType: "uint256",
+              name: "gTokenNonce",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "yesVote",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "noVote",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "totalLpAmount",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "endEpoch",
+              type: "uint256",
+            },
+            {
+              internalType: "address",
+              name: "launchPadAddress",
+              type: "address",
+            },
+            {
+              internalType: "address",
+              name: "priceDiscoveryPadAddress",
+              type: "address",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "bool",
+              name: "nextIsPriceDiscovery",
+              type: "bool",
+            },
+          ],
+          name: "proceedNewPairListing",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              components: [
+                {
+                  internalType: "address",
+                  name: "token",
+                  type: "address",
+                },
+                {
+                  internalType: "uint256",
+                  name: "amount",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "nonce",
+                  type: "uint256",
+                },
+              ],
+              internalType: "struct TokenPayment",
+              name: "listingFeePayment",
+              type: "tuple",
+            },
+            {
+              components: [
+                {
+                  internalType: "address",
+                  name: "token",
+                  type: "address",
+                },
+                {
+                  internalType: "uint256",
+                  name: "amount",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "nonce",
+                  type: "uint256",
+                },
+              ],
+              internalType: "struct TokenPayment",
+              name: "gTokenPayment",
+              type: "tuple",
+            },
+            {
+              internalType: "address",
+              name: "tradeToken",
+              type: "address",
+            },
+          ],
+          name: "proposeNewPairListing",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "protocolFees",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "recallVoteToken",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              components: [
+                {
+                  internalType: "address",
+                  name: "token",
+                  type: "address",
+                },
+                {
+                  internalType: "uint256",
+                  name: "amount",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "nonce",
+                  type: "uint256",
+                },
+              ],
+              internalType: "struct TokenPayment",
+              name: "payment",
+              type: "tuple",
+            },
+          ],
+          name: "receiveRewards",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "renounceOwnership",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "rewardPerShare",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "rewardsReserve",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
           inputs: [
             {
               internalType: "bytes4",
@@ -962,6 +1574,85 @@ const deployedContracts = {
           stateMutability: "view",
           type: "function",
         },
+        {
+          inputs: [],
+          name: "takeProtocolFees",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "newOwner",
+              type: "address",
+            },
+          ],
+          name: "transferOwnership",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "",
+              type: "address",
+            },
+          ],
+          name: "userVote",
+          outputs: [
+            {
+              internalType: "address",
+              name: "",
+              type: "address",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              components: [
+                {
+                  internalType: "address",
+                  name: "token",
+                  type: "address",
+                },
+                {
+                  internalType: "uint256",
+                  name: "amount",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "nonce",
+                  type: "uint256",
+                },
+              ],
+              internalType: "struct TokenPayment",
+              name: "gTokenPayment",
+              type: "tuple",
+            },
+            {
+              internalType: "address",
+              name: "tradeToken",
+              type: "address",
+            },
+            {
+              internalType: "bool",
+              name: "shouldList",
+              type: "bool",
+            },
+          ],
+          name: "vote",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
       ],
       inheritedFunctions: {
         onERC1155BatchReceived:
@@ -970,10 +1661,13 @@ const deployedContracts = {
           "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol",
         supportsInterface:
           "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol",
+        owner: "@openzeppelin/contracts/access/Ownable.sol",
+        renounceOwnership: "@openzeppelin/contracts/access/Ownable.sol",
+        transferOwnership: "@openzeppelin/contracts/access/Ownable.sol",
       },
     },
     Pair: {
-      address: "0x9E545E3C0baAB3E08CdfD552C960A1050f373042",
+      address: "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8",
       abi: [
         {
           inputs: [
@@ -1223,6 +1917,11 @@ const deployedContracts = {
                       name: "pair",
                       type: "address",
                     },
+                    {
+                      internalType: "address",
+                      name: "tradeToken",
+                      type: "address",
+                    },
                   ],
                   internalType: "struct LpToken.LpAttributes",
                   name: "attributes",
@@ -1273,6 +1972,11 @@ const deployedContracts = {
                     {
                       internalType: "address",
                       name: "pair",
+                      type: "address",
+                    },
+                    {
+                      internalType: "address",
+                      name: "tradeToken",
                       type: "address",
                     },
                   ],
@@ -1456,7 +2160,7 @@ const deployedContracts = {
       },
     },
     Router: {
-      address: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+      address: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
       abi: [
         {
           inputs: [],
@@ -1681,7 +2385,18 @@ const deployedContracts = {
             },
           ],
           name: "claimRewards",
-          outputs: [],
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "totalClaimed",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256[]",
+              name: "newNonces",
+              type: "uint256[]",
+            },
+          ],
           stateMutability: "nonpayable",
           type: "function",
         },
@@ -1720,8 +2435,8 @@ const deployedContracts = {
           name: "createPair",
           outputs: [
             {
-              internalType: "contract Pair",
-              name: "pair",
+              internalType: "address",
+              name: "pairAddress",
               type: "address",
             },
           ],
@@ -1784,6 +2499,25 @@ const deployedContracts = {
             },
           ],
           name: "getClaimableRewards",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "totalClaimable",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256[]",
+              name: "nonces",
+              type: "uint256[]",
+            },
+          ],
+          name: "getClaimableRewardsByNonces",
           outputs: [
             {
               internalType: "uint256",
@@ -2075,6 +2809,25 @@ const deployedContracts = {
           inputs: [
             {
               internalType: "address",
+              name: "tokenAddress",
+              type: "address",
+            },
+          ],
+          name: "tokenIsListed",
+          outputs: [
+            {
+              internalType: "bool",
+              name: "",
+              type: "bool",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
               name: "",
               type: "address",
             },
@@ -2179,6 +2932,9 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {
+        claimRewards: "contracts/router/IRouter.sol",
+        getClaimableRewardsByNonces: "contracts/router/IRouter.sol",
+        tokenIsListed: "contracts/router/IRouter.sol",
         owner: "@openzeppelin/contracts/access/Ownable.sol",
         renounceOwnership: "@openzeppelin/contracts/access/Ownable.sol",
         transferOwnership: "@openzeppelin/contracts/access/Ownable.sol",

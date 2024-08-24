@@ -19,7 +19,11 @@ export async function deployRouterFixture() {
   const pairFactoryInstance = await PairFactory.deploy();
   await pairFactoryInstance.waitForDeployment();
 
-  const DeployGovernanceFactory = await ethers.getContractFactory("DeployGovernance");
+  const DeployGovernanceFactory = await ethers.getContractFactory("DeployGovernance", {
+    libraries: {
+      NewGTokens: await (await ethers.deployContract("NewGTokens")).getAddress(),
+    },
+  });
   const deployGovernance = await DeployGovernanceFactory.deploy();
   await deployGovernance.waitForDeployment();
 
@@ -182,7 +186,12 @@ export async function claimRewardsFixture() {
   const addLiquidityAndEnterGovernance = async (
     times: number,
     signer = user,
+    otherParams: { epochsLocked?: number } = {},
   ) => {
+    if (otherParams.epochsLocked == undefined) {
+      otherParams.epochsLocked = 120;
+    }
+
     while (times > 0) {
       times--;
       // User adds liquidity
@@ -202,7 +211,7 @@ export async function claimRewardsFixture() {
       .lpBalanceOf(signer)
       .then(balances => balances.map(({ amount, nonce }) => ({ amount, nonce, token: lpContractAddr })));
     await lpTokenContract.connect(signer).setApprovalForAll(governanceContract, true);
-    await governanceContract.connect(signer).enterGovernance(lpPayments, 120);
+    await governanceContract.connect(signer).enterGovernance(lpPayments, otherParams.epochsLocked);
 
     return lpPayments;
   };
@@ -228,5 +237,6 @@ export async function claimRewardsFixture() {
     addLiquidity,
     gTokens,
     gTokensAddress,
+    epochLength: (await governanceContract.epochs()).epochLength,
   };
 }

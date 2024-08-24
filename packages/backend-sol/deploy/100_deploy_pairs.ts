@@ -81,11 +81,16 @@ const deployPairs: DeployFunction = async function (hre: HardhatRuntimeEnvironme
     gasLimit: 30_000_000,
     args: [
       ZeroAddress,
+      ZeroAddress,
       {
         epochLength: 0,
         genesis: 0,
       },
+      deployer,
     ],
+    libraries: {
+      NewGTokens: await (await ethers.deployContract("NewGTokens")).getAddress(),
+    },
   });
   await hre.deployments.deploy("GTokens", {
     from: deployer,

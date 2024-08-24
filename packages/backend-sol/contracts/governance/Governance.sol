@@ -3,6 +3,7 @@ pragma solidity 0.8.26;
 
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import { TokenPayment, TokenPayments, IERC20 } from "../common/libs/TokenPayments.sol";
 import { GTokens, GToken, GTOKEN_MINT_AMOUNT } from "./GToken/GToken.sol";
@@ -14,21 +15,9 @@ import "../common/utils.sol";
 
 import { LpToken } from "../modules/LpToken.sol";
 
-library DeployGovernance {
-	function newGovernance(
-		address lpToken,
-		address adex,
-		Epochs.Storage memory epochs
-	) external returns (Governance) {
-		address caller = msg.sender;
-		(, bytes memory owner) = caller.call(
-			abi.encodeWithSignature("owner()")
-		);
-
-		address feeCollector = owner.length > 0
-			? abi.decode(owner, (address))
-			: caller;
-		return new Governance(lpToken, adex, epochs, feeCollector);
+library NewGTokens {
+	function create() external returns (GTokens) {
+		return new GTokens();
 	}
 }
 
@@ -40,6 +29,7 @@ contract Governance is ERC1155Holder, Ownable {
 	using Epochs for Epochs.Storage;
 	using GToken for GToken.Attributes;
 	using Number for uint256;
+	using EnumerableSet for EnumerableSet.UintSet;
 
 	uint256 constant REWARDS_DIVISION_SAFETY_CONSTANT = 1e18;
 
@@ -71,16 +61,34 @@ contract Governance is ERC1155Holder, Ownable {
 	uint256 public constant MAX_LP_TOKENS = 10;
 
 	struct TokenListing {
-		address tradeToken;
-		address owner;
-		uint256 gTokenNonce;
+		address tradeToken; // The token proposed for trading
+		address owner; // The owner proposing the listing
+		uint256 gTokenNonce; // Nonce of the governance token
+		uint256 yesVote; // Number of yes votes
+		uint256 noVote; // Number of no votes
+		uint256 totalLpAmount; // Total LP amount locked for the listing
+		uint256 endEpoch; // Epoch when the listing proposal ends
+		address launchPadAddress; // Address of the launchpad contract
+		address priceDiscoveryPadAddress; // Address of the price discovery contract
 	}
 
+	// Mapping of user to their active votes on token listings
+	mapping(address => EnumerableSet.UintSet) private _userVotes;
+
+	// Mapping of user to the token they voted for
+	mapping(address => address) public userVote;
+
+	// The current active listing
 	TokenListing public activeListing;
+
+	// Mapping of token owner to their proposed listing
+	mapping(address => TokenListing) public pairOwnerListing;
 
 	/// @notice Constructor to initialize the Governance contract.
 	/// @param _lpToken The address of the LP token contract.
+	/// @param _adex The address of the ADEX token contract.
 	/// @param epochs_ The epochs storage instance for managing epochs.
+	/// @param protocolFeesCollector_ The address to collect protocol fees.
 	constructor(
 		address _lpToken,
 		address _adex,
@@ -90,7 +98,7 @@ contract Governance is ERC1155Holder, Ownable {
 		lpTokenAddress = _lpToken;
 		adexTokenAddress = _adex;
 
-		gtokens = new GTokens();
+		gtokens = NewGTokens.create();
 		epochs = epochs_;
 
 		_router = IRouter(msg.sender);
@@ -100,6 +108,10 @@ contract Governance is ERC1155Holder, Ownable {
 			"Invalid Protocol Fees collector"
 		);
 		protocolFeesCollector = protocolFeesCollector_;
+	}
+
+	function currentEpoch() public view returns (uint256) {
+		return epochs.currentEpoch();
 	}
 
 	function takeProtocolFees() external {
@@ -184,6 +196,7 @@ contract Governance is ERC1155Holder, Ownable {
 		TokenPayment[] memory lpPayments = new TokenPayment[](paymentsCount);
 		uint256 lpIndex = 0;
 		uint256 lpAmount = 0;
+		uint256 adexAmount = 0;
 		for (uint256 i = 0; i < receivedPayments.length; i++) {
 			TokenPayment memory payment = receivedPayments[i];
 			if (_isValidLpPayment(payment)) {
@@ -192,9 +205,22 @@ contract Governance is ERC1155Holder, Ownable {
 				lpAmount += payment.amount;
 				lpPayments[lpIndex] = payment;
 
+				LpToken.LpAttributes memory attr = LpToken(lpTokenAddress)
+					.getBalanceAt(address(this), payment.nonce)
+					.attributes;
+				if (attr.tradeToken == adexTokenAddress) {
+					adexAmount += payment.amount;
+				}
+
 				lpIndex++;
 			}
 		}
+
+		// ADEX is first class token in the DEX, so All GTokens holders must possess sufficient amount based on liq they provided
+		require(
+			((adexAmount * 100) / lpAmount) >= 10, // 10% for now
+			"Not enough ADEX liquidity used"
+		);
 
 		// Mint GTokens for the user
 		gtokens.mintGToken(
@@ -284,6 +310,34 @@ contract Governance is ERC1155Holder, Ownable {
 		return gtokens.update(user, nonce, GTOKEN_MINT_AMOUNT, attributes);
 	}
 
+	function increaseEpochsLocked(
+		uint256 nonce,
+		uint256 extraEpochs
+	) external returns (GToken.Attributes memory attributes) {
+		address user = msg.sender;
+
+		{
+			uint256 claimableReward;
+
+			(claimableReward, attributes) = _calculateClaimableReward(
+				user,
+				nonce
+			);
+
+			if (claimableReward > 0) {
+				nonce = this.claimRewards(nonce);
+				attributes = gtokens.getBalanceAt(user, nonce).attributes;
+			}
+		}
+
+		attributes.epochsLocked += extraEpochs;
+		if (attributes.epochsLocked > GToken.MAX_EPOCHS_LOCK) {
+			attributes.epochsLocked = GToken.MAX_EPOCHS_LOCK;
+		}
+
+		gtokens.update(user, nonce, GTOKEN_MINT_AMOUNT, attributes);
+	}
+
 	function _getLpNonces(
 		GToken.Attributes memory attributes
 	) internal pure returns (uint256[] memory nonces) {
@@ -319,7 +373,7 @@ contract Governance is ERC1155Holder, Ownable {
 		// Calculate the amount of LP tokens to return to the user
 		uint256 lpAmountToReturn = attributes.valueToKeep(
 			attributes.lpAmount,
-			epochs.currentEpoch()
+			attributes.epochsElapsed(epochs.currentEpoch())
 		);
 		TokenPayment[] memory lpPayments = attributes.lpPayments;
 		// Process each LP payment associated with the staking position
@@ -364,9 +418,11 @@ contract Governance is ERC1155Holder, Ownable {
 	) external {
 		// Ensure there is no active listing proposal
 		require(
-			activeListing.tradeToken == address(0),
+			pairOwnerListing[msg.sender].tradeToken == address(0) &&
+				activeListing.tradeToken == address(0),
 			"Governance: Previous proposal not completed"
 		);
+
 		// Validate the trade token and ensure it is not already listed
 		require(
 			isERC20(tradeToken) && !_router.tokenIsListed(tradeToken),
@@ -392,6 +448,7 @@ contract Governance is ERC1155Holder, Ownable {
 		activeListing.owner = msg.sender;
 		activeListing.tradeToken = tradeToken;
 		activeListing.gTokenNonce = gTokenPayment.nonce;
+		activeListing.endEpoch = currentEpoch() + 7;
 	}
 
 	/// @notice Validates the GToken payment for the listing based on the total base amount in liquidity.
@@ -430,5 +487,164 @@ contract Governance is ERC1155Holder, Ownable {
 
 		// Return false if the total base amount is insufficient
 		return false;
+	}
+
+	function _checkProposalPass(
+		uint256 value,
+		uint256 thresholdValue
+	) private pure returns (bool) {
+		return value >= (thresholdValue * 86) / 100;
+	}
+
+	/**
+	 * @notice Proceeds with the next stage of a new pair listing, either launching a token or proceeding to price discovery.
+	 * @param nextIsPriceDiscovery A boolean indicating whether the next stage is price discovery.
+	 */
+	function proceedNewPairListing(bool nextIsPriceDiscovery) external {
+		TokenListing storage listing = pairOwnerListing[msg.sender];
+
+		// If no listing is found for the sender, end the current voting session.
+		if (listing.tradeToken == address(0)) {
+			_endVoting();
+			listing = pairOwnerListing[msg.sender]; // Refresh listing after ending the vote
+		}
+
+		// Ensure that a valid listing exists.
+		require(listing.tradeToken != address(0), "No listing found");
+
+		if (
+			!_checkProposalPass(
+				listing.totalLpAmount,
+				gtokens.totalLpAmount()
+			) ||
+			!_checkProposalPass(
+				listing.yesVote,
+				listing.yesVote + listing.noVote
+			)
+		) {
+			// Proposal failed, not accepted by community
+
+			gtokens.safeTransferFrom(
+				address(this),
+				listing.owner,
+				listing.gTokenNonce,
+				1,
+				""
+			);
+			delete pairOwnerListing[msg.sender];
+
+			return;
+		}
+
+		// Handle the launch pad and price discovery stages.
+		if (!nextIsPriceDiscovery && listing.launchPadAddress == address(0)) {
+			require(
+				listing.priceDiscoveryPadAddress == address(0),
+				"Already in Price Discovery"
+			);
+			// Logic to deploy the launch pad contract.
+		} else if (listing.priceDiscoveryPadAddress == address(0)) {
+			if (listing.launchPadAddress != address(0)) {
+				// Logic to confirm that the launch pad process is complete.
+			}
+			// Logic to deploy the price discovery contract.
+		} else {
+			// Logic to confirm that price discovery is complete and list the pair with initial liquidity transfer.
+		}
+	}
+
+	/**
+	 * @notice Allows users to vote on whether a new token pair should be listed.
+	 * @param gTokenPayment The gToken payment details used for voting.
+	 * @param tradeToken The address of the trade token being voted on.
+	 * @param shouldList A boolean indicating the user's vote (true for yes, false for no).
+	 */
+	function vote(
+		TokenPayment calldata gTokenPayment,
+		address tradeToken,
+		bool shouldList
+	) external {
+		address user = msg.sender;
+
+		// Ensure that the trade token is valid and active for voting.
+		require(
+			isERC20(tradeToken) && activeListing.tradeToken == tradeToken,
+			"Token not active"
+		);
+		require(
+			gTokenPayment.token == address(gtokens),
+			"Governance: Invalid Payment"
+		);
+
+		// Calculate the user's vote power based on their gToken attributes.
+		GToken.Attributes memory attributes = gtokens
+			.getBalanceAt(user, gTokenPayment.nonce)
+			.attributes;
+		uint256 epochsLeft = attributes.epochsLeft(
+			attributes.epochsElapsed(epochs.currentEpoch())
+		);
+
+		require(
+			epochsLeft >= 360,
+			"GToken expired, must have atleast 360 epochs left to vote with"
+		);
+
+		uint256 votePower = attributes.votePower(epochsLeft);
+
+		// Receive the gToken payment and record the user's vote.
+		gTokenPayment.receiveToken();
+		_userVotes[user].add(gTokenPayment.nonce);
+		// Apply the user's vote to the active listing.
+		if (shouldList) {
+			activeListing.yesVote += votePower;
+		} else {
+			activeListing.noVote += votePower;
+		}
+
+		// Update the total LP amount and record the user's vote for the trade token.
+		activeListing.totalLpAmount += attributes.lpAmount;
+		userVote[user] = tradeToken;
+	}
+
+	/**
+	 * @notice Ends the voting process for the active token listing.
+	 * @dev This function ensures that the voting period has ended before finalizing the listing.
+	 */
+	function _endVoting() private {
+		require(
+			activeListing.endEpoch <= currentEpoch(),
+			"Voting not complete"
+		);
+
+		// Finalize the listing and store it under the owner's address.
+		pairOwnerListing[activeListing.owner] = activeListing;
+		delete activeListing; // Clear the active listing to prepare for the next one.
+	}
+
+	/**
+	 * @notice Allows users to recall their vote tokens after voting has ended or been canceled.
+	 */
+	function recallVoteToken() external {
+		address user = msg.sender;
+		address tradeToken = userVote[user];
+		EnumerableSet.UintSet storage userVoteNonces = _userVotes[user];
+
+		// Ensure the user has votes to recall.
+		require(userVoteNonces.length() > 0, "No vote found");
+
+		if (tradeToken != address(0)) {
+			delete userVote[user]; // Clear the user's vote record.
+			if (tradeToken == activeListing.tradeToken) _endVoting();
+		}
+
+		// Recall up to 10 vote tokens at a time.
+		uint256 count = 0;
+		while (count < 10 && userVoteNonces.length() > 0) {
+			count++;
+
+			uint256 nonce = userVoteNonces.at(userVoteNonces.length() - 1);
+			userVoteNonces.remove(nonce);
+			gtokens.safeTransferFrom(address(this), user, nonce, 1, "");
+		}
 	}
 }

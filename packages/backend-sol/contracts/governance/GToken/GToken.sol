@@ -20,6 +20,7 @@ contract GTokens is SFT {
 	using GToken for GToken.Attributes;
 
 	uint256 private _totalStakeWeight;
+	uint256 private _totalLpAmount;
 
 	/// @notice Constructor to initialize the GTokens contract.
 	/// @dev Sets the name and symbol of the SFT for GTokens.
@@ -138,6 +139,10 @@ contract GTokens is SFT {
 		return _totalStakeWeight;
 	}
 
+	function totalLpAmount() public view returns (uint256) {
+		return _totalLpAmount;
+	}
+
 	function _beforeTokenTransfer(
 		address operator,
 		address from,
@@ -158,9 +163,11 @@ contract GTokens is SFT {
 			if (from == address(0) && to != address(0)) {
 				// We are minting, so increease staking weight
 				_totalStakeWeight += attr.stakeWeight;
+				_totalLpAmount += attr.lpAmount;
 			} else if (from != address(0) && to == address(0)) {
 				// We are burning, so decrease staking weight
 				_totalStakeWeight -= attr.stakeWeight;
+				_totalLpAmount -= attr.lpAmount;
 			}
 		}
 	}

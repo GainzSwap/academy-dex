@@ -73,6 +73,25 @@ library GToken {
 		return self.epochsLocked - elapsed;
 	}
 
+	/// @notice Calculates the user's vote power based on the locked GToken amount and remaining epochs.
+	/// @param self The Attributes struct of the participant.
+	/// @return The calculated vote power as a uint256.
+	/// @dev see https://wiki.sovryn.com/en/governance/about-sovryn-governance
+	function votePower(
+		Attributes memory self,
+		uint256 currentEpoch
+	) internal pure returns (uint256) {
+		uint256 timeLeft = epochsLeft(self, currentEpoch);
+
+		require(timeLeft <= MAX_EPOCHS_LOCK, "GToken: Invalid timeLeft");
+
+		uint256 m = MAX_EPOCHS_LOCK;
+		uint256 xPow = (m - timeLeft) ** 2;
+		uint256 mPow = m ** 2;
+
+		return (self.lpAmount * (mPow - xPow)) / mPow;
+	}
+
 	/// @notice Calculates the number of epochs since the last reward claim.
 	/// @param self The Attributes struct of the participant.
 	/// @return The number of epochs since the last claim.
