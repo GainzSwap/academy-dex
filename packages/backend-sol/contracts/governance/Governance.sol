@@ -14,7 +14,7 @@ import "../common/libs/Number.sol";
 import "../common/utils.sol";
 
 import { LpToken } from "../modules/LpToken.sol";
-import { DeployLaunchpad, Launchpad } from "./DeployLaunchpad.sol";
+import { DeployLaunchPair, LaunchPair } from "./DeployLaunchPair.sol";
 
 import "hardhat/console.sol";
 
@@ -48,7 +48,7 @@ contract Governance is ERC1155Holder, Ownable {
 		address owner; // The owner proposing the listing
 		uint256 gTokenNonce; // Nonce of the governance token
 		TokenPayment tradeTokenPayment; // The token proposed for trading
-		uint256 campaignId; // launchpad campaign ID
+		uint256 campaignId; // launchPair campaign ID
 		address priceDiscoveryAddress; // Address of the price discovery contract
 	}
 
@@ -87,7 +87,7 @@ contract Governance is ERC1155Holder, Ownable {
 	// Mapping of token owner to their proposed listing
 	mapping(address => TokenListing) public pairOwnerListing;
 
-	Launchpad public launchpad;
+	LaunchPair public launchPair;
 
 	/// @notice Constructor to initialize the Governance contract.
 	/// @param _lpToken The address of the LP token contract.
@@ -104,7 +104,7 @@ contract Governance is ERC1155Holder, Ownable {
 		adexTokenAddress = _adex;
 
 		gtokens = NewGTokens.create();
-		launchpad = DeployLaunchpad.newLaunchpad();
+		launchPair = DeployLaunchPair.newLaunchPair();
 		epochs = epochs_;
 
 		_router = IRouter(msg.sender);
@@ -416,7 +416,7 @@ contract Governance is ERC1155Holder, Ownable {
 	/// @notice Proposes a new pair listing by submitting the required listing fee and GToken payment.
 	/// @param listingFeePayment The payment details for the listing fee.
 	/// @param gTokenPayment The payment details for the GToken required for the listing.
-	/// @param tradeTokenPayment The the trade token to be listed with launchpad distribution amount, if any.
+	/// @param tradeTokenPayment The the trade token to be listed with launchPair distribution amount, if any.
 	function proposeNewPairListing(
 		TokenPayment calldata listingFeePayment,
 		TokenPayment calldata gTokenPayment,
@@ -560,8 +560,8 @@ contract Governance is ERC1155Holder, Ownable {
 				listing.priceDiscoveryAddress == address(0),
 				"Already in Price Discovery"
 			);
-			listing.tradeTokenPayment.approve(address(launchpad));
-			listing.campaignId = launchpad.createCampaign(
+			listing.tradeTokenPayment.approve(address(launchPair));
+			listing.campaignId = launchPair.createCampaign(
 				listing.tradeTokenPayment,
 				listing.owner
 			);
@@ -569,12 +569,12 @@ contract Governance is ERC1155Holder, Ownable {
 			listing.tradeTokenPayment.amount = 0;
 		} else if (listing.priceDiscoveryAddress == address(0)) {
 			if (listing.campaignId != 0) {
-				Launchpad.CampaignStatus campaignStatus = launchpad
+				LaunchPair.CampaignStatus campaignStatus = launchPair
 					.getCampaignDetails(listing.campaignId)
 					.status;
 
-				if (campaignStatus != Launchpad.CampaignStatus.Success) {
-					if (campaignStatus == Launchpad.CampaignStatus.Failed) {
+				if (campaignStatus != LaunchPair.CampaignStatus.Success) {
+					if (campaignStatus == LaunchPair.CampaignStatus.Failed) {
 						_returnListingGToken(listing);
 					}
 

@@ -2,17 +2,16 @@
 pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import { TokenPayment, TokenPayments } from "../common/libs/TokenPayments.sol";
 
 /**
- * @title Launchpad
- * @dev This contract facilitates the creation and management of crowdfunding campaigns for launching new tokens. Participants contribute funds to campaigns, and if the campaign is successful, they receive launchpad tokens in return. If the campaign fails, their contributions are refunded.
+ * @title LaunchPair
+ * @dev This contract facilitates the creation and management of crowdfunding campaigns for launching new tokens. Participants contribute funds to campaigns, and if the campaign is successful, they receive launchPair tokens in return. If the campaign fails, their contributions are refunded.
  */
-contract Launchpad is Ownable, ReentrancyGuard {
+contract LaunchPair is Ownable {
 	using TokenPayments for TokenPayment;
 	using EnumerableSet for EnumerableSet.UintSet;
 
@@ -25,7 +24,7 @@ contract Launchpad is Ownable, ReentrancyGuard {
 
 	struct Campaign {
 		address payable creator;
-		IERC20 launchpadToken;
+		IERC20 launchPairToken;
 		uint256 goal;
 		uint256 deadline;
 		uint256 fundsRaised;
@@ -139,7 +138,7 @@ contract Launchpad is Ownable, ReentrancyGuard {
 
 	/**
 	 * @dev Creates a new crowdfunding campaign.
-	 * @param payment Details of the launchpad token payment.
+	 * @param payment Details of the launchPair token payment.
 	 * @param _creator The address of the campaign creator.
 	 * @return campaignId The ID of the newly created campaign.
 	 */
@@ -153,7 +152,7 @@ contract Launchpad is Ownable, ReentrancyGuard {
 		campaignId = ++campaignCount;
 		campaigns[campaignId] = Campaign({
 			creator: payable(_creator),
-			launchpadToken: IERC20(payment.token),
+			launchPairToken: IERC20(payment.token),
 			goal: 0,
 			deadline: 0,
 			fundsRaised: 0,
@@ -249,10 +248,10 @@ contract Launchpad is Ownable, ReentrancyGuard {
 	}
 
 	/**
-	 * @dev Withdraw launchpad tokens after a successful campaign.
+	 * @dev Withdraw launchPair tokens after a successful campaign.
 	 * @param _campaignId The ID of the campaign to withdraw tokens from.
 	 */
-	function withdrawLaunchpadToken(
+	function withdrawLaunchPairToken(
 		uint256 _campaignId
 	)
 		external
@@ -276,7 +275,7 @@ contract Launchpad is Ownable, ReentrancyGuard {
 		);
 
 		campaign.tokensDistributed += tokensToDistribute;
-		campaign.launchpadToken.transfer(msg.sender, tokensToDistribute);
+		campaign.launchPairToken.transfer(msg.sender, tokensToDistribute);
 
 		// Remove the campaign from the user's participated campaigns after token withdrawal
 		_removeCampaignFromUserCampaigns(msg.sender, _campaignId);

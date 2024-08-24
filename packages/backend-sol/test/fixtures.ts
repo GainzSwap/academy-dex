@@ -22,7 +22,7 @@ export async function deployRouterFixture() {
   const DeployGovernanceFactory = await ethers.getContractFactory("DeployGovernance", {
     libraries: {
       NewGTokens: await (await ethers.deployContract("NewGTokens")).getAddress(),
-      DeployLaunchpad: await (await ethers.deployContract("DeployLaunchpad")).getAddress(),
+      DeployLaunchPair: await (await ethers.deployContract("DeployLaunchPair")).getAddress(),
     },
   });
   const deployGovernance = await DeployGovernanceFactory.deploy();
@@ -128,7 +128,7 @@ export async function deployRouterFixture() {
   };
 
   const governanceContract = await ethers.getContractAt("Governance", await router.governance());
-  const launchpadContract = await ethers.getContractAt("Launchpad", await governanceContract.launchpad());
+  const launchPairContract = await ethers.getContractAt("LaunchPair", await governanceContract.launchPair());
 
   return {
     router,
@@ -143,7 +143,7 @@ export async function deployRouterFixture() {
     otherUsers,
     approveToken,
     governanceContract,
-    launchpadContract,
+    launchPairContract,
   };
 }
 

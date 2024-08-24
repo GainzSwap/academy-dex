@@ -28,7 +28,7 @@ describe("Governance Contract", function () {
     const GovernanceFactory = await ethers.getContractFactory("Governance", {
       libraries: {
         NewGTokens: await (await ethers.deployContract("NewGTokens")).getAddress(),
-        DeployLaunchpad: await (await ethers.deployContract("DeployLaunchpad")).getAddress(),
+        DeployLaunchPair: await (await ethers.deployContract("DeployLaunchPair")).getAddress(),
       },
     });
     const governance = await GovernanceFactory.deploy(
@@ -562,7 +562,7 @@ describe("Governance Contract", function () {
         newTradeToken,
         epochLength,
         pairOwner,
-        launchpadContract,
+        launchPairContract,
       } = await loadFixture(proposeNewPairListingFixture);
 
       await addLiquidityAndEnterGovernance(1, voter, {
@@ -584,7 +584,7 @@ describe("Governance Contract", function () {
 
       const { campaignId } = await governanceContract.pairOwnerListing(pairOwner);
       expect(campaignId).to.be.gt(0);
-      expect((await launchpadContract.campaigns(campaignId)).creator).to.be.equal(pairOwner.address);
+      expect((await launchPairContract.campaigns(campaignId)).creator).to.be.equal(pairOwner.address);
     });
   });
 
