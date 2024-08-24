@@ -14,6 +14,9 @@ import "../common/libs/Number.sol";
 import "../common/utils.sol";
 
 import { LpToken } from "../modules/LpToken.sol";
+import { DeployLaunchpad, Launchpad } from "./DeployLaunchpad.sol";
+
+import "hardhat/console.sol";
 
 library NewGTokens {
 	function create() external returns (GTokens) {
@@ -32,6 +35,22 @@ contract Governance is ERC1155Holder, Ownable {
 	using EnumerableSet for EnumerableSet.UintSet;
 
 	uint256 constant REWARDS_DIVISION_SAFETY_CONSTANT = 1e18;
+
+	// Constants for minimum and maximum LP tokens that can be locked
+	uint256 public constant MIN_LP_TOKENS = 1;
+	uint256 public constant MAX_LP_TOKENS = 10;
+
+	struct TokenListing {
+		uint256 yesVote; // Number of yes votes
+		uint256 noVote; // Number of no votes
+		uint256 totalLpAmount; // Total LP amount locked for the listing
+		uint256 endEpoch; // Epoch when the listing proposal ends
+		address owner; // The owner proposing the listing
+		uint256 gTokenNonce; // Nonce of the governance token
+		TokenPayment tradeTokenPayment; // The token proposed for trading
+		uint256 campaignId; // launchpad campaign ID
+		address priceDiscoveryAddress; // Address of the price discovery contract
+	}
 
 	// This could be set by governance
 	uint256 public constant LISTING_FEE = 20e18;
@@ -56,22 +75,6 @@ contract Governance is ERC1155Holder, Ownable {
 	// Storage for epochs management
 	Epochs.Storage public epochs;
 
-	// Constants for minimum and maximum LP tokens that can be locked
-	uint256 public constant MIN_LP_TOKENS = 1;
-	uint256 public constant MAX_LP_TOKENS = 10;
-
-	struct TokenListing {
-		address tradeToken; // The token proposed for trading
-		address owner; // The owner proposing the listing
-		uint256 gTokenNonce; // Nonce of the governance token
-		uint256 yesVote; // Number of yes votes
-		uint256 noVote; // Number of no votes
-		uint256 totalLpAmount; // Total LP amount locked for the listing
-		uint256 endEpoch; // Epoch when the listing proposal ends
-		address launchPadAddress; // Address of the launchpad contract
-		address priceDiscoveryPadAddress; // Address of the price discovery contract
-	}
-
 	// Mapping of user to their active votes on token listings
 	mapping(address => EnumerableSet.UintSet) private _userVotes;
 
@@ -83,6 +86,8 @@ contract Governance is ERC1155Holder, Ownable {
 
 	// Mapping of token owner to their proposed listing
 	mapping(address => TokenListing) public pairOwnerListing;
+
+	Launchpad public launchpad;
 
 	/// @notice Constructor to initialize the Governance contract.
 	/// @param _lpToken The address of the LP token contract.
@@ -99,6 +104,7 @@ contract Governance is ERC1155Holder, Ownable {
 		adexTokenAddress = _adex;
 
 		gtokens = NewGTokens.create();
+		launchpad = DeployLaunchpad.newLaunchpad();
 		epochs = epochs_;
 
 		_router = IRouter(msg.sender);
@@ -410,16 +416,18 @@ contract Governance is ERC1155Holder, Ownable {
 	/// @notice Proposes a new pair listing by submitting the required listing fee and GToken payment.
 	/// @param listingFeePayment The payment details for the listing fee.
 	/// @param gTokenPayment The payment details for the GToken required for the listing.
-	/// @param tradeToken The address of the trade token to be listed.
+	/// @param tradeTokenPayment The the trade token to be listed with launchpad distribution amount, if any.
 	function proposeNewPairListing(
 		TokenPayment calldata listingFeePayment,
 		TokenPayment calldata gTokenPayment,
-		address tradeToken
+		TokenPayment calldata tradeTokenPayment
 	) external {
+		address tradeToken = tradeTokenPayment.token;
+
 		// Ensure there is no active listing proposal
 		require(
-			pairOwnerListing[msg.sender].tradeToken == address(0) &&
-				activeListing.tradeToken == address(0),
+			pairOwnerListing[msg.sender].owner == address(0) &&
+				activeListing.owner == address(0),
 			"Governance: Previous proposal not completed"
 		);
 
@@ -444,11 +452,15 @@ contract Governance is ERC1155Holder, Ownable {
 		// Process the GToken payment
 		gTokenPayment.receiveToken();
 
+		if (tradeTokenPayment.amount > 0) {
+			tradeTokenPayment.receiveToken();
+		}
+
 		// Update the active listing with the new proposal details
 		activeListing.owner = msg.sender;
-		activeListing.tradeToken = tradeToken;
+		activeListing.tradeTokenPayment = tradeTokenPayment;
 		activeListing.gTokenNonce = gTokenPayment.nonce;
-		activeListing.endEpoch = currentEpoch() + 7;
+		activeListing.endEpoch = currentEpoch() + 3;
 	}
 
 	/// @notice Validates the GToken payment for the listing based on the total base amount in liquidity.
@@ -493,59 +505,81 @@ contract Governance is ERC1155Holder, Ownable {
 		uint256 value,
 		uint256 thresholdValue
 	) private pure returns (bool) {
-		return value >= (thresholdValue * 86) / 100;
+		return thresholdValue > 0 && value >= (thresholdValue * 86) / 100;
+	}
+
+	function _returnListingGToken(TokenListing memory listing) internal {
+		gtokens.safeTransferFrom(
+			address(this),
+			listing.owner,
+			listing.gTokenNonce,
+			1,
+			""
+		);
+
+		if (listing.tradeTokenPayment.amount > 0) {
+			listing.tradeTokenPayment.sendToken(listing.owner);
+		}
+		delete pairOwnerListing[msg.sender];
 	}
 
 	/**
 	 * @notice Proceeds with the next stage of a new pair listing, either launching a token or proceeding to price discovery.
-	 * @param nextIsPriceDiscovery A boolean indicating whether the next stage is price discovery.
 	 */
-	function proceedNewPairListing(bool nextIsPriceDiscovery) external {
+	function proceedNewPairListing() external {
 		TokenListing storage listing = pairOwnerListing[msg.sender];
 
 		// If no listing is found for the sender, end the current voting session.
-		if (listing.tradeToken == address(0)) {
+		if (listing.owner == address(0)) {
 			_endVoting();
 			listing = pairOwnerListing[msg.sender]; // Refresh listing after ending the vote
 		}
 
 		// Ensure that a valid listing exists.
-		require(listing.tradeToken != address(0), "No listing found");
+		require(listing.owner != address(0), "No listing found");
 
-		if (
-			!_checkProposalPass(
-				listing.totalLpAmount,
-				gtokens.totalLpAmount()
-			) ||
-			!_checkProposalPass(
+		bool canProceed = _checkProposalPass(
+			listing.totalLpAmount,
+			gtokens.totalLpAmount()
+		) &&
+			_checkProposalPass(
 				listing.yesVote,
 				listing.yesVote + listing.noVote
-			)
-		) {
+			);
+		if (!canProceed) {
 			// Proposal failed, not accepted by community
 
-			gtokens.safeTransferFrom(
-				address(this),
-				listing.owner,
-				listing.gTokenNonce,
-				1,
-				""
-			);
-			delete pairOwnerListing[msg.sender];
+			_returnListingGToken(listing);
 
 			return;
 		}
 
 		// Handle the launch pad and price discovery stages.
-		if (!nextIsPriceDiscovery && listing.launchPadAddress == address(0)) {
+		if (listing.tradeTokenPayment.amount > 0) {
 			require(
-				listing.priceDiscoveryPadAddress == address(0),
+				listing.priceDiscoveryAddress == address(0),
 				"Already in Price Discovery"
 			);
-			// Logic to deploy the launch pad contract.
-		} else if (listing.priceDiscoveryPadAddress == address(0)) {
-			if (listing.launchPadAddress != address(0)) {
-				// Logic to confirm that the launch pad process is complete.
+			listing.tradeTokenPayment.approve(address(launchpad));
+			listing.campaignId = launchpad.createCampaign(
+				listing.tradeTokenPayment,
+				listing.owner
+			);
+			// Update amount to indicate transfer and possibly ready to move to price discovery
+			listing.tradeTokenPayment.amount = 0;
+		} else if (listing.priceDiscoveryAddress == address(0)) {
+			if (listing.campaignId != 0) {
+				Launchpad.CampaignStatus campaignStatus = launchpad
+					.getCampaignDetails(listing.campaignId)
+					.status;
+
+				if (campaignStatus != Launchpad.CampaignStatus.Success) {
+					if (campaignStatus == Launchpad.CampaignStatus.Failed) {
+						_returnListingGToken(listing);
+					}
+
+					return;
+				}
 			}
 			// Logic to deploy the price discovery contract.
 		} else {
@@ -568,7 +602,8 @@ contract Governance is ERC1155Holder, Ownable {
 
 		// Ensure that the trade token is valid and active for voting.
 		require(
-			isERC20(tradeToken) && activeListing.tradeToken == tradeToken,
+			isERC20(tradeToken) &&
+				activeListing.tradeTokenPayment.token == tradeToken,
 			"Token not active"
 		);
 		require(
@@ -594,6 +629,7 @@ contract Governance is ERC1155Holder, Ownable {
 		// Receive the gToken payment and record the user's vote.
 		gTokenPayment.receiveToken();
 		_userVotes[user].add(gTokenPayment.nonce);
+
 		// Apply the user's vote to the active listing.
 		if (shouldList) {
 			activeListing.yesVote += votePower;
@@ -634,7 +670,8 @@ contract Governance is ERC1155Holder, Ownable {
 
 		if (tradeToken != address(0)) {
 			delete userVote[user]; // Clear the user's vote record.
-			if (tradeToken == activeListing.tradeToken) _endVoting();
+			if (tradeToken == activeListing.tradeTokenPayment.token)
+				_endVoting();
 		}
 
 		// Recall up to 10 vote tokens at a time.

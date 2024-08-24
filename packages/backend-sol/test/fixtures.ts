@@ -22,6 +22,7 @@ export async function deployRouterFixture() {
   const DeployGovernanceFactory = await ethers.getContractFactory("DeployGovernance", {
     libraries: {
       NewGTokens: await (await ethers.deployContract("NewGTokens")).getAddress(),
+      DeployLaunchpad: await (await ethers.deployContract("DeployLaunchpad")).getAddress(),
     },
   });
   const deployGovernance = await DeployGovernanceFactory.deploy();
@@ -127,6 +128,7 @@ export async function deployRouterFixture() {
   };
 
   const governanceContract = await ethers.getContractAt("Governance", await router.governance());
+  const launchpadContract = await ethers.getContractAt("Launchpad", await governanceContract.launchpad());
 
   return {
     router,
@@ -141,6 +143,7 @@ export async function deployRouterFixture() {
     otherUsers,
     approveToken,
     governanceContract,
+    launchpadContract,
   };
 }
 
@@ -186,23 +189,28 @@ export async function claimRewardsFixture() {
   const addLiquidityAndEnterGovernance = async (
     times: number,
     signer = user,
-    otherParams: { epochsLocked?: number } = {},
+    otherParams: { epochsLocked?: number; adexAmount?: BigNumberish; otherPairAmount?: BigNumberish } = {},
   ) => {
     if (otherParams.epochsLocked == undefined) {
       otherParams.epochsLocked = 120;
     }
+    if (otherParams.adexAmount == undefined) {
+      otherParams.adexAmount = parseEther("900");
+    }
+    if (otherParams.otherPairAmount == undefined) {
+      otherParams.otherPairAmount = parseEther("500");
+    }
+
+    const { epochsLocked, adexAmount, otherPairAmount } = otherParams;
 
     while (times > 0) {
       times--;
       // User adds liquidity
       await addLiquidity(
         { tradeToken: pairTradeToken, contract: pairContract, signer },
-        { token: pairTradeToken, amount: parseEther("500") },
+        { token: pairTradeToken, amount: otherPairAmount },
       );
-      await addLiquidity(
-        { tradeToken: adex, contract: basePairContract, signer },
-        { token: adex, amount: parseEther("900") },
-      );
+      await addLiquidity({ tradeToken: adex, contract: basePairContract, signer }, { token: adex, amount: adexAmount });
     }
 
     // User enters governance
@@ -211,7 +219,7 @@ export async function claimRewardsFixture() {
       .lpBalanceOf(signer)
       .then(balances => balances.map(({ amount, nonce }) => ({ amount, nonce, token: lpContractAddr })));
     await lpTokenContract.connect(signer).setApprovalForAll(governanceContract, true);
-    await governanceContract.connect(signer).enterGovernance(lpPayments, otherParams.epochsLocked);
+    await governanceContract.connect(signer).enterGovernance(lpPayments, epochsLocked);
 
     return lpPayments;
   };

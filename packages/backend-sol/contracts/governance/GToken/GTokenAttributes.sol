@@ -81,15 +81,12 @@ library GToken {
 		Attributes memory self,
 		uint256 currentEpoch
 	) internal pure returns (uint256) {
-		uint256 timeLeft = epochsLeft(self, currentEpoch);
+		uint256 xPow = (MAX_EPOCHS_LOCK - epochsLeft(self, currentEpoch)) ** 2;
+		uint256 mPow = MAX_EPOCHS_LOCK ** 2;
 
-		require(timeLeft <= MAX_EPOCHS_LOCK, "GToken: Invalid timeLeft");
+		uint256 voteWeight = ((9 * xPow) / mPow) - 1;
 
-		uint256 m = MAX_EPOCHS_LOCK;
-		uint256 xPow = (m - timeLeft) ** 2;
-		uint256 mPow = m ** 2;
-
-		return (self.lpAmount * (mPow - xPow)) / mPow;
+		return self.lpAmount * voteWeight;
 	}
 
 	/// @notice Calculates the number of epochs since the last reward claim.

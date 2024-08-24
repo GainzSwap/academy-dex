@@ -66,4 +66,32 @@ library TokenPayments {
 			);
 		}
 	}
+
+	function sendToken(TokenPayment memory payment, address to) internal {
+		if (payment.token == address(0)) {
+			// Native payment
+			payable(to).transfer(payment.amount);
+		} else if (payment.nonce == 0) {
+			IERC20(payment.token).transfer(to, payment.amount);
+		} else {
+			SFT(payment.token).safeTransferFrom(
+				address(this),
+				to,
+				payment.nonce,
+				payment.amount,
+				""
+			);
+		}
+	}
+
+	function approve(TokenPayment memory payment, address to) internal {
+		if (payment.token == address(0)) {
+			// Native payment
+			// Nothing to do
+		} else if (payment.nonce == 0) {
+			IERC20(payment.token).approve(to, payment.amount);
+		} else {
+			SFT(payment.token).setApprovalForAll(to, true);
+		}
+	}
 }
