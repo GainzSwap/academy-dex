@@ -14,7 +14,7 @@ export async function deployRouterFixture() {
   const [user, owner, ...otherUsers] = await ethers.getSigners();
 
   // Deploy contracts and ensure they are deployed
-  const PairFactory = await ethers.getContractFactory("TestingPairFactory");
+  const PairFactory = await ethers.getContractFactory("DeployPair");
   const pairFactoryInstance = await PairFactory.deploy();
   await pairFactoryInstance.waitForDeployment();
 
@@ -30,13 +30,15 @@ export async function deployRouterFixture() {
   const router = await ethers.deployContract("Router", {
     signer: owner,
     libraries: {
-      PairFactory: await pairFactoryInstance.getAddress(),
+      DeployPair: await (await ethers.deployContract("DeployPair")).getAddress(),
+      DeployBasePair: await (await ethers.deployContract("DeployTestBasePair")).getAddress(),
+      DeployEduPair: await (await ethers.deployContract("DeployEduPair")).getAddress(),
       DeployGovernance: await deployGovernance.getAddress(),
     },
   });
 
   await router.createPair({ amount: 0, token: ZeroAddress, nonce: 0 });
-  const basePairContract = await ethers.getContractAt("TestingBasePair", await router.basePairAddr());
+  const basePairContract = await ethers.getContractAt("BasePair", await router.basePairAddr());
   const baseTradeToken = await ethers.getContractAt("MintableADEX", await basePairContract.tradeToken());
 
   const lpTokenContract = await ethers.getContractAt("LpToken", await router.lpToken());
@@ -84,6 +86,7 @@ export async function deployRouterFixture() {
     someUser = user,
     slippage = 1_00,
     mint = false,
+    checkBalances = true,
   }: {
     buyContract: Pair;
     sellContract: Pair;
@@ -91,6 +94,7 @@ export async function deployRouterFixture() {
     someUser?: HardhatEthersSigner;
     slippage?: number;
     mint?: boolean;
+    checkBalances?: boolean;
   }) => {
     const buyToken = await ethers.getContractAt("ERC20", await buyContract.tradeToken());
     const sellToken = await ethers.getContractAt("MintableERC20", await sellContract.tradeToken());
@@ -121,16 +125,18 @@ export async function deployRouterFixture() {
     const finalOutBal = await buyToken.balanceOf(someUser);
     const finalInBal = await sellToken.balanceOf(someUser);
 
-    [
-      [finalOutBal, initialOutBal],
-      // [finalReward, initialReward],
-      [initialInBal, finalInBal],
-      [initialBuyTradeBal, finalBuyTradeBal],
-    ].forEach(([bigger, smaller], index) => {
-      expect(bigger > smaller).to.equal(true, `Expected balance comparison after sale fialed at index: ${index}`);
-    });
+    if (checkBalances) {
+      [
+        [finalOutBal, initialOutBal],
+        // [finalReward, initialReward],
+        [initialInBal, finalInBal],
+        [initialBuyTradeBal, finalBuyTradeBal],
+      ].forEach(([bigger, smaller], index) => {
+        expect(bigger > smaller).to.equal(true, `Expected balance comparison after sale fialed at index: ${index}`);
+      });
 
-    expect(estimatedAmountOut).to.be.lessThanOrEqual(finalOutBal - initialOutBal);
+      expect(estimatedAmountOut).to.be.lessThanOrEqual(finalOutBal - initialOutBal);
+    }
   };
 
   const governanceContract = await ethers.getContractAt("Governance", await router.governance());

@@ -4,15 +4,17 @@ pragma solidity ^0.8.24;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 
 import { TokenPayment, TokenPayments } from "../common/libs/TokenPayments.sol";
 import { LpToken } from "../modules/LpToken.sol";
-import 'hardhat/console.sol';
+import "hardhat/console.sol";
+
 /**
  * @title LaunchPair
  * @dev This contract facilitates the creation and management of crowdfunding campaigns for launching new tokens. Participants contribute funds to campaigns, and if the campaign is successful, they receive launchPair tokens in return. If the campaign fails, their contributions are refunded.
  */
-contract LaunchPair is Ownable {
+contract LaunchPair is Ownable, ERC1155Holder {
 	using TokenPayments for TokenPayment;
 	using EnumerableSet for EnumerableSet.UintSet;
 
@@ -257,7 +259,6 @@ contract LaunchPair is Ownable {
 
 		// Remove the campaign from the set of all campaigns
 		_removeCampaignFromActiveCampaigns(_campaignId);
-
 
 		payable(owner()).transfer(amount);
 		emit FundsWithdrawn(_campaignId, msg.sender, amount);

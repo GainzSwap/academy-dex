@@ -4,6 +4,27 @@ pragma solidity 0.8.24;
 import "./Pair.sol";
 import { ADEX } from "../ADexToken/ADEX.sol";
 
+library DeployBasePair {
+	function newBasePair() external returns (BasePair) {
+		ADEX adex = new ADEX();
+		return new BasePair(address(adex));
+	}
+}
+
+contract MintableADEX is ADEX {
+	function mint(address to, uint256 amt) external {
+		_transfer(owner(), to, amt);
+	}
+}
+
+library DeployTestBasePair {
+	function newBasePair() external returns (BasePair) {
+		ADEX adex = new MintableADEX();
+
+		return new BasePair(address(adex));
+	}
+}
+
 /**
  * @title BasePair
  * @dev This contract represents a base pair in the DEX, implementing mintable tokens and fee burning mechanisms.

@@ -23,6 +23,15 @@ import "hardhat/console.sol";
 
 uint256 constant RPS_DIVISION_CONSTANT = 1e36;
 
+library DeployPair {
+	function newPair(
+		address tradeToken,
+		address basePairAddr
+	) external returns (Pair) {
+		return new Pair(tradeToken, basePairAddr);
+	}
+}
+
 /**
  * @title Pair
  * @dev This contract manages a trading pair in the DEX, handling liquidity, trading, and fee mechanisms.
@@ -39,7 +48,7 @@ contract Pair is IPair, Ownable, KnowablePair {
 
 	uint256 public lpSupply;
 
-	ERC20 public tradeToken;
+	address public tradeToken;
 	IBasePair basePair;
 
 	mapping(address => SafePriceData) safePrices;
@@ -65,22 +74,23 @@ contract Pair is IPair, Ownable, KnowablePair {
 	 * @param basePairAddr Address of the base pair.
 	 */
 	constructor(address tradeToken_, address basePairAddr) {
-		require(tradeToken_ != address(0), "Pair: Invalid trade token address");
-		require(basePairAddr != address(0), "Pair: Invalid base pair address");
-
 		_setTradeToken(tradeToken_);
 		_setBasePair(basePairAddr);
 	}
 
 	function _setTradeToken(address tradeToken_) internal virtual {
+		require(tradeToken_ != address(0), "Pair: Invalid trade token address");
+
 		require(isERC20(tradeToken_), "Pair: Invalid trade token");
-		tradeToken = ERC20(tradeToken_);
+		tradeToken = tradeToken_;
 	}
 
 	function _setBasePair(address basePairAddr) internal virtual {
+		require(basePairAddr != address(0), "Pair: Invalid base pair address");
+
 		basePair = IBasePair(basePairAddr);
 		require(
-			isERC20(address(Pair(basePairAddr).tradeToken())),
+			isERC20(Pair(basePairAddr).tradeToken()),
 			"Pair: Invalid base pair contract"
 		);
 	}
@@ -182,7 +192,11 @@ contract Pair is IPair, Ownable, KnowablePair {
 		// Distribute values
 		{
 			if (referrer != address(0) && values.referrerValue > 0) {
-				tradeToken.transfer(referrer, values.referrerValue);
+				TokenPayment({
+					nonce: 0,
+					amount: values.referrerValue,
+					token: tradeToken
+				}).sendToken(referrer);
 			} else {
 				toBurn += values.referrerValue;
 			}
@@ -200,7 +214,8 @@ contract Pair is IPair, Ownable, KnowablePair {
 			}
 
 			// Send bought tokens to receiver
-			tradeToken.transfer(receiver, amountOut);
+			TokenPayment({ nonce: 0, amount: amountOut, token: tradeToken })
+				.sendToken(receiver);
 		}
 		emit BurntFees(address(this), toBurn);
 	}
@@ -412,10 +427,11 @@ contract Pair is IPair, Ownable, KnowablePair {
 
 		// Transfer the claimed deposit to the `from` address
 		if (depositClaimed > 0) {
-			require(
-				tradeToken.transfer(from, depositClaimed),
-				"Pair: Deposit transfer failed"
-			);
+			TokenPayment({
+				nonce: 0,
+				amount: depositClaimed,
+				token: tradeToken
+			}).sendToken(from);
 		}
 
 		// Return the updated liquidity balance and claimed deposit

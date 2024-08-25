@@ -145,7 +145,10 @@ describe("LaunchPair", function () {
       expect(campaign.status).to.equal(3); // Success status
 
       const ownerBalanceAfter = await ethers.provider.getBalance(owner.address);
-      expect(ownerBalanceAfter - ownerBalanceBefore).to.equal(ethers.parseEther("10"));
+      expect(ownerBalanceAfter - ownerBalanceBefore).to.equal(
+        ethers.parseEther("10"),
+        "Balance should be this value, but since gas fees have to be paid, it some what is not exact",
+      );
     });
 
     it("Should revert if the campaign goal is not met", async function () {

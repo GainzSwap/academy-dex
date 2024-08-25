@@ -11,7 +11,6 @@ import "../common/libs/Fee.sol";
 import "../pair/Pair.sol";
 import "../pair/BasePair.sol";
 
-import "../test-case/TestingBasePair.sol";
 import "./User.sol";
 
 import { LpToken } from "../modules/LpToken.sol";
@@ -22,28 +21,10 @@ import { Amm } from "../common/Amm.sol";
 import { Epochs } from "../common/Epochs.sol";
 import { Governance } from "../governance/Governance.sol";
 import { DeployGovernance } from "../governance/DeployGovernance.sol";
-import { NativePair } from "../pair/NativePair.sol";
+import { EDUPair, DeployEduPair } from "../pair/EDUPair.sol";
 
 import "../common/libs/Number.sol";
 import { IRouter } from "./IRouter.sol";
-
-library PairFactory {
-	function newPair(
-		address tradeToken,
-		address basePairAddr
-	) external returns (Pair) {
-		return new Pair(tradeToken, basePairAddr);
-	}
-
-	function newBasePair() external returns (BasePair) {
-		ADEX adex = new ADEX();
-		return new BasePair(address(adex));
-	}
-
-	// function newNativePair(address basePairAddr) external returns (NativePair) {
-	// 	return new NativePair(basePairAddr);
-	// }
-}
 
 uint256 constant REWARDS_DIVISION_CONSTANT = 1e18;
 
@@ -76,6 +57,7 @@ contract Router is IRouter, Ownable, UserModule, ERC1155Holder {
 
 	EnumerableSet.AddressSet private pairs;
 	EnumerableSet.AddressSet private tradeTokens;
+	address private _wEduAddress;
 
 	mapping(address => address) public tokensPairAddress;
 	mapping(address => PairData) public pairsData;
@@ -99,6 +81,11 @@ contract Router is IRouter, Ownable, UserModule, ERC1155Holder {
 		lpToken = new LpToken();
 
 		globalData.lastTimestamp = block.timestamp;
+	}
+
+	function getWEDU() public view returns (address) {
+		require(_wEduAddress != address(0), "Router: EDUPair not yet deployed");
+		return _wEduAddress;
 	}
 
 	function _computeEdgeEmissions(
@@ -296,6 +283,29 @@ contract Router is IRouter, Ownable, UserModule, ERC1155Holder {
 		lpPayment.sendToken(msg.sender);
 	}
 
+	function _prepareWEDUReception()
+		private
+		returns (TokenPayment memory payment)
+	{
+		payment.token = getWEDU();
+		payment.amount = msg.value;
+
+		payment.receiveToken();
+	}
+
+	function _receiveEDUForSpend()
+		private
+		returns (TokenPayment memory payment)
+	{
+		payment.token = getWEDU();
+		payment.amount = msg.value;
+
+		WEDU(payable(payment.token)).receiveForSpender{ value: msg.value }(
+			msg.sender,
+			tokensPairAddress[payment.token]
+		);
+	}
+
 	/**
 	 * @notice Creates a new pair.
 	 * @dev The first pair becomes the base pair -- For now, called by only owner..when DAO is implemented, DAO can call this
@@ -305,6 +315,7 @@ contract Router is IRouter, Ownable, UserModule, ERC1155Holder {
 		TokenPayment memory payment
 	)
 		external
+		payable
 		canCreatePair
 		returns (address pairAddress, TokenPayment memory lpPayment)
 	{
@@ -318,12 +329,11 @@ contract Router is IRouter, Ownable, UserModule, ERC1155Holder {
 		Pair pair;
 
 		if (pairsCount() == 0) {
-			pair = PairFactory.newBasePair();
-			ERC20 adex = pair.tradeToken();
-			tradeToken = address(adex);
+			pair = DeployBasePair.newBasePair();
+			tradeToken = pair.tradeToken();
 			adexTokenAddress = tradeToken;
 
-			adex.transfer(owner(), ADexInfo.ICO_FUNDS);
+			IERC20(adexTokenAddress).transfer(owner(), ADexInfo.ICO_FUNDS);
 			governance = DeployGovernance.newGovernance(
 				address(lpToken),
 				tradeToken,
@@ -335,6 +345,13 @@ contract Router is IRouter, Ownable, UserModule, ERC1155Holder {
 				nonce: 0,
 				amount: ADexInfo.INTIAL_LIQUIDITY
 			});
+		} else if (msg.value > 0) {
+			pair = DeployEduPair.newEDUPair(basePairAddr());
+			tradeToken = address(pair.tradeToken());
+			_wEduAddress = tradeToken;
+
+			// Prepare native token
+			payment = _prepareWEDUReception();
 		} else {
 			require(
 				payment.amount > 0,
@@ -342,7 +359,7 @@ contract Router is IRouter, Ownable, UserModule, ERC1155Holder {
 			);
 			payment.receiveToken();
 
-			pair = PairFactory.newPair(tradeToken, basePairAddr());
+			pair = DeployPair.newPair(tradeToken, basePairAddr());
 		}
 
 		pairAddress = address(pair);
@@ -351,7 +368,6 @@ contract Router is IRouter, Ownable, UserModule, ERC1155Holder {
 		tradeTokens.add(tradeToken);
 		tokensPairAddress[tradeToken] = pairAddress;
 
-		payment.approve(pairAddress);
 		lpPayment = _addInitialLiquidity(pairAddress, payment);
 	}
 
@@ -361,8 +377,11 @@ contract Router is IRouter, Ownable, UserModule, ERC1155Holder {
 	 */
 	function addLiquidity(
 		TokenPayment memory wholePayment
-	) external returns (uint256) {
+	) external payable returns (uint256) {
 		address caller = msg.sender;
+		if (msg.value > 0) {
+			wholePayment = _receiveEDUForSpend();
+		}
 
 		address tokenAddress = address(wholePayment.token);
 		address pairAddress = tokensPairAddress[tokenAddress];
@@ -445,8 +464,10 @@ contract Router is IRouter, Ownable, UserModule, ERC1155Holder {
 		require(totalClaimed > 0, "No rewards available to claim");
 
 		// Transfer the claimed rewards to the user
-		ERC20 adex = Pair(basePairAddr()).tradeToken();
-		require(adex.transfer(user, totalClaimed), "Reward transfer failed");
+		require(
+			ERC20(adexTokenAddress).transfer(user, totalClaimed),
+			"Reward transfer failed"
+		);
 	}
 
 	/**
@@ -506,9 +527,8 @@ contract Router is IRouter, Ownable, UserModule, ERC1155Holder {
 
 		// Transfer rewards if any are claimable
 		if (claimable > 0) {
-			ERC20 tradeToken = Pair(basePairAddr()).tradeToken();
 			require(
-				tradeToken.transfer(msg.sender, claimable),
+				ERC20(adexTokenAddress).transfer(msg.sender, claimable),
 				"Reward transfer failed"
 			);
 		}
@@ -543,7 +563,6 @@ contract Router is IRouter, Ownable, UserModule, ERC1155Holder {
 		(claimable, , , ) = _computeRewardsClaimable(balance);
 	}
 
-
 	function registerAndSwap(
 		uint256 referrerId,
 		TokenPayment calldata inPayment,
@@ -561,10 +580,13 @@ contract Router is IRouter, Ownable, UserModule, ERC1155Holder {
 	 * @param slippage Maximum slippage allowed.
 	 */
 	function swap(
-		TokenPayment calldata inPayment,
+		TokenPayment memory inPayment,
 		address outPairAddr,
 		uint256 slippage
-	) public {
+	) public payable {
+		if (msg.value > 0) {
+			inPayment = _receiveEDUForSpend();
+		}
 		address inPairAddr = tokensPairAddress[address(inPayment.token)];
 
 		require(pairs.contains(inPairAddr), "Router: Input pair not found");

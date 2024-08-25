@@ -6,7 +6,10 @@ import { TokenPayment } from "../common/libs/TokenPayments.sol";
 interface IRouter {
 	function createPair(
 		TokenPayment calldata payment
-	) external returns (address pairAddress, TokenPayment memory lpPayment);
+	)
+		external
+		payable
+		returns (address pairAddress, TokenPayment memory lpPayment);
 
 	function claimRewards(
 		uint256[] memory nonces
@@ -20,5 +23,5 @@ interface IRouter {
 
 	function addLiquidity(
 		TokenPayment memory wholePayment
-	) external returns (uint256);
+	) external payable returns (uint256);
 }

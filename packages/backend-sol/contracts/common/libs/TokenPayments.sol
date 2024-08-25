@@ -1,13 +1,12 @@
-//SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.24;
 
 import "@openzeppelin/contracts/interfaces/IERC20.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 import { SFT } from "../../modules/SFT.sol";
+import { WEDU } from "./WEDU.sol";
 
-struct ERC20TokenPayment {
-	IERC20 token;
-	uint256 amount;
-}
+import "hardhat/console.sol";
 
 struct TokenPayment {
 	address token;
@@ -16,47 +15,35 @@ struct TokenPayment {
 }
 
 library TokenPayments {
-	function accept(ERC20TokenPayment calldata self) internal {
-		TokenPayments.receiveERC20(self, msg.sender);
-	}
+	using Address for address;
 
-	function receiveERC20(ERC20TokenPayment calldata payment) internal {
-		TokenPayments.receiveERC20(payment, msg.sender);
-	}
-
-	function receiveERC20(
-		ERC20TokenPayment calldata payment,
-		address from
-	) internal {
-		payment.token.transferFrom(from, address(this), payment.amount);
-	}
-
-	// Receives Native, SFTs and ERC20; ERC20 have nonce as 0, Native coins have address 0 as token value
 	function receiveToken(TokenPayment memory payment) internal {
 		receiveToken(payment, msg.sender);
 	}
 
 	function receiveToken(TokenPayment memory payment, address from) internal {
-		if (payment.token == address(0)) {
-			// Native payment
-
+		if (msg.value > 0) {
+			// Native payment (ETH)
 			require(
 				payment.amount == msg.value,
-				"expected payment amount must equal sent amount"
+				"TokenPayments: ETH amount mismatch"
 			);
 			require(
 				from == msg.sender,
-				"can receive native payment only from caller"
+				"TokenPayments: Native payment must be from caller"
 			);
 
-			// Nothing to do again since the VM will handle balance movements
+			// Wrap EDU into WEDU
+			WEDU(payable(payment.token)).deposit{ value: msg.value }();
 		} else if (payment.nonce == 0) {
+			// ERC20 payment
 			IERC20(payment.token).transferFrom(
 				from,
 				address(this),
 				payment.amount
 			);
 		} else {
+			// SFT payment
 			SFT(payment.token).safeTransferFrom(
 				from,
 				address(this),
@@ -68,12 +55,35 @@ library TokenPayments {
 	}
 
 	function sendToken(TokenPayment memory payment, address to) internal {
-		if (payment.token == address(0)) {
-			// Native payment
-			payable(to).transfer(payment.amount);
+		if (payment.nonce == 0) {
+			bool shouldMoveEthBalance = false;
+			if (!to.isContract()) {
+				uint256 beforeBal = address(this).balance;
+
+				// Try to withdraw ETH assuming payment.token is WEDU
+				(shouldMoveEthBalance, ) = payment.token.call(
+					abi.encodeWithSignature("withdraw(uint256)", payment.amount)
+				);
+
+				// Checks to ensure balance movements
+				if (shouldMoveEthBalance) {
+					require(
+						(beforeBal + payment.amount) == address(this).balance,
+						"Failed to withdraw WEDU"
+					);
+				}
+			}
+
+			if (shouldMoveEthBalance) {
+				payable(to).transfer(payment.amount);
+			} else {
+				IERC20(payment.token).transfer(to, payment.amount);
+			}
 		} else if (payment.nonce == 0) {
+			// ERC20 payment
 			IERC20(payment.token).transfer(to, payment.amount);
 		} else {
+			// SFT payment
 			SFT(payment.token).safeTransferFrom(
 				address(this),
 				to,
@@ -85,12 +95,11 @@ library TokenPayments {
 	}
 
 	function approve(TokenPayment memory payment, address to) internal {
-		if (payment.token == address(0)) {
-			// Native payment
-			// Nothing to do
-		} else if (payment.nonce == 0) {
+		if (payment.nonce == 0) {
+			// ERC20 approval
 			IERC20(payment.token).approve(to, payment.amount);
 		} else {
+			// SFT approval
 			SFT(payment.token).setApprovalForAll(to, true);
 		}
 	}

@@ -511,7 +511,7 @@ describe("Governance Contract", function () {
     };
   }
 
-  describe("proceedNewPairListing", function () {
+  describe("progressNewPairListing", function () {
     it("Should revert if no listing is found for the sender", async function () {
       const {
         governanceContract,
@@ -520,7 +520,9 @@ describe("Governance Contract", function () {
       } = await loadFixture(proposeNewPairListingFixture);
       await time.increase(epochLength * 8n);
 
-      await expect(governanceContract.connect(someUser).proceedNewPairListing()).to.be.revertedWith("No listing found");
+      await expect(governanceContract.connect(someUser).progressNewPairListing()).to.be.revertedWith(
+        "No listing found",
+      );
     });
 
     it("Should return security deposit if proposal does not pass", async function () {
@@ -553,7 +555,7 @@ describe("Governance Contract", function () {
 
       await time.increase(epochLength * 8n);
       const expectedSecurityLpPayment = (await governanceContract.activeListing()).securityLpPayment;
-      await governanceContract.connect(pairOwner).proceedNewPairListing();
+      await governanceContract.connect(pairOwner).progressNewPairListing();
 
       expect((await governanceContract.activeListing()).owner).to.be.eq(ZeroAddress);
       expect((await governanceContract.pairOwnerListing(pairOwner)).owner).to.be.eq(ZeroAddress);
@@ -590,11 +592,166 @@ describe("Governance Contract", function () {
       }
 
       await time.increase(epochLength * 8n);
-      await governanceContract.connect(pairOwner).proceedNewPairListing();
+      await governanceContract.connect(pairOwner).progressNewPairListing();
 
       const { campaignId } = await governanceContract.pairOwnerListing(pairOwner);
       expect(campaignId).to.be.gt(0);
       expect((await launchPairContract.campaigns(campaignId)).creator).to.be.equal(pairOwner.address);
+    });
+
+    it("Should fail the listing if the campaign is unsuccessful", async function () {
+      const {
+        governanceContract,
+        gTokens,
+        addLiquidityAndEnterGovernance,
+        otherUsers: [voter],
+        newTradeToken,
+        epochLength,
+        pairOwner,
+        launchPairContract,
+        lpTokenContract,
+      } = await loadFixture(proposeNewPairListingFixture);
+
+      await addLiquidityAndEnterGovernance(1, voter, {
+        epochsLocked: 1080,
+        adexAmount: parseEther("123456"),
+        otherPairAmount: parseEther("0.0000000000999"),
+      });
+      const voteTokens = await gTokens.getGTokenBalance(voter);
+
+      await gTokens.connect(voter).setApprovalForAll(governanceContract, true);
+      for (const voteToken of voteTokens) {
+        await governanceContract
+          .connect(voter)
+          .vote({ token: gTokens, nonce: voteToken.nonce, amount: voteToken.amount }, newTradeToken, true);
+      }
+
+      await time.increase(epochLength * 8n);
+      await governanceContract.connect(pairOwner).progressNewPairListing();
+
+      const { campaignId, securityLpPayment } = await governanceContract.pairOwnerListing(pairOwner);
+      expect(campaignId).to.be.gt(0);
+      await launchPairContract.connect(pairOwner).startCampaign(parseEther("0.34434"), 34, campaignId);
+      await time.increase(4774);
+
+      await governanceContract.connect(pairOwner).progressNewPairListing();
+
+      await expect(governanceContract.connect(pairOwner).progressNewPairListing()).to.be.revertedWith(
+        "No listing found",
+      );
+
+      expect((await governanceContract.pairOwnerListing(pairOwner)).owner).to.be.eq(ZeroAddress);
+      expect(await lpTokenContract.hasSFT(pairOwner, securityLpPayment.nonce)).to.be.eq(
+        true,
+        "Security deposit must be returned",
+      );
+    });
+
+    it("Should fail if trying to progress when funds are not withdrawn", async function () {
+      const {
+        governanceContract,
+        gTokens,
+        addLiquidityAndEnterGovernance,
+        otherUsers: [voter],
+        newTradeToken,
+        epochLength,
+        pairOwner,
+      } = await loadFixture(proposeNewPairListingFixture);
+
+      await addLiquidityAndEnterGovernance(1, voter, {
+        epochsLocked: 1080,
+        adexAmount: parseEther("123456"),
+        otherPairAmount: parseEther("0.0000000000999"),
+      });
+      const voteTokens = await gTokens.getGTokenBalance(voter);
+
+      await gTokens.connect(voter).setApprovalForAll(governanceContract, true);
+      for (const voteToken of voteTokens) {
+        await governanceContract
+          .connect(voter)
+          .vote({ token: gTokens, nonce: voteToken.nonce, amount: voteToken.amount }, newTradeToken, true);
+      }
+
+      await time.increase(epochLength * 8n);
+      await governanceContract.connect(pairOwner).progressNewPairListing();
+
+      const { campaignId } = await governanceContract.pairOwnerListing(pairOwner);
+      expect(campaignId).to.be.gt(0);
+
+      await expect(governanceContract.connect(pairOwner).progressNewPairListing()).to.be.revertedWith(
+        "Governance: Funding not complete",
+      );
+    });
+
+    it("Should add liquidity and distribute GToken if the campaign is successful", async function () {
+      const {
+        governanceContract,
+        gTokens,
+        addLiquidityAndEnterGovernance,
+        otherUsers: [voter, lpHaunter1, lpHaunter2],
+        newTradeToken,
+        epochLength,
+        pairOwner,
+        launchPairContract,
+        lpTokenContract,
+        router,
+      } = await loadFixture(proposeNewPairListingFixture);
+      // Create EDU Pair
+      await router.createPair({ token: ZeroAddress, amount: 0, nonce: 0 }, { value: parseEther("0.93645") });
+
+      await addLiquidityAndEnterGovernance(1, voter, {
+        epochsLocked: 1080,
+        adexAmount: parseEther("123456"),
+        otherPairAmount: parseEther("0.0000000000999"),
+      });
+      const voteTokens = await gTokens.getGTokenBalance(voter);
+
+      await gTokens.connect(voter).setApprovalForAll(governanceContract, true);
+      for (const voteToken of voteTokens) {
+        await governanceContract
+          .connect(voter)
+          .vote({ token: gTokens, nonce: voteToken.nonce, amount: voteToken.amount }, newTradeToken, true);
+      }
+      await time.increase(epochLength * 8n);
+      await governanceContract.connect(pairOwner).progressNewPairListing();
+
+      const { campaignId, securityLpPayment, tradeTokenPayment } = await governanceContract.pairOwnerListing(pairOwner);
+      expect(campaignId).to.be.gt(0);
+      await launchPairContract.connect(pairOwner).startCampaign(parseEther("0.000345"), 3600, campaignId);
+      const campaign = await launchPairContract.campaigns(campaignId);
+
+      await launchPairContract.connect(lpHaunter1).contribute(campaignId, { value: campaign.goal / 2n });
+      await launchPairContract.connect(lpHaunter2).contribute(campaignId, { value: campaign.goal });
+
+      await time.increase(30 * 3600);
+
+      // This will create locked GToken
+      await governanceContract.connect(pairOwner).progressNewPairListing();
+      const recentGToken = (await gTokens.getGTokenBalance(pairOwner)).at(-1)!;
+      expect(recentGToken.attributes.epochsLocked).to.equal(1080, "Generated GTokens must be locked at max epochs");
+      expect(recentGToken.attributes.lpPayments.length).to.eq(2, "Two lpPaymnets should be in the GToken");
+      expect(recentGToken.attributes.lpPayments[0].nonce).to.eq(
+        securityLpPayment.nonce,
+        "Security LP paymnet must be part of the GTokne minted",
+      );
+
+      expect((await governanceContract.activeListing()).owner).to.be.eq(ZeroAddress);
+
+      // This will create pair and activate trading
+      await governanceContract.connect(pairOwner).progressNewPairListing();
+      expect((await router.tradeableTokens()).includes(tradeTokenPayment.token)).to.equal(
+        true,
+        "tradeTokenPayment token should be listed",
+      );
+
+      expect(
+        (await lpTokenContract.getNonces(lpHaunter1)).length + (await lpTokenContract.getNonces(lpHaunter2)).length,
+      ).to.eq(0);
+      await launchPairContract.connect(lpHaunter1).withdrawLaunchPairToken(campaignId);
+      await launchPairContract.connect(lpHaunter2).withdrawLaunchPairToken(campaignId);
+      expect(
+        (await lpTokenContract.getNonces(lpHaunter1)).length + (await lpTokenContract.getNonces(lpHaunter2)).length,
+      ).to.eq(2);
     });
   });
 

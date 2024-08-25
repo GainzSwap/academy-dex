@@ -424,6 +424,8 @@ contract Governance is ERC1155Holder, Ownable {
 		TokenPayment calldata securityPayment,
 		TokenPayment calldata tradeTokenPayment
 	) external {
+		_endVoting();
+
 		address tradeToken = tradeTokenPayment.token;
 
 		// Ensure there is no active listing proposal
@@ -503,74 +505,95 @@ contract Governance is ERC1155Holder, Ownable {
 	}
 
 	/**
-	 * @notice Proceeds with the next stage of a new pair listing, either launching a token or proceeding to price discovery.
+	 * @notice Progresses the new pair listing process for the calling address.
+	 *         This function handles the various stages of the listing, including
+	 *         voting, launch pad campaign, and liquidity provision.
 	 */
-	function proceedNewPairListing() external {
+	function progressNewPairListing() external {
+		// Retrieve the token listing associated with the caller's address.
 		TokenListing storage listing = pairOwnerListing[msg.sender];
 
 		// If no listing is found for the sender, end the current voting session.
 		if (listing.owner == address(0)) {
-			_endVoting();
-			listing = pairOwnerListing[msg.sender]; // Refresh listing after ending the vote
+			_endVoting(); // End the current voting session if no valid listing exists.
+			listing = pairOwnerListing[msg.sender]; // Refresh listing after ending the vote.
 		}
 
-		// Ensure that a valid listing exists.
+		// Ensure that a valid listing exists after the potential refresh.
 		require(listing.owner != address(0), "No listing found");
 
-		bool canProceed = _checkProposalPass(
+		// Check if the proposal passes both the total LP amount and the voting requirements.
+		bool passedForTotalGTokenLp = _checkProposalPass(
 			listing.totalLpAmount,
 			gtokens.totalLpAmount()
-		) &&
-			_checkProposalPass(
-				listing.yesVote,
-				listing.yesVote + listing.noVote
-			);
-		if (!canProceed) {
-			// Proposal failed, not accepted by community
-
+		);
+		bool passedForYesVotes = _checkProposalPass(
+			listing.yesVote,
+			listing.yesVote + listing.noVote
+		);
+		if (!(passedForTotalGTokenLp && passedForYesVotes)) {
+			// If the proposal did not pass, return the deposits to the listing owner.
 			_returnListingDeposits(listing);
-
 			return;
 		}
 
 		// Handle the launch pad and price discovery stages.
 		if (listing.campaignId == 0) {
+			// If no campaign has been created yet, create a new one for the listing owner.
 			listing.campaignId = launchPair.createCampaign(listing.owner);
 		} else {
+			// Retrieve details of the existing campaign.
 			LaunchPair.Campaign memory campaign = launchPair.getCampaignDetails(
 				listing.campaignId
 			);
 
+			if (campaign.goal > 0 && block.timestamp > campaign.deadline) {
+				if (campaign.fundsRaised < campaign.goal) {
+					campaign.status = LaunchPair.CampaignStatus.Failed;
+				} else {
+					campaign.status = LaunchPair.CampaignStatus.Success;
+				}
+			}
+
+			// Check the campaign status.
 			if (campaign.status != LaunchPair.CampaignStatus.Success) {
+				// If the campaign failed, return the deposits to the listing owner.
 				if (campaign.status == LaunchPair.CampaignStatus.Failed) {
 					_returnListingDeposits(listing);
 					return;
 				}
 
+				// If the campaign is not complete, revert the transaction.
 				revert("Governance: Funding not complete");
 			}
 
+			// If the campaign is successful and funds have not been withdrawn.
 			if (!campaign.isWithdrawn) {
+				// Store the current balance of the contract before withdrawing funds.
 				uint256 ethBal = address(this).balance;
+
+				// Withdraw the funds raised in the campaign.
 				uint256 fundsRaised = launchPair.withdrawFunds(
 					listing.campaignId
 				);
+
+				// Ensure that the funds were successfully withdrawn.
 				require(
 					ethBal + fundsRaised == address(this).balance,
-					"Governance: Funds not widthdrawn for campaign "
+					"Governance: Funds not withdrawn for campaign"
 				);
 
-				uint256 lpNonce = _router.addLiquidity(
-					TokenPayment({
-						token: address(0),
-						amount: fundsRaised,
-						nonce: 0
-					})
+				// Add liquidity to the router with the withdrawn funds.
+				uint256 lpNonce = _router.addLiquidity{ value: fundsRaised }(
+					TokenPayment({ token: address(0), amount: 0, nonce: 0 })
 				);
+
+				// Get the LP token balance resulting from the liquidity addition.
 				uint256 lpAmount = LpToken(lpTokenAddress)
 					.getBalanceAt(address(this), lpNonce)
 					.amount;
 
+				// Prepare the payments array for entering governance.
 				TokenPayment[] memory payments = new TokenPayment[](2);
 				payments[0] = listing.securityLpPayment;
 				payments[1] = TokenPayment({
@@ -579,10 +602,13 @@ contract Governance is ERC1155Holder, Ownable {
 					token: lpTokenAddress
 				});
 
+				// Enter governance with the provided payments and lock the GTokens.
 				uint256 gTokenNonce = this.enterGovernance(
 					payments,
 					GToken.MAX_EPOCHS_LOCK
 				);
+
+				// Transfer the minted GTokens to the listing owner.
 				gtokens.safeTransferFrom(
 					address(this),
 					listing.owner,
@@ -591,16 +617,24 @@ contract Governance is ERC1155Holder, Ownable {
 					""
 				);
 
+				// Clear the security LP payment after successful governance entry.
 				delete listing.securityLpPayment;
 			} else {
+				// If funds have already been withdrawn, proceed to create the trading pair.
 				listing.tradeTokenPayment.approve(address(_router));
+
+				// Create the trading pair using the router and receive LP tokens.
 				(, TokenPayment memory lpPayment) = _router.createPair(
 					listing.tradeTokenPayment
 				);
-				// Update amount to indicate transfered
+
+				// Clear the trade token payment after pair creation.
 				delete listing.tradeTokenPayment;
 
+				// Approve the LP tokens for use by the launch pair contract.
 				lpPayment.approve(address(launchPair));
+
+				// Transfer the LP tokens to the launch pair contract.
 				launchPair.receiveLpToken(lpPayment, listing.campaignId);
 			}
 		}
@@ -709,4 +743,6 @@ contract Governance is ERC1155Holder, Ownable {
 			);
 		}
 	}
+
+	receive() external payable {}
 }

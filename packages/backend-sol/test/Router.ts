@@ -1,7 +1,7 @@
 import { expect, use } from "chai";
 import { ethers } from "hardhat";
 import { loadFixture, time } from "@nomicfoundation/hardhat-toolbox/network-helpers";
-import { parseEther } from "ethers";
+import { parseEther, ZeroAddress } from "ethers";
 import { deployRouterFixture, claimRewardsFixture } from "./fixtures";
 
 describe("Router", function () {
@@ -369,6 +369,63 @@ describe("Router", function () {
 
       expect(finalInvestor1Balance).to.be.gt(initialInvestor1Balance);
       expect(finalInvestor2Balance).to.be.gt(initialInvestor2Balance);
+    });
+  });
+
+  describe("EDUPair", function () {
+    it("should list EDU pair as native token", async () => {
+      const { router, user, basePairContract, lpTokenContract, baseTradeToken, sellToken } =
+        await loadFixture(deployRouterFixture);
+
+      // Check lisiting of EDU
+      const transferAmt = parseEther("34");
+      await router.createPair({ token: ZeroAddress, amount: 0, nonce: 0 }, { value: transferAmt });
+
+      const wEDUaddress = await router.getWEDU();
+      const WEDU = await ethers.getContractAt("WEDU", wEDUaddress);
+      const eduPair = await ethers.getContractAt("EDUPair", (await router.getAllPairs()).at(-1)!);
+
+      expect(await WEDU.balanceOf(eduPair)).to.be.eq(transferAmt);
+
+      // Check adding liq in EDU
+      await expect(
+        await router.connect(user).addLiquidity({ token: WEDU, amount: 0, nonce: 0 }, { value: parseEther("264.54646") }),
+      ).to.not.reverted;
+
+      // Sell Edu
+      const userEduBalBeforeSell = await ethers.provider.getBalance(user);
+      const eduPairEduBalBeforeSell = await WEDU.balanceOf(eduPair);
+      await router
+        .connect(user)
+        .swap({ token: ZeroAddress, amount: 0, nonce: 0 }, basePairContract, 5_00, { value: parseEther("0.00003") });
+      expect(await ethers.provider.getBalance(user)).to.lessThan(userEduBalBeforeSell);
+      expect(await WEDU.balanceOf(eduPair)).to.be.gt(eduPairEduBalBeforeSell);
+
+      // Buy Edu
+      const userEduBalBeforeBuy = await ethers.provider.getBalance(user);
+      const eduPairEduBalBeforeBuy = await WEDU.balanceOf(eduPair);
+      await sellToken({
+        buyContract: eduPair,
+        sellAmt: parseEther("23.3645"),
+        sellContract: basePairContract,
+        mint: true,
+        someUser: user,
+        checkBalances: false,
+      });
+      expect(await WEDU.balanceOf(eduPair)).to.be.lt(eduPairEduBalBeforeBuy);
+      expect(await ethers.provider.getBalance(user)).to.gt(userEduBalBeforeBuy);
+
+      // Check liq removal
+      const balanceBeforeRemoveLiq = await ethers.provider.getBalance(user);
+      const adexBalBeforeRemoval = await baseTradeToken.balanceOf(user);
+
+      const lpBalance = (await lpTokenContract.lpBalanceOf(user)).find(
+        bal => bal.attributes.tradeToken == wEDUaddress,
+      )!;
+      await router.connect(user).removeLiquidity(lpBalance.nonce, lpBalance.amount);
+
+      expect(await ethers.provider.getBalance(user)).to.gt(balanceBeforeRemoveLiq);
+      expect(await baseTradeToken.balanceOf(user)).to.gt(adexBalBeforeRemoval, "Must receive rewards");
     });
   });
 });
