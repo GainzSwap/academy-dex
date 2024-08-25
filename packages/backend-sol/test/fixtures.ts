@@ -1,7 +1,6 @@
-import { BigNumberish, parseEther, ZeroAddress } from "ethers";
+import { AddressLike, BigNumberish, parseEther, ZeroAddress } from "ethers";
 import { ethers } from "hardhat";
 import { ERC20, MintableERC20, Pair, Router } from "../typechain-types";
-import { ERC20TokenPaymentStruct } from "../typechain-types/contracts/pair/BasePair";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { expect } from "chai";
 import { TokenPaymentStruct } from "../typechain-types/contracts/governance/Governance";
@@ -36,7 +35,7 @@ export async function deployRouterFixture() {
     },
   });
 
-  await router.createPair(ZeroAddress);
+  await router.createPair({ amount: 0, token: ZeroAddress, nonce: 0 });
   const basePairContract = await ethers.getContractAt("TestingBasePair", await router.basePairAddr());
   const baseTradeToken = await ethers.getContractAt("MintableADEX", await basePairContract.tradeToken());
 
@@ -44,13 +43,21 @@ export async function deployRouterFixture() {
 
   // Create a new pair and get the contract instances
   let pairCount = 0;
-  const createPair = async () => {
+  const createPair = async (args: { initLiq?: BigNumberish } = {}) => {
     pairCount++;
     const pairTradeToken = await ethers.deployContract("MintableERC20", ["PairTradeToken", `${pairCount}PTK`], {
       signer: owner,
     });
-    await pairTradeToken.mint(user, ethers.parseEther("0.1"));
-    await router.connect(owner).createPair(pairTradeToken);
+
+    if (args.initLiq == undefined) {
+      args.initLiq = ethers.parseEther("100000000");
+    }
+
+    const payment = { nonce: 0, amount: args.initLiq, token: pairTradeToken };
+    await pairTradeToken.mint(owner, payment.amount);
+    await pairTradeToken.connect(owner).approve(router, payment.amount);
+
+    await router.connect(owner).createPair(payment);
     const pairContract = await ethers.getContractAt("Pair", await router.tokensPairAddress(pairTradeToken));
 
     return { pairContract, pairTradeToken };
@@ -64,8 +71,8 @@ export async function deployRouterFixture() {
     }: { contract: Pair; tradeToken: MintableERC20; signer?: HardhatEthersSigner },
     ...args: Parameters<Router["addLiquidity"]>
   ) => {
-    const payment = args[0] as ERC20TokenPaymentStruct;
-    await tradeToken.connect(owner).mint(signer, payment.amount);
+    const payment = args[0] as TokenPaymentStruct;
+    (await tradeToken.getAddress()) !== ZeroAddress && (await tradeToken.connect(owner).mint(signer, payment.amount));
     await approveToken(signer, tradeToken, payment.amount, contract);
     return router.connect(signer).addLiquidity(...args);
   };
@@ -104,10 +111,9 @@ export async function deployRouterFixture() {
 
     const estimatedAmountOut = await router.estimateOutAmount(sellContract, buyContract, sellAmt, slippage);
 
-    await expect(router.connect(someUser).swap({ token: sellToken, amount: sellAmt }, buyContract, slippage)).to.emit(
-      buyContract,
-      "BurntFees",
-    );
+    await expect(
+      router.connect(someUser).swap({ token: sellToken, amount: sellAmt, nonce: 0 }, buyContract, slippage),
+    ).to.emit(buyContract, "BurntFees");
 
     // const finalReward = await buyContract.rewards();
     const finalBuyTradeBal = await buyToken.balanceOf(buyContract);
@@ -144,6 +150,12 @@ export async function deployRouterFixture() {
     approveToken,
     governanceContract,
     launchPairContract,
+    getLpNonces: (address: AddressLike) =>
+      lpTokenContract.getNonces(address).then(nonces =>
+        nonces.map(nonce => {
+          return nonce;
+        }),
+      ),
   };
 }
 
@@ -167,38 +179,19 @@ export async function claimRewardsFixture() {
 
   const { pairContract, pairTradeToken } = await createPair();
 
-  const addInitialLiq = async ({ baseAmt, pairAmt }: { baseAmt: BigNumberish; pairAmt: BigNumberish }) => {
-    const basePayment = { amount: baseAmt, token: adex };
-    const pairPayment = { amount: pairAmt, token: pairTradeToken };
-
-    await adex.connect(owner).transfer(user, baseAmt);
-    const initialAdexBal = await adex.balanceOf(basePairContract);
-    await addLiquidity({ contract: basePairContract, tradeToken: adex }, basePayment);
-    expect(await basePairContract.reserve()).to.equal(basePayment.amount);
-
-    await pairTradeToken.mint(user, pairAmt);
-    await addLiquidity({ contract: pairContract, tradeToken: pairTradeToken }, pairPayment);
-    expect(await pairContract.reserve()).to.equal(pairPayment.amount);
-
-    expect(await adex.balanceOf(basePairContract)).to.equal(BigInt(basePayment.amount) + initialAdexBal);
-    expect(await pairTradeToken.balanceOf(pairContract)).to.equal(pairPayment.amount);
-  };
-
-  await addInitialLiq({ baseAmt: parseEther("7284.4846"), pairAmt: parseEther("745334000.4746") });
-
   const addLiquidityAndEnterGovernance = async (
     times: number,
     signer = user,
     otherParams: { epochsLocked?: number; adexAmount?: BigNumberish; otherPairAmount?: BigNumberish } = {},
   ) => {
     if (otherParams.epochsLocked == undefined) {
-      otherParams.epochsLocked = 120;
+      otherParams.epochsLocked = 1080;
     }
     if (otherParams.adexAmount == undefined) {
       otherParams.adexAmount = parseEther("900");
     }
     if (otherParams.otherPairAmount == undefined) {
-      otherParams.otherPairAmount = parseEther("500");
+      otherParams.otherPairAmount = parseEther("0.000005");
     }
 
     const { epochsLocked, adexAmount, otherPairAmount } = otherParams;
@@ -208,9 +201,12 @@ export async function claimRewardsFixture() {
       // User adds liquidity
       await addLiquidity(
         { tradeToken: pairTradeToken, contract: pairContract, signer },
-        { token: pairTradeToken, amount: otherPairAmount },
+        { token: pairTradeToken, amount: otherPairAmount, nonce: 0 },
       );
-      await addLiquidity({ tradeToken: adex, contract: basePairContract, signer }, { token: adex, amount: adexAmount });
+      await addLiquidity(
+        { tradeToken: adex, contract: basePairContract, signer },
+        { token: adex, amount: adexAmount, nonce: 0 },
+      );
     }
 
     // User enters governance
@@ -226,6 +222,11 @@ export async function claimRewardsFixture() {
 
   const computeLpBalance = <T extends { amount: BigNumberish }>(payments: T[]) =>
     payments.reduce((acc, cur) => acc + BigInt(cur.amount), 0n);
+
+  await addLiquidity(
+    { contract: pairContract, tradeToken: pairTradeToken, signer: user },
+    { token: pairTradeToken, nonce: 0, amount: parseEther("0.094") },
+  );
 
   return {
     ...fixtures,

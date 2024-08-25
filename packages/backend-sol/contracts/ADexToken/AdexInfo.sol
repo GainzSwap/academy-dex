@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.24;
 
 library ADexInfo {
 	/// @dev Number of decimal places for the token
@@ -15,7 +15,9 @@ library ADexInfo {
 	uint256 public constant ECOSYSTEM_DISTRIBUTION_FUNDS =
 		(13_650_000 * ONE) + 2_248_573_618_499_339;
 
+	uint256 public constant INTIAL_LIQUIDITY = 1_000_000 * ONE;
+
 	/// @dev Funds allocated for ICO (Initial Coin Offering)
 	uint256 public constant ICO_FUNDS =
-		MAX_SUPPLY - ECOSYSTEM_DISTRIBUTION_FUNDS;
+		MAX_SUPPLY - ECOSYSTEM_DISTRIBUTION_FUNDS - INTIAL_LIQUIDITY;
 }

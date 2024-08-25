@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.24;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 
 import "../common/libs/Fee.sol";
 
@@ -21,6 +22,7 @@ import { Amm } from "../common/Amm.sol";
 import { Epochs } from "../common/Epochs.sol";
 import { Governance } from "../governance/Governance.sol";
 import { DeployGovernance } from "../governance/DeployGovernance.sol";
+import { NativePair } from "../pair/NativePair.sol";
 
 import "../common/libs/Number.sol";
 import { IRouter } from "./IRouter.sol";
@@ -37,15 +39,20 @@ library PairFactory {
 		ADEX adex = new ADEX();
 		return new BasePair(address(adex));
 	}
+
+	// function newNativePair(address basePairAddr) external returns (NativePair) {
+	// 	return new NativePair(basePairAddr);
+	// }
 }
 
 uint256 constant REWARDS_DIVISION_CONSTANT = 1e18;
 
-contract Router is IRouter, Ownable, UserModule {
+contract Router is IRouter, Ownable, UserModule, ERC1155Holder {
 	using EnumerableSet for EnumerableSet.AddressSet;
 	using Address for address;
 	using Epochs for Epochs.Storage;
 	using Number for uint256;
+	using TokenPayments for TokenPayment;
 
 	struct PairData {
 		uint256 sellVolume;
@@ -266,15 +273,43 @@ contract Router is IRouter, Ownable, UserModule {
 		}
 	}
 
+	modifier canCreatePair() {
+		require(
+			msg.sender == owner() || msg.sender == address(governance),
+			"Router: Not allowed to list token"
+		);
+		_;
+	}
+
+	function _addInitialLiquidity(
+		address pairAddress,
+		TokenPayment memory payment
+	) private returns (TokenPayment memory lpPayment) {
+		payment.approve(pairAddress);
+		lpPayment.nonce = this.addLiquidity(payment);
+
+		lpPayment.token = address(lpToken);
+		lpPayment.amount = lpToken
+			.getBalanceAt(address(this), lpPayment.nonce)
+			.amount;
+
+		lpPayment.sendToken(msg.sender);
+	}
+
 	/**
 	 * @notice Creates a new pair.
 	 * @dev The first pair becomes the base pair -- For now, called by only owner..when DAO is implemented, DAO can call this
-	 * @param tradeToken Address of the trade token for the pair.
 	 * @return pairAddress Address of the newly created pair.
 	 */
 	function createPair(
-		address tradeToken
-	) external onlyOwner returns (address pairAddress) {
+		TokenPayment memory payment
+	)
+		external
+		canCreatePair
+		returns (address pairAddress, TokenPayment memory lpPayment)
+	{
+		address tradeToken = payment.token;
+
 		require(
 			tokensPairAddress[tradeToken] == address(0),
 			"Token already added"
@@ -294,7 +329,19 @@ contract Router is IRouter, Ownable, UserModule {
 				tradeToken,
 				epochs
 			);
+
+			payment = TokenPayment({
+				token: adexTokenAddress,
+				nonce: 0,
+				amount: ADexInfo.INTIAL_LIQUIDITY
+			});
 		} else {
+			require(
+				payment.amount > 0,
+				"Router: Invalid initial liquidity amount"
+			);
+			payment.receiveToken();
+
 			pair = PairFactory.newPair(tradeToken, basePairAddr());
 		}
 
@@ -303,18 +350,24 @@ contract Router is IRouter, Ownable, UserModule {
 		pairs.add(pairAddress);
 		tradeTokens.add(tradeToken);
 		tokensPairAddress[tradeToken] = pairAddress;
+
+		payment.approve(pairAddress);
+		lpPayment = _addInitialLiquidity(pairAddress, payment);
 	}
 
 	/**
 	 * @notice Adds liquidity to a pair.
 	 * @param wholePayment Payment details for adding liquidity.
 	 */
-	function addLiquidity(ERC20TokenPayment calldata wholePayment) external {
+	function addLiquidity(
+		TokenPayment memory wholePayment
+	) external returns (uint256) {
 		address caller = msg.sender;
 
 		address tokenAddress = address(wholePayment.token);
 		address pairAddress = tokensPairAddress[tokenAddress];
 		require(pairAddress != address(0), "Router: Invalid pair address");
+		require(wholePayment.amount > 0, "Router: Invalid liquidity payment");
 
 		(uint256 liqAdded, uint256 depValuePerShare) = Pair(pairAddress)
 			.addLiquidity(wholePayment, caller);
@@ -332,14 +385,15 @@ contract Router is IRouter, Ownable, UserModule {
 		_runUpdatesAfterRewardsGenerated(pairData, newPairData, newGlobalData);
 		pairData.totalLiq += liqAdded;
 
-		lpToken.mint(
-			pairData.lpRewardsPershare,
-			liqAdded,
-			pairAddress,
-			tokenAddress,
-			caller,
-			depValuePerShare
-		);
+		return
+			lpToken.mint(
+				pairData.lpRewardsPershare,
+				liqAdded,
+				pairAddress,
+				tokenAddress,
+				caller,
+				depValuePerShare
+			);
 	}
 
 	/**
@@ -480,12 +534,19 @@ contract Router is IRouter, Ownable, UserModule {
 		}
 	}
 
-	/**
-	 * @dev Becareful with parameter ordering for `ERC20TokenPayment`
-	 */
+	function getClaimableRewardsAt(
+		address user,
+		uint256 nonce
+	) external view returns (uint256 claimable) {
+		LpToken.LpBalance memory balance = lpToken.getBalanceAt(user, nonce);
+
+		(claimable, , , ) = _computeRewardsClaimable(balance);
+	}
+
+
 	function registerAndSwap(
 		uint256 referrerId,
-		ERC20TokenPayment calldata inPayment,
+		TokenPayment calldata inPayment,
 		address outPairAddr,
 		uint256 slippage
 	) public {
@@ -500,7 +561,7 @@ contract Router is IRouter, Ownable, UserModule {
 	 * @param slippage Maximum slippage allowed.
 	 */
 	function swap(
-		ERC20TokenPayment calldata inPayment,
+		TokenPayment calldata inPayment,
 		address outPairAddr,
 		uint256 slippage
 	) public {
@@ -532,18 +593,19 @@ contract Router is IRouter, Ownable, UserModule {
 			_computeFeePercent(inPairAddr, tradeVolume)
 		);
 
-		// Update reward computation data
-		pairsData[inPairAddr].sellVolume += tradeVolume;
-		pairsData[outPairAddr].buyVolume += tradeVolume;
+		{
+			// Update reward computation data
+			pairsData[inPairAddr].sellVolume += tradeVolume;
+			pairsData[outPairAddr].buyVolume += tradeVolume;
 
-		uint256 feeCollected = Amm.quote(
-			feeBurnt,
-			outPair.reserve(),
-			basePair.reserve()
-		);
-		pairsData[basePairAddr_].buyVolume += feeCollected;
-
-		globalData.totalTradeVolume += tradeVolume + feeCollected;
+			uint256 feeCollected = Amm.quote(
+				feeBurnt,
+				outPair.reserve(),
+				basePair.reserve()
+			);
+			pairsData[basePairAddr_].buyVolume += feeCollected;
+			globalData.totalTradeVolume += tradeVolume + feeCollected;
+		}
 	}
 
 	/**

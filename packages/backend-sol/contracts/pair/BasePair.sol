@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.24;
 
 import "./Pair.sol";
 import { ADEX } from "../ADexToken/ADEX.sol";
@@ -11,9 +11,7 @@ import { ADEX } from "../ADexToken/ADEX.sol";
 contract BasePair is Pair, IBasePair {
 	constructor(address adexAddress) Pair(adexAddress, address(this)) {}
 
-	function _addLiq(
-		ERC20TokenPayment calldata wholePayment
-	) internal override {
+	function _addLiq(TokenPayment calldata wholePayment) internal override {
 		uint256 value = wholePayment.amount;
 		_insertLiqValues(AddLiquidityContext({ deposit: value, liq: value }));
 	}

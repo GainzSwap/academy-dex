@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
-import { BigNumberish } from "ethers";
+import { BigNumberish, parseEther } from "ethers";
 import { Pair } from "../typechain-types/contracts/pair/Pair";
 import { deployRouterFixture } from "./fixtures";
 
@@ -14,23 +14,6 @@ describe("Pair", function () {
 
     const { pairContract, pairTradeToken } = await createPair();
 
-    const addInitialLiq = async ({ baseAmt, pairAmt }: { baseAmt: BigNumberish; pairAmt: BigNumberish }) => {
-      const basePayment = { amount: baseAmt, token: baseTradeToken };
-      const pairPayment = { amount: pairAmt, token: pairTradeToken };
-
-      await baseTradeToken.connect(owner).transfer(user, baseAmt);
-      const initialAdexBal = await baseTradeToken.balanceOf(basePairContract);
-      await addLiquidity({ contract: basePairContract, tradeToken: baseTradeToken }, basePayment);
-      expect(await basePairContract.reserve()).to.equal(basePayment.amount);
-
-      await pairTradeToken.mint(user, pairAmt);
-      await addLiquidity({ contract: pairContract, tradeToken: pairTradeToken }, pairPayment);
-      expect(await pairContract.reserve()).to.equal(pairPayment.amount);
-
-      expect(await baseTradeToken.balanceOf(basePairContract)).to.equal(BigInt(basePayment.amount) + initialAdexBal);
-      expect(await pairTradeToken.balanceOf(pairContract)).to.equal(pairPayment.amount);
-    };
-
     return {
       ...fixtures,
       basePairContract,
@@ -40,7 +23,6 @@ describe("Pair", function () {
       user,
       owner,
       addLiquidity,
-      addInitialLiq,
       createPair,
     };
   }
@@ -48,21 +30,12 @@ describe("Pair", function () {
   it("testPairSetup", async () => {
     const { basePairContract } = await loadFixture(deployPairFixture);
 
-    expect(await basePairContract.lpSupply()).to.equal("0");
-  });
-
-  describe("addLiquidity", function () {
-    it("adds initial liquity for base and pair contracts", async function () {
-      const { addInitialLiq } = await loadFixture(deployPairFixture);
-
-      await addInitialLiq({ baseAmt: 4_000, pairAmt: 50_000 });
-    });
+    expect(await basePairContract.lpSupply()).to.gt("0");
   });
 
   describe("sell", function () {
     it("can sell token", async () => {
       const {
-        addInitialLiq,
         sellToken,
         otherUsers: [, , someUser],
         pairContract,
@@ -72,7 +45,6 @@ describe("Pair", function () {
       } = await loadFixture(deployPairFixture);
       const runAssert = (args: { buyContract: Pair; sellContract: Pair; sellAmt: BigNumberish }) =>
         sellToken({ ...args, someUser, slippage: 50_00 });
-      await addInitialLiq({ baseAmt: 15_000_000, pairAmt: 15_000_000 });
 
       const sellAmt = 7_000_000n;
       await pairTradeToken.mint(someUser, sellAmt);
@@ -88,27 +60,34 @@ describe("Pair", function () {
 
     it("can sell tokens", async () => {
       const {
-        addInitialLiq,
-        addLiquidity,
         pairContract: firstPairContract,
         basePairContract,
         createPair,
         sellToken,
       } = await loadFixture(deployPairFixture);
-      await addInitialLiq({ baseAmt: 15_000_000, pairAmt: 900_000_000 });
       const sellAmt = 7_000_000;
 
-      await sellToken({ buyContract: basePairContract, sellContract: firstPairContract, sellAmt });
+      await sellToken({ buyContract: basePairContract, sellContract: firstPairContract, sellAmt, mint: true });
 
       // Create new pair
-      const { pairContract: secondPairContract, pairTradeToken: secondTradeToken } = await createPair();
-      await addLiquidity(
-        { tradeToken: secondTradeToken, contract: secondPairContract },
-        { amount: 80_000_000, token: secondTradeToken },
-      );
+      const { pairContract: secondPairContract, pairTradeToken: secondTradeToken } = await createPair({
+        initLiq: parseEther("23445"),
+      });
 
-      await sellToken({ buyContract: firstPairContract, sellContract: secondPairContract, sellAmt, slippage: 50_00 });
-      await sellToken({ buyContract: secondPairContract, sellContract: basePairContract, sellAmt, slippage: 50_00 });
+      await sellToken({
+        buyContract: firstPairContract,
+        sellContract: secondPairContract,
+        sellAmt: parseEther("0.003"),
+        slippage: 50_00,
+        mint: true,
+      });
+      await sellToken({
+        buyContract: secondPairContract,
+        sellContract: basePairContract,
+        sellAmt,
+        slippage: 50_00,
+        mint: true,
+      });
     });
   });
 
@@ -119,9 +98,9 @@ describe("Pair", function () {
       await expect(
         addLiquidity(
           { contract: basePairContract, tradeToken: baseTradeToken, signer: user },
-          { amount: 0, token: baseTradeToken },
+          { amount: 0, token: baseTradeToken, nonce: 0 },
         ),
-      ).to.be.revertedWith("Pair: Bad received payment");
+      ).to.be.revertedWith("Router: Invalid liquidity payment");
     });
 
     it("should revert when adding liquidity below minimum amount", async function () {
@@ -130,16 +109,15 @@ describe("Pair", function () {
       await expect(
         addLiquidity(
           { contract: basePairContract, tradeToken: baseTradeToken, signer: user },
-          { amount: ethers.parseEther("0.0"), token: baseTradeToken },
+          { amount: ethers.parseEther("0.0"), token: baseTradeToken, nonce: 0 },
         ),
-      ).to.be.revertedWith("Pair: Bad received payment");
+      ).to.be.revertedWith("Router: Invalid liquidity payment");
     });
   });
 
   describe("Edge Cases for Selling Tokens", function () {
     it("should revert when selling zero tokens", async function () {
-      const { sellToken, basePairContract, pairContract, user, addInitialLiq } = await loadFixture(deployPairFixture);
-      await addInitialLiq({ baseAmt: ethers.parseEther("15.00554"), pairAmt: ethers.parseEther("9.943") });
+      const { sellToken, basePairContract, pairContract, user } = await loadFixture(deployPairFixture);
 
       await expect(
         sellToken({ sellAmt: 0, sellContract: pairContract, buyContract: basePairContract, someUser: user }),
@@ -147,9 +125,7 @@ describe("Pair", function () {
     });
 
     it("should revert when selling more tokens than user's balance", async function () {
-      const { sellToken, basePairContract, pairContract, user, pairTradeToken, addInitialLiq } =
-        await loadFixture(deployPairFixture);
-      await addInitialLiq({ baseAmt: ethers.parseEther("15.00554"), pairAmt: ethers.parseEther("9.943") });
+      const { sellToken, basePairContract, pairContract, user, pairTradeToken } = await loadFixture(deployPairFixture);
 
       const userBalance = await pairTradeToken.balanceOf(user);
       await expect(
@@ -165,9 +141,7 @@ describe("Pair", function () {
 
   describe("Slippage Handling", function () {
     it("should handle zero slippage correctly", async function () {
-      const { sellToken, basePairContract, pairContract, user, pairTradeToken, addInitialLiq } =
-        await loadFixture(deployPairFixture);
-      await addInitialLiq({ baseAmt: ethers.parseEther("15.00554"), pairAmt: ethers.parseEther("9.943") });
+      const { sellToken, basePairContract, pairContract, user, pairTradeToken } = await loadFixture(deployPairFixture);
 
       await pairTradeToken.mint(user, ethers.parseEther("1000"));
       await pairTradeToken.connect(user).approve(pairContract, ethers.parseEther("1000"));
@@ -183,12 +157,9 @@ describe("Pair", function () {
     });
 
     it("should handle high slippage correctly", async function () {
-      const { sellToken, basePairContract, pairContract, user, pairTradeToken, addInitialLiq } =
-        await loadFixture(deployPairFixture);
+      const { sellToken, basePairContract, pairContract, user, pairTradeToken } = await loadFixture(deployPairFixture);
 
-      const sellAmt = ethers.parseEther("1000");
-
-      await addInitialLiq({ baseAmt: ethers.parseEther("15.00554"), pairAmt: sellAmt });
+      const sellAmt = ethers.parseEther("0.0000003");
 
       await pairTradeToken.mint(user, sellAmt);
       await pairTradeToken.connect(user).approve(pairContract, sellAmt);

@@ -1366,7 +1366,7 @@ __metadata:
     "@ledgerhq/errors": ^6.12.6
     "@ledgerhq/hw-transport": ^6.28.4
     "@ledgerhq/logs": ^6.10.1
-  checksum: f008526d397ba255f2eda9ca99b977c205a96c2989d9515dbf9dcc9a362aecd389d7a4de8752c2a1c5ae5d3b01667908323651bd2ab073af24492e7c8892b010
+  checksum: f0.8.0d397ba255f2eda9ca99b977c205a96c2989d9515dbf9dcc9a362aecd389d7a4de8752c2a1c5ae5d3b01667908323651bd2ab073af24492e7c8892b010
   languageName: node
   linkType: hard
 
@@ -9911,7 +9911,7 @@ __metadata:
     raw-body: ^2.4.1
     resolve: 1.17.0
     semver: ^6.3.0
-    solc: 0.8.26
+    solc: 0.8.0
     source-map-support: ^0.5.13
     stacktrace-parser: ^0.1.10
     tsort: 0.0.1
@@ -14873,9 +14873,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"shelljs@npm:^0.8.3, shelljs@npm:^0.8.5":
-  version: 0.8.5
-  resolution: "shelljs@npm:0.8.5"
+"shelljs@npm:^0.8.3, shelljs@npm:^0.8.24":
+  version: 0.8.24
+  resolution: "shelljs@npm:0.8.24"
   dependencies:
     glob: ^7.0.0
     interpret: ^1.0.0
@@ -14891,7 +14891,7 @@ __metadata:
   resolution: "shx@npm:0.3.4"
   dependencies:
     minimist: ^1.2.3
-    shelljs: ^0.8.5
+    shelljs: ^0.8.24
   bin:
     shx: lib/cli.js
   checksum: 0aa168bfddc11e3fe8943cce2e0d2d8514a560bd58cf2b835b4351ba03f46068f7d88286c2627f4b85604e81952154c43746369fb3f0d60df0e3b511f465e5b8
@@ -15049,9 +15049,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"solc@npm:0.8.26":
-  version: 0.8.26
-  resolution: "solc@npm:0.8.26"
+"solc@npm:0.8.0":
+  version: 0.8.0
+  resolution: "solc@npm:0.8.0"
   dependencies:
     command-exists: ^1.2.8
     commander: ^8.1.0
@@ -17075,7 +17075,7 @@ __metadata:
     isexe: ^3.1.1
   bin:
     node-which: bin/which.js
-  checksum: f17e84c042592c21e23c8195108cff18c64050b9efb8459589116999ea9da6dd1509e6a1bac3aeebefd137be00fabbb61b5c2bc0aa0f8526f32b58ee2f545651
+  checksum: f17e84c042592c21e23c8195108cff18c64050b9efb8459589116999ea9da6dd1509e6a1bac3aeebefd137be00fabbb61b5c2bc0aa0.8.0f32b58ee2f545651
   languageName: node
   linkType: hard
 

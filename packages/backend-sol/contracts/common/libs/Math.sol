@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.24;
 
 library MathUtil {
 	/// out = (minOut * (maxIn - currentIn) + maxOut * (currentIn - minIn)) / (maxIn - minIn)

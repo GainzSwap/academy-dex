@@ -6,7 +6,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import { TokenPayment, TokenPayments } from "../common/libs/TokenPayments.sol";
-
+import { LpToken } from "../modules/LpToken.sol";
+import 'hardhat/console.sol';
 /**
  * @title LaunchPair
  * @dev This contract facilitates the creation and management of crowdfunding campaigns for launching new tokens. Participants contribute funds to campaigns, and if the campaign is successful, they receive launchPair tokens in return. If the campaign fails, their contributions are refunded.
@@ -23,13 +24,11 @@ contract LaunchPair is Ownable {
 	}
 
 	struct Campaign {
-		address payable creator;
-		IERC20 launchPairToken;
+		address creator;
+		uint256 lpNonce;
 		uint256 goal;
 		uint256 deadline;
 		uint256 fundsRaised;
-		uint256 maxTokensToDistribute;
-		uint256 tokensDistributed;
 		bool isWithdrawn;
 		CampaignStatus status;
 	}
@@ -44,7 +43,7 @@ contract LaunchPair is Ownable {
 	mapping(address => EnumerableSet.UintSet) private _userCampaigns;
 
 	// Set of all campaign IDs
-	EnumerableSet.UintSet private _allCampaigns;
+	EnumerableSet.UintSet private _activeCampaigns;
 
 	// Total number of campaigns created
 	uint256 public campaignCount;
@@ -136,31 +135,45 @@ contract LaunchPair is Ownable {
 		_;
 	}
 
+	LpToken immutable lpToken;
+
+	constructor(address _lpToken) {
+		lpToken = LpToken(_lpToken);
+	}
+
 	/**
 	 * @dev Creates a new crowdfunding campaign.
-	 * @param payment Details of the launchPair token payment.
 	 * @param _creator The address of the campaign creator.
 	 * @return campaignId The ID of the newly created campaign.
 	 */
 	function createCampaign(
-		TokenPayment calldata payment,
 		address _creator
 	) external onlyOwner returns (uint256 campaignId) {
-		require(payment.amount > 0, "Invalid payment");
-		payment.receiveToken();
-
 		campaignId = ++campaignCount;
 		campaigns[campaignId] = Campaign({
 			creator: payable(_creator),
-			launchPairToken: IERC20(payment.token),
 			goal: 0,
 			deadline: 0,
 			fundsRaised: 0,
-			maxTokensToDistribute: payment.amount,
-			tokensDistributed: 0,
+			lpNonce: 0,
 			isWithdrawn: false,
 			status: CampaignStatus.Pending
 		});
+	}
+
+	function receiveLpToken(
+		TokenPayment calldata payment,
+		uint256 _campaignId
+	) external onlyOwner campaignExists(_campaignId) hasMetGoal(_campaignId) {
+		require(payment.amount > 0, "Invalid payment");
+		payment.receiveToken();
+
+		Campaign storage campaign = campaigns[_campaignId];
+		require(
+			campaign.lpNonce == 0,
+			"Launchpair: Campaign received lp already"
+		);
+		campaign.lpNonce = payment.nonce;
 	}
 
 	/**
@@ -186,7 +199,7 @@ contract LaunchPair is Ownable {
 		campaign.deadline = block.timestamp + _duration;
 		campaign.status = CampaignStatus.Funding;
 
-		_allCampaigns.add(_campaignId);
+		_activeCampaigns.add(_campaignId);
 		emit CampaignCreated(
 			_campaignId,
 			msg.sender,
@@ -231,19 +244,22 @@ contract LaunchPair is Ownable {
 	)
 		external
 		campaignExists(_campaignId)
-		onlyCreator(_campaignId)
+		onlyOwner
 		hasMetGoal(_campaignId)
 		hasNotWithdrawn(_campaignId)
+		returns (uint256 amount)
 	{
 		Campaign storage campaign = campaigns[_campaignId];
-		uint256 amount = campaign.fundsRaised;
+
+		amount = campaign.fundsRaised;
 		campaign.isWithdrawn = true;
 		campaign.status = CampaignStatus.Success;
 
 		// Remove the campaign from the set of all campaigns
-		_removeCampaignFromAllCampaigns(_campaignId);
+		_removeCampaignFromActiveCampaigns(_campaignId);
 
-		campaign.creator.transfer(amount);
+
+		payable(owner()).transfer(amount);
 		emit FundsWithdrawn(_campaignId, msg.sender, amount);
 	}
 
@@ -265,22 +281,33 @@ contract LaunchPair is Ownable {
 			"Campaign is not successful"
 		);
 
-		uint256 contribution = contributions[_campaignId][msg.sender];
-		uint256 tokensToDistribute = (contribution *
-			campaign.maxTokensToDistribute) / campaign.fundsRaised;
-		require(
-			campaign.tokensDistributed + tokensToDistribute <=
-				campaign.maxTokensToDistribute,
-			"Exceeds max tokens to distribute"
-		);
+		uint256 lpBalance = lpToken
+			.getBalanceAt(address(this), campaign.lpNonce)
+			.amount;
 
-		campaign.tokensDistributed += tokensToDistribute;
-		campaign.launchPairToken.transfer(msg.sender, tokensToDistribute);
+		uint256 contribution = contributions[_campaignId][msg.sender];
+		uint256 lpShare = (contribution * lpBalance) / campaign.fundsRaised;
+
+		address[] memory addresses = new address[](2);
+		uint256[] memory portions = new uint256[](2);
+
+		addresses[0] = address(this);
+		portions[0] = lpBalance - lpShare;
+
+		addresses[1] = msg.sender;
+		portions[1] = lpShare;
+
+		uint256[] memory nonces = lpToken.split(
+			campaign.lpNonce,
+			addresses,
+			portions
+		);
+		campaign.lpNonce = nonces[0];
 
 		// Remove the campaign from the user's participated campaigns after token withdrawal
 		_removeCampaignFromUserCampaigns(msg.sender, _campaignId);
 
-		emit TokensDistributed(_campaignId, msg.sender, tokensToDistribute);
+		emit TokensDistributed(_campaignId, msg.sender, lpShare);
 	}
 
 	/**
@@ -331,8 +358,8 @@ contract LaunchPair is Ownable {
 	 * @dev Get all campaign IDs.
 	 * @return campaignIds An array of all campaign IDs.
 	 */
-	function getAllCampaigns() external view returns (uint256[] memory) {
-		return _allCampaigns.values();
+	function getActiveCampaigns() external view returns (uint256[] memory) {
+		return _activeCampaigns.values();
 	}
 
 	/**
@@ -350,8 +377,8 @@ contract LaunchPair is Ownable {
 	 * @dev Remove a campaign from the set of all campaigns after it's successful or failed.
 	 * @param campaignId The ID of the campaign to remove.
 	 */
-	function _removeCampaignFromAllCampaigns(uint256 campaignId) internal {
-		_allCampaigns.remove(campaignId);
+	function _removeCampaignFromActiveCampaigns(uint256 campaignId) internal {
+		_activeCampaigns.remove(campaignId);
 	}
 
 	/**

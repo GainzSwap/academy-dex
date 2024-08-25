@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.24;
 
 library Slippage {
 	uint256 constant MAX_PERCENTAGE = 100_00;

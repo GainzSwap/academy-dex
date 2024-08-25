@@ -274,17 +274,17 @@ describe("Governance Contract", function () {
         sellToken,
         otherUsers: [, , trader],
         governanceContract,
-        adex: adexTokenContract,
+        adex: adexToken,
       } = await loadFixture(claimRewardsFixture);
 
       // User adds liquidity
       await addLiquidity(
         { tradeToken: pairTradeToken, contract: pairContract, signer: user },
-        { token: pairTradeToken, amount: parseEther("483.99004") },
+        { token: pairTradeToken, nonce: 0, amount: parseEther("0.000000099004") },
       );
       await addLiquidity(
-        { tradeToken: adexTokenContract, contract: basePairContract, signer: user },
-        { token: adexTokenContract, amount: parseEther("874.9904") },
+        { tradeToken: adexToken, contract: basePairContract, signer: user },
+        { token: adexToken, nonce: 0, amount: parseEther("874.9904") },
       );
 
       // Trader sells different tokens to initiate rewards generation
@@ -293,7 +293,7 @@ describe("Governance Contract", function () {
         await sellToken({
           buyContract: pairContract,
           sellAmt: await (async () => {
-            let sellAmt = await adexTokenContract.balanceOf(trader);
+            let sellAmt = await adexToken.balanceOf(trader);
 
             if (sellAmt <= 0) {
               mintForAdex = true;
@@ -328,7 +328,7 @@ describe("Governance Contract", function () {
       await time.increase(30 * 24 * 3600);
 
       // User claims rewards from governance
-      const initialUserBalance = await adexTokenContract.balanceOf(user);
+      const initialUserBalance = await adexToken.balanceOf(user);
 
       // This will claim only lpRewards
       await governanceContract.connect(user).claimRewards(1);
@@ -337,7 +337,7 @@ describe("Governance Contract", function () {
       // This should claim both lpReewards and Governance rewards
       await governanceContract.connect(user).claimRewards(2);
 
-      const finalUserBalance = await adexTokenContract.balanceOf(user);
+      const finalUserBalance = await adexToken.balanceOf(user);
       const claimedRewards = finalUserBalance - initialUserBalance;
 
       // Assertions
@@ -345,9 +345,9 @@ describe("Governance Contract", function () {
 
       // Check protocol fees withdrawal
       expect(await governanceContract.protocolFees()).to.be.gt(0);
-      const initialAdexBal = await adexTokenContract.balanceOf(owner);
+      const initialAdexBal = await adexToken.balanceOf(owner);
       await governanceContract.connect(owner).takeProtocolFees();
-      const finalAdexBal = await adexTokenContract.balanceOf(owner);
+      const finalAdexBal = await adexToken.balanceOf(owner);
       expect(finalAdexBal).to.be.gt(initialAdexBal);
       expect(await governanceContract.protocolFees()).to.be.eq(0);
     });
@@ -394,7 +394,7 @@ describe("Governance Contract", function () {
       const initialLpTokens = await addLiquidityAndEnterGovernance(1);
 
       // Move forward in time to elapse lock epochs
-      await time.increase(130n * epochLength); // 130 epochs (more than the lock period)
+      await time.increase(1090n * epochLength); // 1090 epochs (more than the lock period)
 
       // User exits governance
       await governanceContract.connect(user).exitGovernance(1);
@@ -418,7 +418,7 @@ describe("Governance Contract", function () {
       await addLiquidityAndEnterGovernance(4);
 
       // Move forward in time to elapse lock epochs
-      await time.increase(130n * epochLength); // 130 days (more than the lock period)
+      await time.increase(1090n * epochLength); // 1090 days (more than the lock period)
 
       // User exits governance
       await governanceContract.connect(user).exitGovernance(1);
@@ -430,8 +430,10 @@ describe("Governance Contract", function () {
       governanceContract,
       gTokens,
       otherUsers: [pairOwner, ...otherUsers],
+      lpTokenContract,
       adex: listingFeeToken,
-      addLiquidityAndEnterGovernance,
+      basePairContract,
+      addLiquidity,
       LISTING_FEE,
       ...fixtures
     } = await claimRewardsFixture();
@@ -459,25 +461,28 @@ describe("Governance Contract", function () {
       await tradeToken.connect(pairOwner).approve(governanceContract, tradeTokenPayment.amount);
 
       // Enter governance to create GToken balance
-      await addLiquidityAndEnterGovernance(1, pairOwner, { adexAmount: parseEther("1000") });
-      const [gTokenBalance1] = await gTokens.getGTokenBalance(pairOwner);
-      const gTokenPayment = {
-        token: gTokens,
-        amount: gTokenBalance1.amount,
-        nonce: gTokenBalance1.nonce,
+      await addLiquidity(
+        { contract: basePairContract, tradeToken: listingFeeToken, signer: pairOwner },
+        { token: listingFeeToken, nonce: 0, amount: parseEther("1000") },
+      );
+      const lpBalance = (await lpTokenContract.lpBalanceOf(pairOwner)).at(-1)!;
+      const securityLpPayment = {
+        token: lpTokenContract,
+        amount: lpBalance.amount,
+        nonce: lpBalance.nonce,
       };
-      await gTokens.connect(pairOwner).setApprovalForAll(governanceContract, true);
+      await lpTokenContract.connect(pairOwner).setApprovalForAll(governanceContract, true);
 
       // Propose new pair listing
       await governanceContract
         .connect(pairOwner)
-        .proposeNewPairListing(listingFeePayment, gTokenPayment, tradeTokenPayment);
+        .proposeNewPairListing(listingFeePayment, securityLpPayment, tradeTokenPayment);
 
       // Validate that the listing was proposed correctly
       const activeListing = await governanceContract.activeListing();
       expect(activeListing.owner).to.equal(pairOwner);
       expect(activeListing.tradeTokenPayment.token).to.equal(await tradeToken.getAddress());
-      expect(activeListing.gTokenNonce).to.equal(gTokenPayment.nonce);
+      expect(activeListing.securityLpPayment.nonce).to.equal(securityLpPayment.nonce);
 
       return tradeToken;
     };
@@ -485,7 +490,7 @@ describe("Governance Contract", function () {
     const newTradeToken = await proposeNewPairListing();
     return {
       ...fixtures,
-      addLiquidityAndEnterGovernance,
+      lpTokenContract,
       governanceContract,
       gTokens,
       otherUsers,
@@ -527,12 +532,17 @@ describe("Governance Contract", function () {
         newTradeToken,
         epochLength,
         pairOwner,
+        lpTokenContract,
       } = await loadFixture(proposeNewPairListingFixture);
-      await addLiquidityAndEnterGovernance(1, largeVoter, { adexAmount: parseEther("736365") });
+      await addLiquidityAndEnterGovernance(1, largeVoter, {
+        adexAmount: parseEther("736365"),
+        otherPairAmount: parseEther("0.00009"),
+        epochsLocked: 1080,
+      });
       await addLiquidityAndEnterGovernance(1, smallVoter, {
-        epochsLocked: 390,
+        otherPairAmount: parseEther("0.00000000009"),
+        epochsLocked: 1080,
         adexAmount: parseEther("0.000363"),
-        otherPairAmount: parseEther("0.00000003"),
       });
 
       const [voteToken] = await gTokens.getGTokenBalance(smallVoter);
@@ -542,14 +552,14 @@ describe("Governance Contract", function () {
         .vote({ token: gTokens, nonce: voteToken.nonce, amount: voteToken.amount }, newTradeToken, true);
 
       await time.increase(epochLength * 8n);
-      const expectedGTokenNonce = (await governanceContract.activeListing()).gTokenNonce;
+      const expectedSecurityLpPayment = (await governanceContract.activeListing()).securityLpPayment;
       await governanceContract.connect(pairOwner).proceedNewPairListing();
 
       expect((await governanceContract.activeListing()).owner).to.be.eq(ZeroAddress);
       expect((await governanceContract.pairOwnerListing(pairOwner)).owner).to.be.eq(ZeroAddress);
-      expect((await gTokens.getBalanceAt(pairOwner, expectedGTokenNonce)).nonce).to.be.eq(
-        expectedGTokenNonce,
-        "GToken security deposit must be returned",
+      expect(await lpTokenContract.hasSFT(pairOwner, expectedSecurityLpPayment.nonce)).to.be.eq(
+        true,
+        "Security deposit must be returned",
       );
     });
 
@@ -566,9 +576,9 @@ describe("Governance Contract", function () {
       } = await loadFixture(proposeNewPairListingFixture);
 
       await addLiquidityAndEnterGovernance(1, voter, {
-        epochsLocked: 500,
+        epochsLocked: 1080,
         adexAmount: parseEther("123456"),
-        otherPairAmount: parseEther("78900.999"),
+        otherPairAmount: parseEther("0.0000000000999"),
       });
       const voteTokens = await gTokens.getGTokenBalance(voter);
 
@@ -637,9 +647,21 @@ describe("Governance Contract", function () {
 
       // Get multiple GTokens
       for (let i = 0; i < 5; i++) {
-        await addLiquidityAndEnterGovernance(4, voter, { epochsLocked: 456 });
-        await addLiquidityAndEnterGovernance(2, voter, { epochsLocked: 756 });
-        await addLiquidityAndEnterGovernance(1, voter, { epochsLocked: 1046 });
+        await addLiquidityAndEnterGovernance(4, voter, {
+          epochsLocked: 1080,
+          adexAmount: parseEther("1000"),
+          otherPairAmount: parseEther("0.00009"),
+        });
+        await addLiquidityAndEnterGovernance(2, voter, {
+          epochsLocked: 1080,
+          adexAmount: parseEther("1000"),
+          otherPairAmount: parseEther("0.00009"),
+        });
+        await addLiquidityAndEnterGovernance(1, voter, {
+          epochsLocked: 1080,
+          adexAmount: parseEther("1000"),
+          otherPairAmount: parseEther("0.00009"),
+        });
       }
       await vote(await gTokens.getGTokenBalance(voter), voter, false);
 

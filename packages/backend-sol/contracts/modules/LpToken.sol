@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.24;
 
 import { SFT } from "./SFT.sol";
 
@@ -48,7 +48,7 @@ contract LpToken is SFT {
 		address tradeToken,
 		address to,
 		uint256 depValuePerShare
-	) external onlyOwner {
+	) external onlyOwner returns (uint256) {
 		require(lpAmount > 0, "LpToken: LP Amount must be greater than 0");
 
 		bytes memory attributes = abi.encode(
@@ -60,7 +60,7 @@ contract LpToken is SFT {
 			})
 		);
 
-		_mint(to, lpAmount, attributes);
+		return _mint(to, lpAmount, attributes);
 	}
 
 	function getBalanceAt(
@@ -78,5 +78,37 @@ contract LpToken is SFT {
 					(LpAttributes)
 				)
 			});
+	}
+
+	function split(
+		uint256 nonce,
+		address[] calldata addresses,
+		uint256[] calldata portions
+	) external returns (uint256[] memory splitNonces) {
+		require(addresses.length > 1, "LpToken: addresses too short");
+		require(
+			addresses.length == portions.length,
+			"LpToken: Portions addresses missmatch"
+		);
+
+		address caller = msg.sender;
+		LpBalance memory lpBalance = getBalanceAt(caller, nonce);
+
+		_burn(caller, nonce, lpBalance.amount);
+		uint256 totalSplitAmount = 0;
+		splitNonces = new uint256[](addresses.length);
+
+		bytes memory attributes = abi.encode(lpBalance.attributes);
+		for (uint256 i; i < addresses.length; i++) {
+			address to = addresses[i];
+			uint256 amount = portions[i];
+			totalSplitAmount += amount;
+
+			splitNonces[i] = _mint(to, amount, attributes);
+		}
+		require(
+			totalSplitAmount == lpBalance.amount,
+			"LpToken: Invalid Portions"
+		);
 	}
 }

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.24;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -19,6 +19,8 @@ import "./Knowable.sol";
 import { LpToken } from "../modules/LpToken.sol";
 import "../common/utils.sol";
 
+import "hardhat/console.sol";
+
 uint256 constant RPS_DIVISION_CONSTANT = 1e36;
 
 /**
@@ -28,6 +30,7 @@ uint256 constant RPS_DIVISION_CONSTANT = 1e36;
 contract Pair is IPair, Ownable, KnowablePair {
 	using SafePriceUtil for SafePriceData;
 	using FeeUtil for FeeUtil.Values;
+	using TokenPayments for TokenPayment;
 
 	// Reserve data
 	uint256 public deposits;
@@ -36,7 +39,7 @@ contract Pair is IPair, Ownable, KnowablePair {
 
 	uint256 public lpSupply;
 
-	ERC20 public immutable tradeToken;
+	ERC20 public tradeToken;
 	IBasePair basePair;
 
 	mapping(address => SafePriceData) safePrices;
@@ -65,10 +68,13 @@ contract Pair is IPair, Ownable, KnowablePair {
 		require(tradeToken_ != address(0), "Pair: Invalid trade token address");
 		require(basePairAddr != address(0), "Pair: Invalid base pair address");
 
+		_setTradeToken(tradeToken_);
+		_setBasePair(basePairAddr);
+	}
+
+	function _setTradeToken(address tradeToken_) internal virtual {
 		require(isERC20(tradeToken_), "Pair: Invalid trade token");
 		tradeToken = ERC20(tradeToken_);
-
-		_setBasePair(basePairAddr);
 	}
 
 	function _setBasePair(address basePairAddr) internal virtual {
@@ -90,22 +96,22 @@ contract Pair is IPair, Ownable, KnowablePair {
 	 * @param from Address from which payment is received.
 	 */
 	function _checkAndReceivePayment(
-		ERC20TokenPayment calldata payment,
+		TokenPayment calldata payment,
 		address from
 	) internal {
 		_checkAndReceivePayment(payment, from, MIN_MINT_DEPOSIT);
 	}
 
 	function _checkAndReceivePayment(
-		ERC20TokenPayment calldata payment,
+		TokenPayment calldata payment,
 		address from,
 		uint256 min
 	) internal {
-		if (payment.token != tradeToken || payment.amount < min) {
+		if (payment.token != address(tradeToken) || payment.amount < min) {
 			revert("Pair: Bad received payment");
 		}
 
-		TokenPayments.receiveERC20(payment, from);
+		payment.receiveToken(from);
 	}
 
 	function _getReserves()
@@ -117,7 +123,7 @@ contract Pair is IPair, Ownable, KnowablePair {
 	}
 
 	function _getLiqAdded(
-		ERC20TokenPayment calldata payment
+		TokenPayment calldata payment
 	) internal view returns (uint256) {
 		(
 			uint256 paymentTokenReserve,
@@ -265,7 +271,7 @@ contract Pair is IPair, Ownable, KnowablePair {
 		_addToDeposits(context.deposit);
 	}
 
-	function _addLiq(ERC20TokenPayment calldata wholePayment) internal virtual {
+	function _addLiq(TokenPayment calldata wholePayment) internal virtual {
 		uint256 liqAdded = _getLiqAdded(wholePayment);
 
 		(
@@ -299,6 +305,10 @@ contract Pair is IPair, Ownable, KnowablePair {
 	}
 
 	function _takeFromDeposits(uint256 deduction) internal {
+		if (deduction <= 0) {
+			return;
+		}
+
 		uint256 rpsDecrease = (deduction * RPS_DIVISION_CONSTANT) / lpSupply;
 		require(
 			rpsDecrease > 0 &&
@@ -327,7 +337,7 @@ contract Pair is IPair, Ownable, KnowablePair {
 	 * @return liqAdded Amount of liquidity added.
 	 */
 	function addLiquidity(
-		ERC20TokenPayment calldata wholePayment,
+		TokenPayment calldata wholePayment,
 		address from
 	) external onlyOwner returns (uint256 liqAdded, uint256 rps) {
 		_checkAndReceivePayment(wholePayment, from);
@@ -424,7 +434,7 @@ contract Pair is IPair, Ownable, KnowablePair {
 	function sell(
 		address caller,
 		address referrerOfCaller,
-		ERC20TokenPayment calldata inPayment,
+		TokenPayment calldata inPayment,
 		Pair outPair,
 		uint256 slippage,
 		uint256 totalFeePercent

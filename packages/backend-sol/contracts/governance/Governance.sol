@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.24;
 
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -46,10 +46,9 @@ contract Governance is ERC1155Holder, Ownable {
 		uint256 totalLpAmount; // Total LP amount locked for the listing
 		uint256 endEpoch; // Epoch when the listing proposal ends
 		address owner; // The owner proposing the listing
-		uint256 gTokenNonce; // Nonce of the governance token
+		TokenPayment securityLpPayment;
 		TokenPayment tradeTokenPayment; // The token proposed for trading
 		uint256 campaignId; // launchPair campaign ID
-		address priceDiscoveryAddress; // Address of the price discovery contract
 	}
 
 	// This could be set by governance
@@ -104,7 +103,7 @@ contract Governance is ERC1155Holder, Ownable {
 		adexTokenAddress = _adex;
 
 		gtokens = NewGTokens.create();
-		launchPair = DeployLaunchPair.newLaunchPair();
+		launchPair = DeployLaunchPair.newLaunchPair(_lpToken);
 		epochs = epochs_;
 
 		_router = IRouter(msg.sender);
@@ -175,12 +174,12 @@ contract Governance is ERC1155Holder, Ownable {
 	function enterGovernance(
 		TokenPayment[] calldata receivedPayments,
 		uint256 epochsLocked
-	) external {
+	) external returns (uint256) {
 		if (rewardPerShare == 0 && rewardsReserve > 0) {
 			// First staker when there's reward must lock for max lock time
 			require(
 				epochsLocked == GToken.MAX_EPOCHS_LOCK,
-				"Governance: Must first stakers must lock for max epoch"
+				"Governance: First stakers must lock for max epoch"
 			);
 		}
 
@@ -222,21 +221,24 @@ contract Governance is ERC1155Holder, Ownable {
 			}
 		}
 
-		// ADEX is first class token in the DEX, so All GTokens holders must possess sufficient amount based on liq they provided
-		require(
-			((adexAmount * 100) / lpAmount) >= 10, // 10% for now
-			"Not enough ADEX liquidity used"
-		);
+		if (msg.sender != address(this)) {
+			// ADEX is first class token in the DEX, so All GTokens holders must possess sufficient amount based on liq they provided
+			require(
+				((adexAmount * 100) / lpAmount) >= 10, // 10% for now
+				"Not enough ADEX liquidity used"
+			);
+		}
 
 		// Mint GTokens for the user
-		gtokens.mintGToken(
-			msg.sender,
-			rewardPerShare,
-			epochsLocked,
-			lpAmount,
-			epochs.currentEpoch(),
-			lpPayments
-		);
+		return
+			gtokens.mintGToken(
+				msg.sender,
+				rewardPerShare,
+				epochsLocked,
+				lpAmount,
+				epochs.currentEpoch(),
+				lpPayments
+			);
 	}
 
 	/**
@@ -415,11 +417,11 @@ contract Governance is ERC1155Holder, Ownable {
 
 	/// @notice Proposes a new pair listing by submitting the required listing fee and GToken payment.
 	/// @param listingFeePayment The payment details for the listing fee.
-	/// @param gTokenPayment The payment details for the GToken required for the listing.
+	/// @param securityPayment The ADEX payment as security deposit
 	/// @param tradeTokenPayment The the trade token to be listed with launchPair distribution amount, if any.
 	function proposeNewPairListing(
 		TokenPayment calldata listingFeePayment,
-		TokenPayment calldata gTokenPayment,
+		TokenPayment calldata securityPayment,
 		TokenPayment calldata tradeTokenPayment
 	) external {
 		address tradeToken = tradeTokenPayment.token;
@@ -444,61 +446,44 @@ contract Governance is ERC1155Holder, Ownable {
 		// Add the listing fee to the rewards pool
 		_addReward(listingFeePayment);
 
-		// Validate the GToken payment for the listing
 		require(
-			_isValidGTokenForListing(gTokenPayment),
-			"Governance: Invalid GToken Payment for proposal"
+			_isValidLpPaymentForListing(securityPayment),
+			"Governance: Invalid LP Payment for proposal"
 		);
-		// Process the GToken payment
-		gTokenPayment.receiveToken();
+		securityPayment.receiveToken();
 
-		if (tradeTokenPayment.amount > 0) {
-			tradeTokenPayment.receiveToken();
-		}
+		require(
+			tradeTokenPayment.amount > 0,
+			"Governance: Must send potential initial liquidity"
+		);
+		tradeTokenPayment.receiveToken();
 
 		// Update the active listing with the new proposal details
 		activeListing.owner = msg.sender;
 		activeListing.tradeTokenPayment = tradeTokenPayment;
-		activeListing.gTokenNonce = gTokenPayment.nonce;
-		activeListing.endEpoch = currentEpoch() + 3;
+		activeListing.securityLpPayment = securityPayment;
+		activeListing.endEpoch = currentEpoch() + 7;
 	}
 
-	/// @notice Validates the GToken payment for the listing based on the total base amount in liquidity.
-	/// @param payment The payment details for the GToken.
-	/// @return bool indicating if the GToken payment is valid.
-	function _isValidGTokenForListing(
+	/// @notice Validates the LP payment for the listing based on the total ADEX amount in liquidity.
+	/// @param payment The payment details for the LP.
+	/// @return bool indicating if the LP payment is valid.
+	function _isValidLpPaymentForListing(
 		TokenPayment calldata payment
 	) private view returns (bool) {
 		// Ensure the payment token is the correct GToken contract
-		if (payment.token != address(gtokens)) {
+		if (payment.token != lpTokenAddress) {
 			return false;
 		}
 
 		// Retrieve the GToken attributes for the specified nonce
-		GToken.Attributes memory attributes = gtokens
+		LpToken.LpAttributes memory attributes = LpToken(lpTokenAddress)
 			.getBalanceAt(msg.sender, payment.nonce)
 			.attributes;
 
-		uint256 totalBaseAmtInLiq = 0;
-		// Iterate through the LP payments to calculate the total base amount in liquidity
-		for (uint256 i; i < attributes.lpPayments.length; i++) {
-			TokenPayment memory lpPayment = attributes.lpPayments[i];
-			LpToken.LpBalance memory lpBalance = LpToken(lpTokenAddress)
-				.getBalanceAt(address(this), lpPayment.nonce);
-
-			// Accumulate the base amount if the trade token matches the specified address
-			if (lpBalance.attributes.tradeToken == adexTokenAddress) {
-				totalBaseAmtInLiq += lpBalance.amount;
-			}
-
-			// Return true if the total base amount meets the required threshold
-			if (totalBaseAmtInLiq >= 1000e18) {
-				return true;
-			}
-		}
-
-		// Return false if the total base amount is insufficient
-		return false;
+		return
+			attributes.tradeToken == adexTokenAddress &&
+			payment.amount >= 1_000e18;
 	}
 
 	function _checkProposalPass(
@@ -508,14 +493,8 @@ contract Governance is ERC1155Holder, Ownable {
 		return thresholdValue > 0 && value >= (thresholdValue * 86) / 100;
 	}
 
-	function _returnListingGToken(TokenListing memory listing) internal {
-		gtokens.safeTransferFrom(
-			address(this),
-			listing.owner,
-			listing.gTokenNonce,
-			1,
-			""
-		);
+	function _returnListingDeposits(TokenListing memory listing) internal {
+		listing.securityLpPayment.sendToken(listing.owner);
 
 		if (listing.tradeTokenPayment.amount > 0) {
 			listing.tradeTokenPayment.sendToken(listing.owner);
@@ -549,41 +528,81 @@ contract Governance is ERC1155Holder, Ownable {
 		if (!canProceed) {
 			// Proposal failed, not accepted by community
 
-			_returnListingGToken(listing);
+			_returnListingDeposits(listing);
 
 			return;
 		}
 
 		// Handle the launch pad and price discovery stages.
-		if (listing.tradeTokenPayment.amount > 0) {
-			require(
-				listing.priceDiscoveryAddress == address(0),
-				"Already in Price Discovery"
+		if (listing.campaignId == 0) {
+			listing.campaignId = launchPair.createCampaign(listing.owner);
+		} else {
+			LaunchPair.Campaign memory campaign = launchPair.getCampaignDetails(
+				listing.campaignId
 			);
-			listing.tradeTokenPayment.approve(address(launchPair));
-			listing.campaignId = launchPair.createCampaign(
-				listing.tradeTokenPayment,
-				listing.owner
-			);
-			// Update amount to indicate transfer and possibly ready to move to price discovery
-			listing.tradeTokenPayment.amount = 0;
-		} else if (listing.priceDiscoveryAddress == address(0)) {
-			if (listing.campaignId != 0) {
-				LaunchPair.CampaignStatus campaignStatus = launchPair
-					.getCampaignDetails(listing.campaignId)
-					.status;
 
-				if (campaignStatus != LaunchPair.CampaignStatus.Success) {
-					if (campaignStatus == LaunchPair.CampaignStatus.Failed) {
-						_returnListingGToken(listing);
-					}
-
+			if (campaign.status != LaunchPair.CampaignStatus.Success) {
+				if (campaign.status == LaunchPair.CampaignStatus.Failed) {
+					_returnListingDeposits(listing);
 					return;
 				}
+
+				revert("Governance: Funding not complete");
 			}
-			// Logic to deploy the price discovery contract.
-		} else {
-			// Logic to confirm that price discovery is complete and list the pair with initial liquidity transfer.
+
+			if (!campaign.isWithdrawn) {
+				uint256 ethBal = address(this).balance;
+				uint256 fundsRaised = launchPair.withdrawFunds(
+					listing.campaignId
+				);
+				require(
+					ethBal + fundsRaised == address(this).balance,
+					"Governance: Funds not widthdrawn for campaign "
+				);
+
+				uint256 lpNonce = _router.addLiquidity(
+					TokenPayment({
+						token: address(0),
+						amount: fundsRaised,
+						nonce: 0
+					})
+				);
+				uint256 lpAmount = LpToken(lpTokenAddress)
+					.getBalanceAt(address(this), lpNonce)
+					.amount;
+
+				TokenPayment[] memory payments = new TokenPayment[](2);
+				payments[0] = listing.securityLpPayment;
+				payments[1] = TokenPayment({
+					amount: lpAmount,
+					nonce: lpNonce,
+					token: lpTokenAddress
+				});
+
+				uint256 gTokenNonce = this.enterGovernance(
+					payments,
+					GToken.MAX_EPOCHS_LOCK
+				);
+				gtokens.safeTransferFrom(
+					address(this),
+					listing.owner,
+					gTokenNonce,
+					GTOKEN_MINT_AMOUNT,
+					""
+				);
+
+				delete listing.securityLpPayment;
+			} else {
+				listing.tradeTokenPayment.approve(address(_router));
+				(, TokenPayment memory lpPayment) = _router.createPair(
+					listing.tradeTokenPayment
+				);
+				// Update amount to indicate transfered
+				delete listing.tradeTokenPayment;
+
+				lpPayment.approve(address(launchPair));
+				launchPair.receiveLpToken(lpPayment, listing.campaignId);
+			}
 		}
 	}
 
@@ -681,7 +700,13 @@ contract Governance is ERC1155Holder, Ownable {
 
 			uint256 nonce = userVoteNonces.at(userVoteNonces.length() - 1);
 			userVoteNonces.remove(nonce);
-			gtokens.safeTransferFrom(address(this), user, nonce, 1, "");
+			gtokens.safeTransferFrom(
+				address(this),
+				user,
+				nonce,
+				GTOKEN_MINT_AMOUNT,
+				""
+			);
 		}
 	}
 }
