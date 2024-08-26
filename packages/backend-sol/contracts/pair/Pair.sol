@@ -11,9 +11,6 @@ import "../common/libs/TokenPayments.sol";
 import "./contexts/AddLiquidity.sol";
 
 import "../common/Amm.sol";
-import "./Errors.sol";
-import "./SafePrice.sol";
-import "./Interface.sol";
 import "./Knowable.sol";
 
 import { LpToken } from "../modules/LpToken.sol";
@@ -36,8 +33,7 @@ library DeployPair {
  * @title Pair
  * @dev This contract manages a trading pair in the DEX, handling liquidity, trading, and fee mechanisms.
  */
-contract Pair is IPair, Ownable, KnowablePair {
-	using SafePriceUtil for SafePriceData;
+contract Pair is Ownable, KnowablePair {
 	using FeeUtil for FeeUtil.Values;
 	using TokenPayments for TokenPayment;
 
@@ -49,9 +45,7 @@ contract Pair is IPair, Ownable, KnowablePair {
 	uint256 public lpSupply;
 
 	address public tradeToken;
-	IBasePair basePair;
-
-	mapping(address => SafePriceData) safePrices;
+	Pair basePair;
 
 	uint256 constant MIN_MINT_DEPOSIT = 4_000;
 
@@ -88,7 +82,7 @@ contract Pair is IPair, Ownable, KnowablePair {
 	function _setBasePair(address basePairAddr) internal virtual {
 		require(basePairAddr != address(0), "Pair: Invalid base pair address");
 
-		basePair = IBasePair(basePairAddr);
+		basePair = Pair(basePairAddr);
 		require(
 			isERC20(Pair(basePairAddr).tradeToken()),
 			"Pair: Invalid base pair contract"
@@ -238,13 +232,6 @@ contract Pair is IPair, Ownable, KnowablePair {
 		);
 		require(outTokenReserve > amountOutMin, "Pair: not enough reserve");
 
-		{
-			safePrices[address(outPair)].updateSafePrice(
-				inTokenReserve,
-				outTokenReserve
-			);
-		}
-
 		uint256 initialK = Amm.calculateKConstant(
 			inTokenReserve,
 			outTokenReserve
@@ -293,9 +280,6 @@ contract Pair is IPair, Ownable, KnowablePair {
 			uint256 paymentTokenReserve,
 			uint256 baseTokenReserve
 		) = _getReserves();
-
-		SafePriceData storage safePrice = safePrices[address(basePair)];
-		safePrice.updateSafePrice(paymentTokenReserve, baseTokenReserve);
 
 		uint256 initialK = Amm.calculateKConstant(
 			paymentTokenReserve,
