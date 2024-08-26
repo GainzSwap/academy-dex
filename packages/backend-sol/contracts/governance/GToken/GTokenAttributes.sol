@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.9;
 
 import { TokenPayment } from "../../common/libs/TokenPayments.sol";
 import { MathUtil } from "../../common/libs/Math.sol";

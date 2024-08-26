@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.24;
+pragma solidity 0.8.9;
 
 function isERC20(address tokenAddress) returns (bool) {
 	if (address(0) == tokenAddress) {

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.9;
 
 import { GToken } from "./GTokenAttributes.sol";
 import { SFT } from "../../modules/SFT.sol";

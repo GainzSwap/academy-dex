@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.24;
+pragma solidity 0.8.9;
 
 library Number {
 	/// @notice Restrict a value to a certain interval (Inspired by the `clamp` method in Rust number types).

@@ -14873,9 +14873,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"shelljs@npm:^0.8.3, shelljs@npm:^0.8.24":
-  version: 0.8.24
-  resolution: "shelljs@npm:0.8.24"
+"shelljs@npm:^0.8.3, shelljs@npm:^0.8.9":
+  version: 0.8.9
+  resolution: "shelljs@npm:0.8.9"
   dependencies:
     glob: ^7.0.0
     interpret: ^1.0.0
@@ -14891,7 +14891,7 @@ __metadata:
   resolution: "shx@npm:0.3.4"
   dependencies:
     minimist: ^1.2.3
-    shelljs: ^0.8.24
+    shelljs: ^0.8.9
   bin:
     shx: lib/cli.js
   checksum: 0aa168bfddc11e3fe8943cce2e0d2d8514a560bd58cf2b835b4351ba03f46068f7d88286c2627f4b85604e81952154c43746369fb3f0d60df0e3b511f465e5b8
