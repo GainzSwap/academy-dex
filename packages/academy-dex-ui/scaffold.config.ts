@@ -21,7 +21,10 @@ const scaffoldConfig = {
       },
       testnet: true,
     },
-    chains.hardhat,
+    {
+      ...chains.hardhat,
+      nativeCurrency: { decimals: 18, name: "EDU Coin", symbol: "dEDU" },
+    },
   ],
 
   // The interval at which your front-end polls the RPC servers for new data

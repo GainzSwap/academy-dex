@@ -373,7 +373,7 @@ describe("Router", function () {
   });
 
   describe("EDUPair", function () {
-    it("should list EDU pair as native token", async () => {
+    it.only("should list EDU pair as native token", async () => {
       const { router, user, basePairContract, lpTokenContract, baseTradeToken, sellToken } =
         await loadFixture(deployRouterFixture);
 
@@ -389,12 +389,22 @@ describe("Router", function () {
 
       // Check adding liq in EDU
       await expect(
-        await router.connect(user).addLiquidity({ token: WEDU, amount: 0, nonce: 0 }, { value: parseEther("264.54646") }),
+        await router
+          .connect(user)
+          .addLiquidity({ token: WEDU, amount: 0, nonce: 0 }, { value: parseEther("264.54646") }),
       ).to.not.reverted;
 
       // Sell Edu
       const userEduBalBeforeSell = await ethers.provider.getBalance(user);
       const eduPairEduBalBeforeSell = await WEDU.balanceOf(eduPair);
+
+      await router
+        .connect(user)
+        .registerAndSwap(0, { token: ZeroAddress, amount: 0, nonce: 0 }, basePairContract, 5_00, {
+          value: parseEther("0.00003"),
+        });
+      expect(await ethers.provider.getBalance(user)).to.lessThan(userEduBalBeforeSell);
+
       await router
         .connect(user)
         .swap({ token: ZeroAddress, amount: 0, nonce: 0 }, basePairContract, 5_00, { value: parseEther("0.00003") });

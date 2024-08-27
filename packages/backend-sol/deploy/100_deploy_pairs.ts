@@ -89,37 +89,26 @@ const deployPairs: DeployFunction = async function (hre: HardhatRuntimeEnvironme
     }
   }
   // Done to have the abi in front end
-  await hre.deployments.deploy("Pair", {
-    from: deployer,
-    gasLimit: 30_000_000,
-    args: [tradeTokenAddr!, pairAddress!],
-  });
-  await hre.deployments.deploy("Governance", {
-    from: deployer,
-    gasLimit: 30_000_000,
-    args: [
-      ZeroAddress,
-      ZeroAddress,
-      {
-        epochLength: 0,
-        genesis: 0,
-      },
-      deployer,
-    ],
-    libraries: {
-      NewGTokens: await (await ethers.deployContract("NewGTokens")).getAddress(),
-      DeployLaunchPair: await (await ethers.deployContract("DeployLaunchPair")).getAddress(),
-    },
-  });
-  await hre.deployments.deploy("GTokens", {
-    from: deployer,
-    gasLimit: 30_000_000,
-  });
-  await hre.deployments.deploy("LaunchPair", {
-    from: deployer,
-    gasLimit: 30_000_000,
-    args: [ethers.ZeroAddress],
-  });
+
+  const { save, getExtendedArtifact } = hre.deployments;
+
+  const governanceAdr = await Router.governance();
+  const governance = await hre.ethers.getContractAt("Governance", governanceAdr);
+  const launchPairAddr = await governance.launchPair();
+  const gTokensAddr = await governance.gtokens();
+
+  const artifactsToSave = [
+    ["Pair", pairAddress!],
+    ["Governance", governanceAdr],
+    ["GTokens", gTokensAddr],
+    ["LpToken", await Router.lpToken()],
+    ["LaunchPair", launchPairAddr],
+  ];
+
+  for (const [contract, address] of artifactsToSave) {
+    const { abi, metadata } = await getExtendedArtifact(contract);
+    await save(contract, { abi, metadata, address });
+  }
 
   if (hre.network.name == "localhost") {
     // Send network tokens

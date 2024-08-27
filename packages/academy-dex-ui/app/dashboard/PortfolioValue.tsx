@@ -34,9 +34,9 @@ export default function PortfolioValue() {
   const { baseToken } = useMemo(() => {
     let baseToken = tokens.at(0);
 
-    !Boolean(baseToken?.identifier.includes("BASE")) &&
+    !Boolean(baseToken?.identifier.includes("ADEX")) &&
       tokens.some(token => {
-        if (token.identifier.includes("BASE")) {
+        if (token.identifier.includes("ADEX")) {
           baseToken = token;
           return true;
         }
@@ -99,46 +99,9 @@ export default function PortfolioValue() {
                   <AddLiquidity selectedToken_={token} />
                 </div>
               )}
-              {/* <button onClick={() => onUnlockLockedXHT()} className="btn btn-primary" style={{ fontSize: "0.75em" }}>
-                  Unlock
-                </button> */}
             </div>
           );
         })}
-        {/* {lkXht && (
-        
-        )}
-
-        {xProjectsToken && <>Properties</>}
-        {xProjectsToken?.map(token => (
-          <div key={token.identifier} className="fancy-selector-option">
-            <div className="fs-img"> </div>
-            <div className="fs-main-info">
-              <div className="fs-name">
-                <span>{token.name} Portfolio</span>
-                <strong>{token.collection}</strong>
-              </div>
-              <div className="fs-sub">
-                <span>Units:</span>
-                <strong>
-                  {prettyFormatAmount({
-                    value: token.balance.toFixed(0),
-                    decimals: 0,
-                  })}
-                </strong>
-              </div>
-            </div>
-          </div>
-        ))} */}
-
-        {/* {!pathname.includes(RoutePath.Properties) && (
-          <div className="fancy-selector-actions text-right">
-            <Link className="btn btn-primary" href={RoutePath.Properties}>
-              <i className="os-icon os-icon-ui-22"></i>
-              <span>Add Property</span>
-            </Link>
-          </div>
-        )} */}
       </div>
     </div>
   );

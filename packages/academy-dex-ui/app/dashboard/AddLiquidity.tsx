@@ -18,7 +18,7 @@ import { useSpendERC20 } from "~~/hooks/useSpendERC20";
 export const AddLiquidityModal = ({ selectedToken_ }: { selectedToken_?: TokenData }) => {
   const { closeModal } = useModalToShow();
   const { address } = useAccount();
-  const { tokens, updateSwapableTokens } = useSwapableTokens({ address });
+  const { tokens, updateSwapableTokens, wEDUaddress } = useSwapableTokens({ address });
   const [selectedToken, setSelectedToken] = useState<TokenData | undefined>(selectedToken_);
 
   const { client } = useRawCallsInfo();
@@ -49,13 +49,20 @@ export const AddLiquidityModal = ({ selectedToken_ }: { selectedToken_?: TokenDa
           throw new Error("Missing necessary data for the swap");
         }
 
-        const amtToSpend = parseUnits(BigNumber(sendAmt).toFixed(selectedToken.decimals), selectedToken.decimals);
+        const payment = {
+          token: selectedToken.tradeTokenAddr,
+          amount: parseUnits(BigNumber(sendAmt).toFixed(selectedToken.decimals), selectedToken.decimals),
+          nonce: 0n,
+        };
+        // Prepare for when swaping native coins
+        const value = payment.token == wEDUaddress ? payment.amount : undefined;
+        !value && (await checkApproval(payment.amount));
 
-        await checkApproval(amtToSpend);
 
         await writeRouter({
           functionName: "addLiquidity",
-          args: [{ token: selectedToken.tradeTokenAddr, amount: amtToSpend }],
+          args: [payment],
+          value
         });
 
         updateSwapableTokens();

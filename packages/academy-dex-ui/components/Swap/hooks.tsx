@@ -6,7 +6,7 @@ import { useFormik } from "formik";
 import RcSlider from "rc-slider";
 import useSWR from "swr";
 import { erc20Abi, parseUnits } from "viem";
-import { useAccount } from "wagmi";
+import { useAccount, useBalance } from "wagmi";
 import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import useRawCallsInfo from "~~/hooks/useRawCallsInfo";
 import { useSpendERC20 } from "~~/hooks/useSpendERC20";
@@ -48,46 +48,62 @@ export const useSlippageAdjuster = () => {
   };
 };
 
-export const useSwapableTokens = ({ address }: { address?: string }) => {
+export const useSwapableTokens = ({ address: userAddress }: { address?: string }) => {
+  const { data: eduBalance } = useBalance({ address: userAddress });
   const { client, router } = useRawCallsInfo();
+  const { data: wEDUaddress } = useScaffoldReadContract({ contractName: "Router", functionName: "getWEDU" });
 
   // Function to fetch token data
   const fetchTokenData = async (tokenAddress: string): Promise<TokenData> => {
     if (!client) {
       throw new Error("Client not set");
     }
-    if (!address) {
-      throw new Error("User address not loaded");
-    }
+
     if (!router) {
       throw new Error("Router data not loaded");
     }
 
     // FIXME improve this call
-    const [identifier, balance, decimals, pairAddr] = await Promise.all([
-      client.readContract({
-        address: tokenAddress,
-        abi: erc20Abi,
-        functionName: "symbol",
-      }),
-      client.readContract({
-        address: tokenAddress,
-        abi: erc20Abi,
-        functionName: "balanceOf",
-        args: [address],
-      }),
-      client.readContract({
-        address: tokenAddress,
-        abi: erc20Abi,
-        functionName: "decimals",
-      }),
-      client.readContract({
-        address: router.address,
-        abi: router.abi,
-        functionName: "tokensPairAddress",
-        args: [tokenAddress],
-      }),
-    ]);
+    const [identifier, balance, decimals, pairAddr] =
+      tokenAddress == wEDUaddress && eduBalance
+        ? [
+            eduBalance.symbol,
+            eduBalance.value,
+            eduBalance.decimals,
+            await client.readContract({
+              address: router.address,
+              abi: router.abi,
+              functionName: "tokensPairAddress",
+              args: [tokenAddress],
+            }),
+          ]
+        : await Promise.all([
+            client.readContract({
+              address: tokenAddress,
+              abi: erc20Abi,
+              functionName: "symbol",
+            }),
+
+            !userAddress
+              ? 0n
+              : client.readContract({
+                  address: tokenAddress,
+                  abi: erc20Abi,
+                  functionName: "balanceOf",
+                  args: [userAddress],
+                }),
+            client.readContract({
+              address: tokenAddress,
+              abi: erc20Abi,
+              functionName: "decimals",
+            }),
+            client.readContract({
+              address: router.address,
+              abi: router.abi,
+              functionName: "tokensPairAddress",
+              args: [tokenAddress],
+            }),
+          ]);
 
     // TODO Construct icon source URL based on token identifier
     const iconSrc = ``;
@@ -121,6 +137,7 @@ export const useSwapableTokens = ({ address }: { address?: string }) => {
     updateSwapableTokens: mutate,
     tokens,
     isTokensLoaded: !isLoading,
+    wEDUaddress,
   };
 };
 
@@ -136,7 +153,7 @@ export const useSwapTokensForm = ({
   slippage: BigNumber.Value;
 }) => {
   const { address } = useAccount();
-  const { updateSwapableTokens } = useSwapableTokens({ address });
+  const { updateSwapableTokens, wEDUaddress } = useSwapableTokens({ address });
 
   const slippage = parseUnits(slippage_.toString(), SLIPPAGE_DIVISOR.toString().length - 1);
 
@@ -154,26 +171,33 @@ export const useSwapTokensForm = ({
     },
     onSubmit: async ({ sendAmt }, { setFieldError, resetForm }) => {
       try {
-        if (!fromToken || !toToken || !router || !refIdData) {
+        if (!fromToken || !toToken || !router || !refIdData || !wEDUaddress) {
           throw new Error("Missing necessary data for the swap");
         }
 
-        const amtToSpend = parseUnits(BigNumber(sendAmt).toFixed(fromToken.decimals), fromToken.decimals);
-        await checkApproval(amtToSpend);
+        const payment = {
+          token: fromToken.tradeTokenAddr,
+          amount: parseUnits(BigNumber(sendAmt).toFixed(fromToken.decimals), fromToken.decimals),
+          nonce: 0n,
+        };
+        // Prepare for when swaping native coins
+        const value = payment.token == wEDUaddress ? payment.amount : undefined;
+        !value && (await checkApproval(payment.amount));
 
         if (refIdData.getUserID() === null) {
           const referrerLink = getItem("userRefBy");
           const referrerId = referrerLink ? BigInt(RefIdData.getID(referrerLink)) : 0n;
-
           await writeRouter({
             functionName: "registerAndSwap",
-            args: [referrerId, { token: fromToken.tradeTokenAddr, amount: amtToSpend }, toToken.pairAddr, slippage],
+            args: [referrerId, payment, toToken.pairAddr, slippage],
+            value,
           });
           await refreshUserRefInfo();
         } else {
           await writeRouter({
             functionName: "swap",
-            args: [{ token: fromToken.tradeTokenAddr, amount: amtToSpend }, toToken.pairAddr, slippage],
+            args: [payment, toToken.pairAddr, slippage],
+            value,
           });
         }
 

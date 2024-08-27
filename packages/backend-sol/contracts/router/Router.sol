@@ -568,7 +568,7 @@ contract Router is IRouter, Ownable, UserModule, ERC1155Holder {
 		TokenPayment calldata inPayment,
 		address outPairAddr,
 		uint256 slippage
-	) public {
+	) external payable {
 		_createOrGetUserId(msg.sender, referrerId);
 		swap(inPayment, outPairAddr, slippage);
 	}
