@@ -5,13 +5,10 @@ const deployRouterContract: DeployFunction = async function (hre: HardhatRuntime
   const { deployer } = await hre.getNamedAccounts();
   const { deploy } = hre.deployments;
 
-  const PairFactory = await hre.ethers.getContractFactory("PairFactory");
-  const pairFactoryInstance = await PairFactory.deploy();
-  await pairFactoryInstance.waitForDeployment();
-
   const DeployGovernanceFactory = await hre.ethers.getContractFactory("DeployGovernance", {
     libraries: {
       NewGTokens: await (await hre.ethers.deployContract("NewGTokens")).getAddress(),
+      DeployLaunchPair: await (await hre.ethers.deployContract("DeployLaunchPair")).getAddress(),
     },
   });
   const deployGovernance = await DeployGovernanceFactory.deploy();
@@ -21,7 +18,10 @@ const deployRouterContract: DeployFunction = async function (hre: HardhatRuntime
     from: deployer,
     autoMine: true,
     libraries: {
-      PairFactory: await pairFactoryInstance.getAddress(),
+      DeployPair: await (await hre.ethers.deployContract("DeployPair")).getAddress(),
+      // TODO When going into production, remember to replace `DeployTestBasePair` with `DeployBasePair`
+      DeployBasePair: await (await hre.ethers.deployContract("DeployTestBasePair")).getAddress(),
+      DeployEduPair: await (await hre.ethers.deployContract("DeployEduPair")).getAddress(),
       DeployGovernance: await deployGovernance.getAddress(),
     },
   });
