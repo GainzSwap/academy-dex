@@ -5,8 +5,12 @@ import AddLiquidity from "./AddLiquidity";
 import BigNumber from "bignumber.js";
 import { useAccount } from "wagmi";
 import { useSwapableTokens } from "~~/components/Swap/hooks";
+import { useDeployedContractInfo, useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 import { useOnPathChange } from "~~/hooks/useContentPanel";
+import useLpTokens from "~~/hooks/useLpTokens";
+import { truncateFromInside } from "~~/utils";
 import { prettyFormatAmount } from "~~/utils/formatAmount";
+import nonceToRandString from "~~/utils/nonceToRandom";
 
 const usePortfolioViewToggler = () => {
   const [opened, setOpened] = useState(false);
@@ -44,6 +48,9 @@ export default function PortfolioValue() {
 
     return { baseToken };
   }, [tokens]);
+
+  const { lpBalances } = useLpTokens();
+  const { data: lpSymbol } = useScaffoldReadContract({ contractName: "LpToken", functionName: "symbol" });
 
   return !baseToken ? null : (
     <div className={`fancy-selector-w ${opened ? "opened" : ""}`}>
@@ -99,6 +106,26 @@ export default function PortfolioValue() {
                   <AddLiquidity selectedToken_={token} />
                 </div>
               )}
+            </div>
+          );
+        })}
+
+        {!!lpBalances?.length && <>LP Tokens</>}
+        {lpBalances?.map(({ nonce, amount, attributes }, index) => {
+          const identifier = lpSymbol + "-" + nonceToRandString(nonce, attributes.pair);
+
+          return (
+            <div key={identifier} className="fancy-selector-option">
+              <div className="fs-main-info">
+                <div className="fs-name">
+                  <span>Pool: {truncateFromInside(attributes.pair,10)}</span>
+                  <strong>{identifier}</strong>
+                </div>
+                <div className="fs-sub">
+                  <span>Amount:</span>
+                  <strong>{prettyFormatAmount(amount.toString())}</strong>
+                </div>
+              </div>
             </div>
           );
         })}
