@@ -1,8 +1,10 @@
 "use client";
 
 import AddLiquidity from "./AddLiquidity";
+import ClaimLpRewards from "./ClaimLpRewards";
 import PortfolioDistribution from "./PortfolioDistribution";
 import Sidebar from "./Sidebar";
+import StakingAndGovernace from "./StakingAndGovernace";
 import Swap from "./Swap";
 import TopBar from "./TopBar";
 import ReferralCard from "~~/components/ReferralCard";
@@ -32,6 +34,7 @@ export default function Dashboard() {
                     <i className="os-icon os-icon-log-out"></i>
                     <span>Remove Liquidity</span>
                   </a>
+                  <ClaimLpRewards />
                 </div>
               </div>
             </div>
@@ -41,6 +44,7 @@ export default function Dashboard() {
             </div>
 
             <div className="col-sm-4 d-none d-lg-block">
+              <StakingAndGovernace />
               <ReferralCard />
             </div>
           </div>

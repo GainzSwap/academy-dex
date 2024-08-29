@@ -58,11 +58,10 @@ export const AddLiquidityModal = ({ selectedToken_ }: { selectedToken_?: TokenDa
         const value = payment.token == wEDUaddress ? payment.amount : undefined;
         !value && (await checkApproval(payment.amount));
 
-
         await writeRouter({
           functionName: "addLiquidity",
           args: [payment],
-          value
+          value,
         });
 
         updateSwapableTokens();

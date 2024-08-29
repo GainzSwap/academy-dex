@@ -5,12 +5,11 @@ import AddLiquidity from "./AddLiquidity";
 import BigNumber from "bignumber.js";
 import { useAccount } from "wagmi";
 import { useSwapableTokens } from "~~/components/Swap/hooks";
-import { useDeployedContractInfo, useScaffoldReadContract } from "~~/hooks/scaffold-eth";
+import { useBasePairAddr } from "~~/hooks/routerHooks";
 import { useOnPathChange } from "~~/hooks/useContentPanel";
 import useLpTokens from "~~/hooks/useLpTokens";
 import { truncateFromInside } from "~~/utils";
 import { prettyFormatAmount } from "~~/utils/formatAmount";
-import nonceToRandString from "~~/utils/nonceToRandom";
 
 const usePortfolioViewToggler = () => {
   const [opened, setOpened] = useState(false);
@@ -33,24 +32,29 @@ export default function PortfolioValue() {
   const { opened, viewToggler, close } = usePortfolioViewToggler();
 
   const { address } = useAccount();
-  const { tokens } = useSwapableTokens({ address });
+  const { tokens, tokenMap } = useSwapableTokens({ address });
+  const { basePairAddr } = useBasePairAddr();
+  const basePairIdentifier = tokenMap.get(basePairAddr ?? "")?.identifier;
 
-  const { baseToken } = useMemo(() => {
+  const baseToken = useMemo(() => {
+    if (!basePairIdentifier) {
+      return undefined;
+    }
+
     let baseToken = tokens.at(0);
 
-    !Boolean(baseToken?.identifier.includes("ADEX")) &&
+    !Boolean(baseToken?.identifier.includes(basePairIdentifier)) &&
       tokens.some(token => {
-        if (token.identifier.includes("ADEX")) {
+        if (token.identifier.includes(basePairIdentifier)) {
           baseToken = token;
           return true;
         }
       });
 
-    return { baseToken };
-  }, [tokens]);
+    return baseToken;
+  }, [tokens, basePairIdentifier]);
 
   const { lpBalances } = useLpTokens();
-  const { data: lpSymbol } = useScaffoldReadContract({ contractName: "LpToken", functionName: "symbol" });
 
   return !baseToken ? null : (
     <div className={`fancy-selector-w ${opened ? "opened" : ""}`}>
@@ -111,14 +115,12 @@ export default function PortfolioValue() {
         })}
 
         {!!lpBalances?.length && <>LP Tokens</>}
-        {lpBalances?.map(({ nonce, amount, attributes }, index) => {
-          const identifier = lpSymbol + "-" + nonceToRandString(nonce, attributes.pair);
-
+        {lpBalances?.map(({amount, attributes: { pair }, identifier }) => {
           return (
             <div key={identifier} className="fancy-selector-option">
               <div className="fs-main-info">
                 <div className="fs-name">
-                  <span>Pool: {truncateFromInside(attributes.pair,10)}</span>
+                  <span>Pair: {truncateFromInside(pair, 10)}</span>
                   <strong>{identifier}</strong>
                 </div>
                 <div className="fs-sub">

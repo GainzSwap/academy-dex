@@ -48,6 +48,13 @@ export const useSlippageAdjuster = () => {
   };
 };
 
+const defaultTokensInfo: {
+  tokens: TokenData[];
+  tokenMap: Map<string, TokenData>;
+} = {
+  tokens: [],
+  tokenMap: new Map(),
+};
 export const useSwapableTokens = ({ address: userAddress }: { address?: string }) => {
   const { data: eduBalance } = useBalance({ address: userAddress });
   const { client, router } = useRawCallsInfo();
@@ -105,15 +112,11 @@ export const useSwapableTokens = ({ address: userAddress }: { address?: string }
             }),
           ]);
 
-    // TODO Construct icon source URL based on token identifier
-    const iconSrc = ``;
-
     return {
       pairAddr,
       tradeTokenAddr: tokenAddress,
       identifier,
       balance: balance.toString(),
-      iconSrc,
       decimals,
     };
   };
@@ -125,17 +128,34 @@ export const useSwapableTokens = ({ address: userAddress }: { address?: string }
   });
 
   const {
-    data: tokens,
+    data: { tokenMap, tokens },
     mutate,
     isLoading,
-  } = useSWR(tokenAddresses || null, tokenAddresses => Promise.all(tokenAddresses.map(fetchTokenData)), {
-    fallbackData: [],
-    keepPreviousData: true,
-  });
+  } = useSWR(
+    tokenAddresses || null,
+    tokenAddresses =>
+      Promise.all(tokenAddresses.map(fetchTokenData)).then(tokens => {
+        const structure = tokens.reduce((structure, token) => {
+          structure.tokenMap.set(token.pairAddr, token);
+          structure.tokenMap.set(token.tradeTokenAddr, token);
+
+          return structure;
+        }, defaultTokensInfo);
+
+        structure.tokens = tokens;
+
+        return structure;
+      }),
+    {
+      fallbackData: (() => defaultTokensInfo)(),
+      keepPreviousData: true,
+    },
+  );
 
   return {
     updateSwapableTokens: mutate,
     tokens,
+    tokenMap,
     isTokensLoaded: !isLoading,
     wEDUaddress,
   };

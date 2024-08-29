@@ -3,7 +3,6 @@ export interface TokenData {
   tradeTokenAddr: string;
   pairAddr: string;
   balance: string;
-  iconSrc: string;
   decimals: number;
 }
 

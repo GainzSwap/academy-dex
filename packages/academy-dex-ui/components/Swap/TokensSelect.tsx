@@ -26,7 +26,7 @@ export default function TokensSelect({
           {selected ? (
             <>
               {" "}
-              <TokenIcon src={selected.iconSrc} identifier={""} /> {selected.identifier.split("-")[0]}
+              <TokenIcon identifier={selected.identifier} /> {selected.identifier.split("-")[0]}
             </>
           ) : (
             "Select"
@@ -42,7 +42,7 @@ export default function TokensSelect({
           >
             {tokens.map(token => (
               <Dropdown.Item key={token.identifier} onClick={() => setSelected(token)}>
-                <TokenIcon src={token.iconSrc} identifier={""} /> {token.identifier}
+                <TokenIcon identifier={token.identifier} /> {token.identifier}
               </Dropdown.Item>
             ))}
           </Dropdown.Menu>

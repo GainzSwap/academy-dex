@@ -130,7 +130,7 @@ export function SwapTokensBody() {
         <div className="form-group col-12 mb-1">
           <label>Send</label>
           <div className="input-group">
-            {fromToken && <InputIcon position="prepend" src={fromToken.iconSrc} identifier={fromToken.identifier} />}{" "}
+            {fromToken && <InputIcon position="prepend" identifier={fromToken.identifier} />}{" "}
             <input
               data-testid="swap-tokens-sendAmt-input"
               type="number"
@@ -164,7 +164,7 @@ export function SwapTokensBody() {
           <div className="form-group col-12">
             <label>Receive</label>
             <div className="input-group">
-              <InputIcon position="prepend" src={toToken.iconSrc} identifier={toToken.identifier} />{" "}
+              <InputIcon position="prepend" identifier={toToken.identifier} />{" "}
               <span className="form-control" data-testid="swap-tokens-receiveAmt">
                 {isCalculatingReceiveAmt ? <LoadingState text="Calculating" /> : values.receiveAmt}
               </span>
@@ -173,9 +173,8 @@ export function SwapTokensBody() {
             {+values.receiveAmt > 0 && (
               <>
                 <small className="form-text" style={{ display: "inline-block" }}>
-                  <TokenIcon src={fromToken!.iconSrc} identifier={fromToken!.identifier} /> 1{"  "}≃{"  "}
-                  {+values.receiveAmt / +values.sendAmt}{" "}
-                  <TokenIcon src={toToken.iconSrc} identifier={toToken.identifier} />
+                  <TokenIcon identifier={fromToken!.identifier} /> 1{"  "}≃{"  "}
+                  {+values.receiveAmt / +values.sendAmt} <TokenIcon identifier={toToken.identifier} />
                 </small>
                 @&nbsp;
                 <span
