@@ -448,7 +448,7 @@ describe("Governance Contract", function () {
         nonce: 0,
       };
       // Approve the listing fee payment
-      listingFeeToken.mint(pairOwner, listingFeePayment.amount);
+      await listingFeeToken.mint(pairOwner, listingFeePayment.amount);
       await listingFeeToken.connect(pairOwner).approve(governanceContract, listingFeePayment.amount);
 
       const tradeTokenPayment = {
@@ -457,7 +457,7 @@ describe("Governance Contract", function () {
         nonce: 0,
       };
       // Approve the listing fee payment
-      tradeToken.mint(pairOwner, tradeTokenPayment.amount);
+      await tradeToken.mint(pairOwner, tradeTokenPayment.amount);
       await tradeToken.connect(pairOwner).approve(governanceContract, tradeTokenPayment.amount);
 
       // Enter governance to create GToken balance

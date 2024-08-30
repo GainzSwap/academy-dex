@@ -72,50 +72,87 @@ describe("Router", function () {
     });
 
     it("should generate rewards after adding liquidity", async function () {
-      const { basePairContract, baseTradeToken, user, addLiquidity, createPair, owner, router, sellToken } =
-        await loadFixture(deployRouterFixture);
+      const {
+        basePairContract,
+        baseTradeToken,
+        user,
+        addLiquidity,
+        createPair,
+        owner,
+        router,
+        sellToken,
+        getLpNonces,
+        eduPair,
+      } = await loadFixture(deployRouterFixture);
 
       const { pairContract: firstPairContract, pairTradeToken: firstPairTradeToken } = await createPair();
 
-      const basePaymentAmount = ethers.parseEther("1");
-      const pairPaymentAmount = ethers.parseEther("1");
+      const basePaymentAmount = ethers.parseEther("10");
+      const pairPaymentAmount = ethers.parseEther("223");
+      const eduPaymentAmount = ethers.parseEther("0.001");
 
       // Mint tokens for liquidity
-      await baseTradeToken.connect(owner).transfer(user, basePaymentAmount);
-      await firstPairTradeToken.mint(user, pairPaymentAmount);
+      // await baseTradeToken.connect(owner).transfer(user, basePaymentAmount);
+      // await firstPairTradeToken.mint(user, pairPaymentAmount);
 
       const basePayment = { amount: basePaymentAmount, nonce: 0, token: baseTradeToken };
       const pairPayment = { amount: pairPaymentAmount, nonce: 0, token: firstPairTradeToken };
+      const eduPayment = { amount: 0, nonce: 0, token: ZeroAddress };
 
       await addLiquidity({ contract: basePairContract, tradeToken: baseTradeToken }, basePayment);
       await addLiquidity({ contract: firstPairContract, tradeToken: firstPairTradeToken }, pairPayment);
+      await addLiquidity({ contract: eduPair }, eduPayment, { value: eduPaymentAmount });
 
       expect(await router.getClaimableRewards(user)).to.be.equal(0);
 
-      await sellToken({
-        buyContract: basePairContract,
-        sellContract: firstPairContract,
-        sellAmt: parseEther("0.00015"),
-        mint: true,
-      });
+      const executeTrades = async () => {
+        await sellToken({
+          buyContract: basePairContract,
+          sellContract: firstPairContract,
+          sellAmt: parseEther("0.00015"),
+          mint: true,
+        });
+        await sellToken({
+          buyContract: firstPairContract,
+          sellContract: basePairContract,
+          sellAmt: parseEther("0.00015"),
+          mint: true,
+        });
+        await router.swap(eduPayment, basePairContract, 10_00, { value: parseEther("0.0001") });
+        await firstPairTradeToken.mint(owner, pairPayment.amount);
+        await firstPairTradeToken.approve(firstPairContract, pairPayment.amount);
+        await router.swap(pairPayment, eduPair, 10_00);
+      };
 
-      await time.increase(1);
+      await executeTrades();
+
+      await time.increase(10);
       expect(await router.getClaimableRewards(user)).to.be.greaterThan(0);
+      await router.connect(user).claimRewards(await getLpNonces(user));
 
       const { pairContract: secondPairContract, pairTradeToken: secondPairTradeToken } = await createPair();
       const amount = parseEther("89.4");
-      await secondPairTradeToken.mint(user, amount);
       await addLiquidity(
         { contract: secondPairContract, tradeToken: secondPairTradeToken },
         { amount, nonce: 0, token: secondPairTradeToken },
       );
 
-      await time.increase(10);
+      await time.increase(100_000);
       const gainAfterSmallTime = await router.getClaimableRewards(user);
       expect(gainAfterSmallTime).to.be.greaterThan(0);
+      await router.connect(user).claimRewards(await getLpNonces(user));
+      await executeTrades();
+
+      // Add more liquidity to some allready added pools after caliming
+      basePayment.amount = basePayment.amount / 3n;
+      await addLiquidity({ contract: basePairContract, tradeToken: baseTradeToken }, basePayment);
+      await addLiquidity({ contract: eduPair }, eduPayment, { value: eduPaymentAmount * 3n });
+      await executeTrades();
 
       await time.increase(1_000_000);
+      await executeTrades();
       expect((await router.getClaimableRewards(user)) - gainAfterSmallTime).to.be.greaterThan(0);
+      await router.connect(user).claimRewards(await getLpNonces(user));
     });
   });
 
@@ -191,10 +228,13 @@ describe("Router", function () {
       expect(balanceAfterClaim).to.be.gt(0);
     });
 
-    it("should revert if there are no rewards to claim", async function () {
-      const { router, user, getLpNonces } = await loadFixture(claimRewardsFixture);
+    it("should not revert if there are no rewards to claim (this is to utilise gas that should have been wasted to actual update state)", async function () {
+      const { router, user, getLpNonces, adex } = await loadFixture(claimRewardsFixture);
       const nonces = await getLpNonces(user);
-      await expect(router.connect(user).claimRewards(nonces)).to.be.revertedWith("No rewards available to claim");
+      const startBal = await adex.balanceOf(user);
+      // Fail silently
+      await expect(router.connect(user).claimRewards(nonces)).to.not.be.reverted;
+      expect(await adex.balanceOf(user)).to.equal(startBal, "ADEX (the reward token) Balance should not change");
     });
 
     it("should correctly update LP attributes and pair data after claiming", async function () {
@@ -373,19 +413,9 @@ describe("Router", function () {
   });
 
   describe("EDUPair", function () {
-    it.only("should list EDU pair as native token", async () => {
-      const { router, user, basePairContract, lpTokenContract, baseTradeToken, sellToken } =
+    it("should list EDU pair as native token", async () => {
+      const { router, user, basePairContract, lpTokenContract, baseTradeToken, sellToken, eduPair, wEDUaddress, WEDU } =
         await loadFixture(deployRouterFixture);
-
-      // Check lisiting of EDU
-      const transferAmt = parseEther("34");
-      await router.createPair({ token: ZeroAddress, amount: 0, nonce: 0 }, { value: transferAmt });
-
-      const wEDUaddress = await router.getWEDU();
-      const WEDU = await ethers.getContractAt("WEDU", wEDUaddress);
-      const eduPair = await ethers.getContractAt("EDUPair", (await router.getAllPairs()).at(-1)!);
-
-      expect(await WEDU.balanceOf(eduPair)).to.be.eq(transferAmt);
 
       // Check adding liq in EDU
       await expect(
@@ -424,6 +454,8 @@ describe("Router", function () {
       });
       expect(await WEDU.balanceOf(eduPair)).to.be.lt(eduPairEduBalBeforeBuy);
       expect(await ethers.provider.getBalance(user)).to.gt(userEduBalBeforeBuy);
+
+      await time.increase(274284278427);
 
       // Check liq removal
       const balanceBeforeRemoveLiq = await ethers.provider.getBalance(user);

@@ -4,6 +4,7 @@ import { ERC20, MintableERC20, Pair, Router } from "../typechain-types";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { expect } from "chai";
 import { TokenPaymentStruct } from "../typechain-types/contracts/governance/Governance";
+import { time } from "@nomicfoundation/hardhat-network-helpers";
 
 // Helper function for token approval
 async function approveToken(signer: HardhatEthersSigner, token: ERC20, amount: BigNumberish, contract: Pair) {
@@ -41,6 +42,14 @@ export async function deployRouterFixture() {
   const basePairContract = await ethers.getContractAt("BasePair", await router.basePairAddr());
   const baseTradeToken = await ethers.getContractAt("MintableADEX", await basePairContract.tradeToken());
 
+  // Check lisiting of EDU
+  const transferAmt = parseEther("34");
+  await router.createPair({ token: ZeroAddress, amount: 0, nonce: 0 }, { value: transferAmt });
+  const wEDUaddress = await router.getWEDU();
+  const WEDU = await ethers.getContractAt("WEDU", wEDUaddress);
+  const eduPair = await ethers.getContractAt("EDUPair", (await router.getAllPairs()).at(-1)!);
+
+  expect(await WEDU.balanceOf(eduPair)).to.be.eq(transferAmt);
   const lpTokenContract = await ethers.getContractAt("LpToken", await router.lpToken());
 
   // Create a new pair and get the contract instances
@@ -70,12 +79,14 @@ export async function deployRouterFixture() {
       tradeToken,
       contract,
       signer = user,
-    }: { contract: Pair; tradeToken: MintableERC20; signer?: HardhatEthersSigner },
+    }: { contract: Pair; tradeToken?: MintableERC20; signer?: HardhatEthersSigner },
     ...args: Parameters<Router["addLiquidity"]>
   ) => {
     const payment = args[0] as TokenPaymentStruct;
-    (await tradeToken.getAddress()) !== ZeroAddress && (await tradeToken.connect(owner).mint(signer, payment.amount));
-    await approveToken(signer, tradeToken, payment.amount, contract);
+    if (tradeToken) {
+      await tradeToken.connect(owner).mint(signer, payment.amount);
+      await approveToken(signer, tradeToken, payment.amount, contract);
+    }
     return router.connect(signer).addLiquidity(...args);
   };
 
@@ -144,6 +155,9 @@ export async function deployRouterFixture() {
 
   return {
     router,
+    WEDU,
+    wEDUaddress,
+    eduPair,
     basePairContract,
     lpTokenContract,
     createPair,
@@ -157,11 +171,14 @@ export async function deployRouterFixture() {
     governanceContract,
     launchPairContract,
     getLpNonces: (address: AddressLike) =>
-      lpTokenContract.getNonces(address).then(nonces =>
-        nonces.map(nonce => {
+      lpTokenContract.getNonces(address).then(async nonces => {
+        // console.log("\n\n", await time.latest(), " :");
+
+        return nonces.map(nonce => {
+          // console.log(nonce);
           return nonce;
-        }),
-      ),
+        });
+      }),
   };
 }
 

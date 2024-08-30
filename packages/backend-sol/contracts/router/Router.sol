@@ -130,7 +130,15 @@ contract Router is IRouter, Ownable, UserModule, ERC1155Holder {
 		view
 		returns (PairData memory newPairData, GlobalData memory newGlobalData)
 	{
-		newPairData = data;
+		newGlobalData = _generateGlobalRewards();
+		newPairData = _generatePairReward(data, newGlobalData);
+	}
+
+	function _generateGlobalRewards()
+		private
+		view
+		returns (GlobalData memory newGlobalData)
+	{
 		newGlobalData = globalData;
 
 		uint256 currentTimestamp = block.timestamp;
@@ -180,16 +188,23 @@ contract Router is IRouter, Ownable, UserModule, ERC1155Holder {
 			newGlobalData.rewardsReserve += generatedRewards;
 			newGlobalData.taxRewards += taxRewards;
 		}
+	}
 
-		if (newPairData.tradeRewardsPershare < newGlobalData.rewardsPerShare) {
+	function _generatePairReward(
+		PairData memory data,
+		GlobalData memory globalData_
+	) private pure returns (PairData memory newPairData) {
+		newPairData = data;
+
+		if (newPairData.tradeRewardsPershare < globalData_.rewardsPerShare) {
 			if (newPairData.buyVolume > 0) {
 				// compute reward
-				uint256 computedReward = ((newGlobalData.rewardsPerShare -
+				uint256 computedReward = ((globalData_.rewardsPerShare -
 					newPairData.tradeRewardsPershare) * newPairData.buyVolume) /
 					REWARDS_DIVISION_CONSTANT;
 
 				// Transfer rewards
-				newGlobalData.rewardsReserve -= computedReward;
+				globalData_.rewardsReserve -= computedReward;
 				newPairData.rewardsReserve += computedReward;
 
 				if (newPairData.totalLiq > 0) {
@@ -200,7 +215,7 @@ contract Router is IRouter, Ownable, UserModule, ERC1155Holder {
 				}
 			}
 
-			newPairData.tradeRewardsPershare = newGlobalData.rewardsPerShare;
+			newPairData.tradeRewardsPershare = globalData_.rewardsPerShare;
 		}
 	}
 
@@ -211,39 +226,40 @@ contract Router is IRouter, Ownable, UserModule, ERC1155Holder {
 		view
 		returns (
 			uint256 claimable,
-			PairData memory newPairData,
+			PairData memory pairData,
 			GlobalData memory newGlobalData,
 			LpToken.LpAttributes memory newAttr
 		)
 	{
+		(pairData, newGlobalData) = _generateRewards(
+			pairsData[balance.attributes.pair]
+		);
+		(claimable, newAttr) = _computeLpClaimable(pairData, balance);
+	}
+
+	function _computeLpClaimable(
+		PairData memory pairData,
+		LpToken.LpBalance memory balance
+	)
+		private
+		pure
+		returns (uint256 claimable, LpToken.LpAttributes memory newAttr)
+	{
 		newAttr = balance.attributes;
 
-		newPairData = pairsData[newAttr.pair];
-		(newPairData, newGlobalData) = _generateRewards(newPairData);
-
-		if (newAttr.rewardPerShare < newPairData.lpRewardsPershare) {
+		if (newAttr.rewardPerShare < pairData.lpRewardsPershare) {
 			// compute reward
 			claimable =
-				((newPairData.lpRewardsPershare - newAttr.rewardPerShare) *
+				((pairData.lpRewardsPershare - newAttr.rewardPerShare) *
 					balance.amount) /
 				REWARDS_DIVISION_CONSTANT;
 
-			newPairData.rewardsReserve -= claimable;
-			newAttr.rewardPerShare = newPairData.lpRewardsPershare;
+			pairData.rewardsReserve -= claimable;
+			newAttr.rewardPerShare = pairData.lpRewardsPershare;
 		}
 	}
 
-	function _runUpdatesAfterRewardsGenerated(
-		PairData storage pairData,
-		PairData memory newPairData,
-		GlobalData memory newGlobalData
-	) internal {
-		pairData.lpRewardsPershare = newPairData.lpRewardsPershare;
-		pairData.rewardsReserve = newPairData.rewardsReserve;
-		pairData.tradeRewardsPershare = newPairData.tradeRewardsPershare;
-
-		globalData = newGlobalData;
-
+	function _sendTaxRewards() private {
 		uint256 taxRewards = globalData.taxRewards;
 
 		if (taxRewards > 0) {
@@ -258,6 +274,29 @@ contract Router is IRouter, Ownable, UserModule, ERC1155Holder {
 				})
 			);
 		}
+	}
+
+	function _updateGlobalData(GlobalData memory newGlobalData) private {
+		globalData = newGlobalData;
+		_sendTaxRewards();
+	}
+
+	function _updatePairData(
+		PairData storage pairData,
+		PairData memory newPairData
+	) private {
+		pairData.lpRewardsPershare = newPairData.lpRewardsPershare;
+		pairData.rewardsReserve = newPairData.rewardsReserve;
+		pairData.tradeRewardsPershare = newPairData.tradeRewardsPershare;
+	}
+
+	function _runUpdatesAfterRewardsGenerated(
+		PairData storage pairData,
+		PairData memory newPairData,
+		GlobalData memory newGlobalData
+	) internal {
+		_updatePairData(pairData, newPairData);
+		_updateGlobalData(newGlobalData);
 	}
 
 	modifier canCreatePair() {
@@ -388,20 +427,20 @@ contract Router is IRouter, Ownable, UserModule, ERC1155Holder {
 		require(pairAddress != address(0), "Router: Invalid pair address");
 		require(wholePayment.amount > 0, "Router: Invalid liquidity payment");
 
+		PairData storage pairData = pairsData[pairAddress];
+		(
+			PairData memory newPairData,
+			GlobalData memory newGlobalData
+		) = _generateRewards(pairData);
+		_runUpdatesAfterRewardsGenerated(pairData, newPairData, newGlobalData);
+
 		(uint256 liqAdded, uint256 depValuePerShare) = Pair(pairAddress)
 			.addLiquidity(wholePayment, caller);
 
 		// Upadte liquidity data to be used for other computations like fee
 		globalData.totalLiq += liqAdded;
 
-		PairData storage pairData = pairsData[pairAddress];
-
 		// Update pairData
-		(
-			PairData memory newPairData,
-			GlobalData memory newGlobalData
-		) = _generateRewards(pairData);
-		_runUpdatesAfterRewardsGenerated(pairData, newPairData, newGlobalData);
 		pairData.totalLiq += liqAdded;
 
 		return
@@ -425,19 +464,26 @@ contract Router is IRouter, Ownable, UserModule, ERC1155Holder {
 		address user = msg.sender;
 		newNonces = nonces;
 
-		// Loop through all nonces to calculate and claim rewards
-		for (uint256 i = 0; i < nonces.length; i++) {
+		_updateGlobalData(_generateGlobalRewards());
+
+		// Claim from max of 10 lp tokens at a time
+		uint256 totalToClaim = nonces.length < 10 ? nonces.length : 10;
+		for (uint256 i = 0; i < totalToClaim; i++) {
 			LpToken.LpBalance memory balance = lpToken.getBalanceAt(
 				user,
 				nonces[i]
 			);
 
+			PairData storage pairData = pairsData[balance.attributes.pair];
+			PairData memory newPairData = _generatePairReward(
+				pairData,
+				globalData
+			);
 			(
 				uint256 claimable,
-				PairData memory newPairData,
-				GlobalData memory newGlobalData,
 				LpToken.LpAttributes memory newAttr
-			) = _computeRewardsClaimable(balance);
+			) = _computeLpClaimable(newPairData, balance);
+			_updatePairData(pairData, newPairData);
 
 			// Claim the rewards if available
 			if (claimable > 0) {
@@ -451,23 +497,16 @@ contract Router is IRouter, Ownable, UserModule, ERC1155Holder {
 					abi.encode(newAttr)
 				);
 				newNonces[i] = newNonce;
-
-				PairData storage pairData = pairsData[newAttr.pair];
-				_runUpdatesAfterRewardsGenerated(
-					pairData,
-					newPairData,
-					newGlobalData
-				);
 			}
 		}
 
-		require(totalClaimed > 0, "No rewards available to claim");
-
-		// Transfer the claimed rewards to the user
-		require(
-			ERC20(adexTokenAddress).transfer(user, totalClaimed),
-			"Reward transfer failed"
-		);
+		if (totalClaimed > 0) {
+			// Transfer the claimed rewards to the user
+			require(
+				ERC20(adexTokenAddress).transfer(user, totalClaimed),
+				"Reward transfer failed"
+			);
+		}
 	}
 
 	/**
@@ -573,6 +612,26 @@ contract Router is IRouter, Ownable, UserModule, ERC1155Holder {
 		swap(inPayment, outPairAddr, slippage);
 	}
 
+	function _executeSwap(
+		address swapExecutor,
+		TokenPayment memory inPayment,
+		address inPairAddr,
+		Pair outPair,
+		uint256 slippage,
+		uint256 tradeVolume
+	) private returns (uint256 feeBurnt) {
+		(, address referrer) = getReferrer(swapExecutor);
+
+		feeBurnt = Pair(inPairAddr).sell(
+			swapExecutor,
+			referrer,
+			inPayment,
+			outPair,
+			slippage,
+			_computeFeePercent(inPairAddr, tradeVolume)
+		);
+	}
+
 	/**
 	 * @notice Executes a trade between two pairs.
 	 * @param outPairAddr Address of the output pair.
@@ -582,7 +641,7 @@ contract Router is IRouter, Ownable, UserModule, ERC1155Holder {
 	function swap(
 		TokenPayment memory inPayment,
 		address outPairAddr,
-		uint256 slippage
+		uint256 slippage // FIXME I think we can compute the min optimal amount out off chain and pass the calue here, this could save some gas
 	) public payable {
 		if (msg.value > 0) {
 			inPayment = _receiveEDUForSpend();
@@ -598,33 +657,36 @@ contract Router is IRouter, Ownable, UserModule, ERC1155Holder {
 		address basePairAddr_ = basePairAddr();
 		Pair basePair = Pair(basePairAddr_);
 
+		uint256 inPairReserve = inPair.reserve();
+		uint256 outPairReserve = outPair.reserve();
+		uint256 basePairReserve = basePair.reserve();
+
 		uint256 tradeVolume = Amm.quote(
 			inPayment.amount,
-			inPair.reserve(),
-			basePair.reserve()
-		);
-
-		(, address referrer) = getReferrer(msg.sender);
-
-		uint256 feeBurnt = Pair(inPairAddr).sell(
-			msg.sender,
-			referrer,
-			inPayment,
-			outPair,
-			slippage,
-			_computeFeePercent(inPairAddr, tradeVolume)
+			inPairReserve,
+			basePairReserve
 		);
 
 		{
+			uint256 feeBurnt = _executeSwap(
+				msg.sender,
+				inPayment,
+				inPairAddr,
+				outPair,
+				slippage,
+				tradeVolume
+			);
+			uint256 feeCollected = Amm.quote(
+				feeBurnt,
+				outPairReserve,
+				basePairReserve
+			);
+			tradeVolume -= feeCollected;
+
 			// Update reward computation data
 			pairsData[inPairAddr].sellVolume += tradeVolume;
 			pairsData[outPairAddr].buyVolume += tradeVolume;
 
-			uint256 feeCollected = Amm.quote(
-				feeBurnt,
-				outPair.reserve(),
-				basePair.reserve()
-			);
 			pairsData[basePairAddr_].buyVolume += feeCollected;
 			globalData.totalTradeVolume += tradeVolume + feeCollected;
 		}
