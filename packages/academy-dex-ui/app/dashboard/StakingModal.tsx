@@ -2,13 +2,13 @@ import { useMemo } from "react";
 import { useFormik } from "formik";
 import RcSlider from "rc-slider";
 import Select from "react-select";
-import { useAccount, useWriteContract } from "wagmi";
+import { useWriteContract } from "wagmi";
 import { useModalToShow } from "~~/components/Modals";
 import { useSwapableTokens } from "~~/components/Swap/hooks";
 import TxButton from "~~/components/TxButton";
 import { useBasePairAddr } from "~~/hooks/routerHooks";
-import { useDeployedContractInfo, useScaffoldReadContract } from "~~/hooks/scaffold-eth";
-import { LpBalancesWithId } from "~~/hooks/useLpTokens";
+import { useDeployedContractInfo } from "~~/hooks/scaffold-eth";
+import { LpBalancesWithId, useGovernanceSpendsLp } from "~~/hooks/useLpTokens";
 import { prettyFormatAmount } from "~~/utils/formatAmount";
 
 export default function StakingModal({
@@ -19,16 +19,9 @@ export default function StakingModal({
   otherPairsLPs: LpBalancesWithId;
 }) {
   const { closeModal } = useModalToShow();
-  const { address: userAddress } = useAccount();
-
   const { writeContractAsync } = useWriteContract();
   const { data: Governance } = useDeployedContractInfo("Governance");
   const { data: LpToken } = useDeployedContractInfo("LpToken");
-  const { data: canSpendLp } = useScaffoldReadContract({
-    contractName: "LpToken",
-    functionName: "isApprovedForAll",
-    args: [userAddress, Governance?.address],
-  });
 
   const { values, setFieldValue, isValid } = useFormik({
     initialValues: {
@@ -40,8 +33,10 @@ export default function StakingModal({
     },
   });
 
+  const { tryApproveGovLpSpend } = useGovernanceSpendsLp();
+
   const onStake = async () => {
-    if (!Governance || !LpToken || canSpendLp == undefined) {
+    if (!Governance) {
       throw new Error("Contracts not loaded");
     }
 
@@ -49,13 +44,7 @@ export default function StakingModal({
       throw new Error("Must select lpPayments");
     }
 
-    !canSpendLp &&
-      (await writeContractAsync({
-        abi: LpToken.abi,
-        address: LpToken.address,
-        functionName: "setApprovalForAll",
-        args: [Governance.address, true],
-      }));
+    await tryApproveGovLpSpend();
 
     return writeContractAsync({
       abi: Governance.abi,

@@ -17,7 +17,7 @@ const processedMatchString = matchStrings.reduce((acc, curr, index) => {
 
   return acc;
 }, "");
-const errorMsg = (msg: string) => {
+export const errorMsg = (msg: string) => {
   const regEx = new RegExp("[" + processedMatchString + "](\n)?(.*)", "g");
   const error =
     msg.match("reason:\n.*")?.at(0)?.replace("reason:\n", "") ??

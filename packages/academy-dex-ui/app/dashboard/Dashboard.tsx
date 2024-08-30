@@ -7,6 +7,7 @@ import Sidebar from "./Sidebar";
 import StakingAndGovernace from "./StakingAndGovernace";
 import Swap from "./Swap";
 import TopBar from "./TopBar";
+import Voting from "./Voting";
 import ReferralCard from "~~/components/ReferralCard";
 import { useContentPanel } from "~~/hooks/useContentPanel";
 
@@ -47,6 +48,12 @@ export default function Dashboard() {
               <StakingAndGovernace />
               <ReferralCard />
             </div>
+          </div>
+          <div className="row">
+            <div className="col-12 col-xxl-8">
+              <Voting />
+            </div>
+            <div className="col-sm-4"></div>
           </div>
         </div>
 

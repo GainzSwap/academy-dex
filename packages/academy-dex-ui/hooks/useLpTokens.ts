@@ -1,5 +1,5 @@
-import { useScaffoldReadContract } from "./scaffold-eth";
-import { useAccount } from "wagmi";
+import { useDeployedContractInfo, useScaffoldReadContract } from "./scaffold-eth";
+import { useAccount, useWriteContract } from "wagmi";
 import { useSwapableTokens } from "~~/components/Swap/hooks";
 import nonceToRandString from "~~/utils/nonceToRandom";
 import { AbiFunctionReturnType, ContractAbi } from "~~/utils/scaffold-eth/contract";
@@ -28,3 +28,31 @@ export default function useLpTokens(): { lpBalances: LpBalancesWithId | undefine
     })),
   };
 }
+
+export const useGovernanceSpendsLp = () => {
+  const { address: userAddress } = useAccount();
+  const { data: Governance } = useDeployedContractInfo("Governance");
+  const { data: LpToken } = useDeployedContractInfo("LpToken");
+  const { data: canSpendLp } = useScaffoldReadContract({
+    contractName: "LpToken",
+    functionName: "isApprovedForAll",
+    args: [userAddress, Governance?.address],
+  });
+  const { writeContractAsync } = useWriteContract();
+
+  return {
+    canSpendLp,
+    tryApproveGovLpSpend: async () => {
+      if (!Governance || !LpToken || canSpendLp == undefined) {
+        throw new Error("Contracts not loaded");
+      }
+      !canSpendLp &&
+        (await writeContractAsync({
+          abi: LpToken.abi,
+          address: LpToken.address,
+          functionName: "setApprovalForAll",
+          args: [Governance.address, true],
+        }));
+    },
+  };
+};

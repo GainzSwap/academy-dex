@@ -23,6 +23,7 @@
     "hardhat:test": "yarn workspace @academy-dex/backend-sol test",
     "hardhat:coverage": "yarn workspace @academy-dex/backend-sol coverage",
     "postinstall": "husky install",
+    "hardhat": "yarn workspace @academy-dex/backend-sol hardhat",
     "next:build": "yarn workspace @academy-dex/academy-dex-ui build",
     "next:check-types": "yarn workspace @academy-dex/academy-dex-ui check-types",
     "next:format": "yarn workspace @academy-dex/academy-dex-ui format",

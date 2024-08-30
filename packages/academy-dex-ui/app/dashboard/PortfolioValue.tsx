@@ -115,16 +115,16 @@ export default function PortfolioValue() {
         })}
 
         {!!lpBalances?.length && <>LP Tokens</>}
-        {lpBalances?.map(({amount, attributes: { pair }, identifier }) => {
+        {lpBalances?.map(({ amount, attributes: { pair }, identifier }) => {
           return (
             <div key={identifier} className="fancy-selector-option">
               <div className="fs-main-info">
                 <div className="fs-name">
-                  <span>Pair: {truncateFromInside(pair, 10)}</span>
+                  <span>Pair:&nbsp;{truncateFromInside(pair, 10)}</span>
                   <strong>{identifier}</strong>
                 </div>
                 <div className="fs-sub">
-                  <span>Amount:</span>
+                  <span>Liquidity:</span>
                   <strong>{prettyFormatAmount(amount.toString())}</strong>
                 </div>
               </div>

@@ -1184,6 +1184,25 @@ const deployedContracts = {
           type: "function",
         },
         {
+          inputs: [
+            {
+              internalType: "address",
+              name: "voter",
+              type: "address",
+            },
+          ],
+          name: "getUserActiveVoteGTokenNonces",
+          outputs: [
+            {
+              internalType: "uint256[]",
+              name: "",
+              type: "uint256[]",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
           inputs: [],
           name: "gtokens",
           outputs: [
@@ -3083,7 +3102,7 @@ const deployedContracts = {
       },
     },
     Pair: {
-      address: "0x09F428b7D940ED8Bff862e81a103bf022F5E50F0",
+      address: "0x0000000000000000000000000000000000000000",
       abi: [
         {
           inputs: [

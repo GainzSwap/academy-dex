@@ -3,11 +3,11 @@ import { useAccount } from "wagmi";
 
 export default function useGTokens() {
   const { address: userAddress } = useAccount();
-  const { data: gTokens } = useScaffoldReadContract({
+  const { data: gTokens, refetch } = useScaffoldReadContract({
     contractName: "GTokens",
     functionName: "getGTokenBalance",
     args: [userAddress],
   });
 
-  return { gTokens };
+  return { gTokens, refetch };
 }

@@ -153,6 +153,7 @@ export const useSwapableTokens = ({ address: userAddress }: { address?: string }
   );
 
   return {
+    fetchTokenData,
     updateSwapableTokens: mutate,
     tokens,
     tokenMap,

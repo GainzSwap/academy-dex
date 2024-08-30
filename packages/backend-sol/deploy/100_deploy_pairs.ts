@@ -14,8 +14,9 @@ const deployPairs: DeployFunction = async function (hre: HardhatRuntimeEnvironme
   // Get from chain data to stay in sync with multiple calls
   let pairsCount = +(await Router.pairsCount()).toString();
   let tradeToken: MintableERC20 | undefined, tradeTokenAddr: string, pairAddress: string;
-  const tester1 = "0x8D0739d9D0d49aFCF8d101416cD2759Bf8922013";
-  const tester2 = "0x608bB522a3ed264C22f663dEB2585662bFe110BD";
+
+  const testers = process.env.TESTERS?.split(",") ?? [];
+
   for (let [name, symbol] of [
     ["", ""], // Base Pair
     ["", ""], // EDU pair
@@ -72,9 +73,27 @@ const deployPairs: DeployFunction = async function (hre: HardhatRuntimeEnvironme
             }, ""),
         );
 
-        await tradeToken.mint(deployer, payment.amount);
-        await tradeToken.approve(await Router.getAddress(), payment.amount);
-        await Router.createPair(payment);
+        for (const tester of testers) {
+          await token.mint(
+            tester,
+            hre.ethers.parseEther(
+              (Math.random() * 3_000_000)
+                .toString()
+                .split(".")
+                .reduce((s, c, i) => {
+                  if (i == 0) {
+                    return s;
+                  }
+
+                  s += "." + c.substring(0, 15);
+
+                  return s;
+                }, ""),
+            ),
+          );
+        }
+        // await tradeToken.approve(await Router.getAddress(), payment.amount);
+        // await Router.createPair(payment);
       }
 
       pairAddress = await Router.tokensPairAddress(tradeTokenAddr);
@@ -83,10 +102,10 @@ const deployPairs: DeployFunction = async function (hre: HardhatRuntimeEnvironme
 
     console.log({ name, pairAddress, payment });
 
-    if (tradeToken != undefined) {
-      await tradeToken.mint(tester1, payment.amount / 100_000n);
-      await tradeToken.mint(tester2, payment.amount / 100_00n);
-    }
+    // if (tradeToken != undefined) {
+    //   await tradeToken.mint(tester1, payment.amount / 100_000n);
+    //   await tradeToken.mint(tester2, payment.amount / 100_00n);
+    // }
   }
   // Done to have the abi in front end
 
@@ -112,10 +131,11 @@ const deployPairs: DeployFunction = async function (hre: HardhatRuntimeEnvironme
 
   if (hre.network.name == "localhost") {
     // Send network tokens
-    await Promise.all([
-      (await ethers.getSigner(deployer)).sendTransaction({ value: parseEther("99"), to: tester1 }),
-      (await ethers.getSigner(deployer)).sendTransaction({ value: parseEther("999"), to: tester2 }),
-    ]);
+    await Promise.all(
+      testers.map(async tester =>
+        (await ethers.getSigner(deployer)).sendTransaction({ value: parseEther("99"), to: tester }),
+      ),
+    );
   }
 };
 
