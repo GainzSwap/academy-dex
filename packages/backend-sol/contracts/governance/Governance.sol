@@ -651,6 +651,8 @@ contract Governance is ERC1155Holder, Ownable {
 		address tradeToken,
 		bool shouldList
 	) external {
+		require(activeListing.endEpoch > currentEpoch(), "Voting complete");
+
 		address user = msg.sender;
 
 		// Ensure that the trade token is valid and active for voting.
@@ -742,6 +744,12 @@ contract Governance is ERC1155Holder, Ownable {
 				""
 			);
 		}
+	}
+
+	function getUserActiveVoteGTokenNonces(
+		address voter
+	) public view returns (uint256[] memory) {
+		return _userVotes[voter].values();
 	}
 
 	receive() external payable {}
