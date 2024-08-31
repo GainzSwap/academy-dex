@@ -174,9 +174,10 @@ export function SwapTokensBody() {
               <>
                 <small className="form-text" style={{ display: "inline-block" }}>
                   <TokenIcon identifier={fromToken!.identifier} /> 1{"  "}≃{"  "}
-                  {+values.receiveAmt / +values.sendAmt} <TokenIcon identifier={toToken.identifier} />
+                  <TokenIcon identifier={toToken.identifier} />
+                  {+values.receiveAmt / +values.sendAmt}
                 </small>
-                @&nbsp;
+                &nbsp;@&nbsp;
                 <span
                   style={{ display: "inline-block" }}
                   className={`form-text ${+values.feePercent > 5 ? "text-danger" : "text-warning"}`}

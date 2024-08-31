@@ -651,15 +651,22 @@ contract Governance is ERC1155Holder, Ownable {
 		address tradeToken,
 		bool shouldList
 	) external {
-		require(activeListing.endEpoch > currentEpoch(), "Voting complete");
-
 		address user = msg.sender;
+
+		require(activeListing.endEpoch > currentEpoch(), "Voting complete");
 
 		// Ensure that the trade token is valid and active for voting.
 		require(
 			isERC20(tradeToken) &&
 				activeListing.tradeTokenPayment.token == tradeToken,
 			"Token not active"
+		);
+
+		address userLastVotedToken = userVote[user];
+		require(
+			userLastVotedToken == address(0) ||
+				userLastVotedToken == activeListing.tradeTokenPayment.token,
+			"Please recall previous votes"
 		);
 		require(
 			gTokenPayment.token == address(gtokens),
@@ -724,7 +731,6 @@ contract Governance is ERC1155Holder, Ownable {
 		require(userVoteNonces.length() > 0, "No vote found");
 
 		if (tradeToken != address(0)) {
-			delete userVote[user]; // Clear the user's vote record.
 			if (tradeToken == activeListing.tradeTokenPayment.token)
 				_endVoting();
 		}
@@ -743,6 +749,10 @@ contract Governance is ERC1155Holder, Ownable {
 				GTOKEN_MINT_AMOUNT,
 				""
 			);
+		}
+
+		if (userVoteNonces.length() == 0) {
+			delete userVote[user]; // Clear the user's vote record.
 		}
 	}
 
