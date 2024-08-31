@@ -1,5 +1,6 @@
 "use client";
 
+import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 import AddLiquidity from "./AddLiquidity";
 import ClaimLpRewards from "./ClaimLpRewards";
 import PortfolioDistribution from "./PortfolioDistribution";
@@ -7,9 +8,9 @@ import Sidebar from "./Sidebar";
 import StakingAndGovernace from "./StakingAndGovernace";
 import Swap from "./Swap";
 import TopBar from "./TopBar";
-import Voting from "./Voting";
 import ReferralCard from "~~/components/ReferralCard";
 import { useContentPanel } from "~~/hooks/useContentPanel";
+import NewPair from "./NewPair";
 
 export default function Dashboard() {
   const { toggleContentPanel } = useContentPanel();
@@ -51,7 +52,7 @@ export default function Dashboard() {
           </div>
           <div className="row">
             <div className="col-12 col-xxl-8">
-              <Voting />
+              <NewPair />
             </div>
             <div className="col-sm-4"></div>
           </div>

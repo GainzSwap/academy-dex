@@ -42,7 +42,7 @@ const reduceToTokenListing = (
   };
 };
 
-export default function Voting() {
+export default function NewPair() {
   const { address: userAddress } = useAccount();
   const { data: _activeListing } = useScaffoldReadContract({
     contractName: "Governance",
