@@ -26,8 +26,8 @@ library FeeUtil {
 	/// @dev First fee threshold percentage (0.30%).
 	uint64 constant FIRST_FEE = 30;
 
-	/// @dev Second fee threshold percentage (3.00%).
-	uint64 constant SECOND_FEE = 3_00;
+	/// @dev Second fee threshold percentage (9.00%).
+	uint64 constant SECOND_FEE = 9_00;
 
 	/// @dev Maximum fee percentage (100.00%).
 	uint64 constant THIRD_FEE = uint64(MAX_PERCENT);
@@ -92,7 +92,7 @@ library FeeUtil {
 			minOut = maxOut + 1;
 
 			if (count == 0) {
-				maxIn = MAX_RATIO_BALANCE_FACTOR / 5;
+				maxIn = MAX_RATIO_BALANCE_FACTOR / 2;
 				maxOut = SECOND_FEE;
 			} else if (count == 1) {
 				maxIn = MAX_RATIO_BALANCE_FACTOR;

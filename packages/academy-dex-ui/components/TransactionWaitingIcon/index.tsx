@@ -7,7 +7,7 @@ import styles from "./style.module.scss";
 
 export type IconReqState = "idle" | "error" | "success" | "pending";
 
-const matchStrings = ["ContractFunctionExecutionError:", " Error:", "TransactionExecutionError:"];
+const matchStrings = ["ContractFunctionExecutionError:", " Error: ", "TransactionExecutionError:"];
 const processedMatchString = matchStrings.reduce((acc, curr, index) => {
   acc += curr;
 
@@ -22,7 +22,6 @@ export const errorMsg = (msg: string) => {
   const error =
     msg.match("reason:\n.*")?.at(0)?.replace("reason:\n", "") ??
     msg.match(regEx)?.at(0)?.replace(processedMatchString, "");
-
   return error;
 };
 

@@ -64,7 +64,7 @@ export default function VoteOnActiveListing({
   const noVote = +_noVote.toString();
   const votersLiq = +_votersLiq.toString();
 
-  const epochPercentElapsed = currentEpoch / endEpoch;
+  const epochPercentElapsed = (currentEpoch / endEpoch) * 100;
   const voteAcceptance = (totalVotersLiq && votersLiq / totalVotersLiq) * 100;
 
   const totalVotes = yesVote + noVote;
@@ -112,143 +112,141 @@ export default function VoteOnActiveListing({
   };
 
   return (
-    <>
-      <div className="element-box">
-        <div className="row">
-          <div className="col-12" style={{ marginBottom: "35px" }}>
-            Proposer: {owner} <br />
-            Token:{" "}
-            {JSON.stringify(
-              {
-                token: tradeTokenPayment.token,
-                amount: prettyFormatAmount(tradeTokenPayment.amount.toString(), {
-                  decimals: newTokenInfo?.decimals || 0,
-                  length: 18,
-                  minLength: 5,
-                }),
-              },
-              null,
-              2,
-            )}
-          </div>
-
-          <div className="col-sm-6">
-            <div className="os-progress-bar primary ">
-              <div className="bar-labels">
-                <div className="bar-label-left">
-                  <span>Voting Epochs Left</span>
-                  <span className="positive">{endEpoch - currentEpoch}</span>
-                </div>
-              </div>
-              <div className="bar-level-1" style={{ width: "100%" }}>
-                <div className="bar-level-2 progress-bar-striped" style={{ width: epochPercentElapsed + "%" }}></div>
-              </div>
-            </div>
-          </div>
-          <div className="col-sm-6">
-            <div className={`os-progress-bar ${voteAcceptance < 86 ? "danger" : "success"}`}>
-              <div className="bar-labels">
-                <div className="bar-label-left">
-                  <span>Vote Acceptance</span>
-                  <span className="positive">{voteAcceptance.toFixed(2)}%</span>
-                </div>
-              </div>
-              <div className="bar-level-1" style={{ width: "100%" }}>
-                <div className="bar-level-2 progress-bar-striped" style={{ width: voteAcceptance + "%" }}></div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <h5 className="form-header">Votes</h5>
-        <div className="form-desc">
-          Ratio of <code className="highlighter-rouge">YES Votes</code> and{" "}
-          <code className="highlighter-rouge">NO Votes</code>
-          <div className="element-box-content example-content">
-            <div className="progress">
-              <div
-                aria-valuemax={100}
-                aria-valuemin={0}
-                aria-valuenow={yesPercent}
-                className="progress-bar bg-success"
-                role="progressbar"
-                style={{ width: yesPercent + "%" }}
-              >
-                {yesPercent.toFixed(2)}
-              </div>
-
-              <div
-                aria-valuemax={100}
-                aria-valuemin={0}
-                aria-valuenow={noPercent}
-                className="progress-bar bg-danger"
-                role="progressbar"
-                style={{ width: noPercent + "%" }}
-              >
-                {noPercent.toFixed(2)}
-              </div>
-            </div>
-          </div>{" "}
-        </div>
-
-        <div className="element-box-tp">
-          <h6 className="form-header">Cast Vote</h6>
-
-          {error && (
-            <>
-              <p className="text-danger">{error}</p>
-            </>
+    <div className="element-box">
+      <div className="row">
+        <div className="col-12" style={{ marginBottom: "35px" }}>
+          Proposer: {owner} <br />
+          Token:{" "}
+          {JSON.stringify(
+            {
+              token: tradeTokenPayment.token,
+              amount: prettyFormatAmount(tradeTokenPayment.amount.toString(), {
+                decimals: newTokenInfo?.decimals || 0,
+                length: 18,
+                minLength: 5,
+              }),
+            },
+            null,
+            2,
           )}
+        </div>
 
-          <Select
-            name="GTokenSelected"
-            placeholder="Select Vote Token"
-            onChange={token => {
-              setVoteToken(token?.value);
-            }}
-            styles={{
-              option: styles => {
-                return { ...styles, color: "black" };
-              },
-            }}
-            options={votingTokens}
-          />
-
-          <div className="inline-profile-tiles">
-            <div className="row">
-              <div className="col-6">
-                <div className="profile-tile profile-tile-inlined">
-                  <button
-                    disabled={voteTx.isYes && voteTx.status == "pending"}
-                    className="profile-tile-box btn"
-                    onClick={() => castVote(true)}
-                  >
-                    <div className="pt-avatar-w">
-                      <BlockiesImage seed="Accept" />
-                    </div>
-                    <div className="pt-user-name">Accept Proposal</div>
-                    {voteTx.isYes && <TransactionWaitingIcon iconReqState={voteTx.status} />}
-                  </button>
-                </div>
+        <div className="col-sm-6">
+          <div className="os-progress-bar primary ">
+            <div className="bar-labels">
+              <div className="bar-label-left">
+                <span>Voting Epochs Left</span>
+                <span className="positive">{endEpoch - currentEpoch}</span>
               </div>
-              <div className="col-6">
-                <div className="profile-tile profile-tile-inlined">
-                  <button
-                    disabled={!voteTx.isYes && voteTx.status == "pending"}
-                    className="profile-tile-box btn"
-                    onClick={() => castVote(false)}
-                  >
-                    <div className="pt-avatar-w">
-                      <BlockiesImage seed="Reject" />
-                    </div>
-                    <div className="pt-user-name">Reject Proposal</div>
-                    {!voteTx.isYes && <TransactionWaitingIcon iconReqState={voteTx.status} />}
-                  </button>
-                </div>
+            </div>
+            <div className="bar-level-1" style={{ width: "100%" }}>
+              <div className="bar-level-2 progress-bar-striped" style={{ width: epochPercentElapsed + "%" }}></div>
+            </div>
+          </div>
+        </div>
+        <div className="col-sm-6">
+          <div className={`os-progress-bar ${voteAcceptance < 86 ? "danger" : "success"}`}>
+            <div className="bar-labels">
+              <div className="bar-label-left">
+                <span>Vote Acceptance</span>
+                <span className="positive">{voteAcceptance.toFixed(2)}%</span>
+              </div>
+            </div>
+            <div className="bar-level-1" style={{ width: "100%" }}>
+              <div className="bar-level-2 progress-bar-striped" style={{ width: voteAcceptance + "%" }}></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <h5 className="form-header">Votes</h5>
+      <div className="form-desc">
+        Ratio of <code className="highlighter-rouge">YES Votes</code> and{" "}
+        <code className="highlighter-rouge">NO Votes</code>
+        <div className="element-box-content example-content">
+          <div className="progress">
+            <div
+              aria-valuemax={100}
+              aria-valuemin={0}
+              aria-valuenow={yesPercent}
+              className="progress-bar bg-success"
+              role="progressbar"
+              style={{ width: yesPercent + "%" }}
+            >
+              {yesPercent.toFixed(2)}
+            </div>
+
+            <div
+              aria-valuemax={100}
+              aria-valuemin={0}
+              aria-valuenow={noPercent}
+              className="progress-bar bg-danger"
+              role="progressbar"
+              style={{ width: noPercent + "%" }}
+            >
+              {noPercent.toFixed(2)}
+            </div>
+          </div>
+        </div>{" "}
+      </div>
+
+      <div className="element-box-tp">
+        <h6 className="form-header">Cast Vote</h6>
+
+        {error && (
+          <>
+            <p className="text-danger">{error}</p>
+          </>
+        )}
+
+        <Select
+          name="GTokenSelected"
+          placeholder="Select Vote Token"
+          onChange={token => {
+            setVoteToken(token?.value);
+          }}
+          styles={{
+            option: styles => {
+              return { ...styles, color: "black" };
+            },
+          }}
+          options={votingTokens}
+        />
+
+        <div className="inline-profile-tiles">
+          <div className="row">
+            <div className="col-6">
+              <div className="profile-tile profile-tile-inlined">
+                <button
+                  disabled={voteTx.isYes && voteTx.status == "pending"}
+                  className="profile-tile-box btn"
+                  onClick={() => castVote(true)}
+                >
+                  <div className="pt-avatar-w">
+                    <BlockiesImage seed="Accept" />
+                  </div>
+                  <div className="pt-user-name">Accept Proposal</div>
+                  {voteTx.isYes && <TransactionWaitingIcon iconReqState={voteTx.status} />}
+                </button>
+              </div>
+            </div>
+            <div className="col-6">
+              <div className="profile-tile profile-tile-inlined">
+                <button
+                  disabled={!voteTx.isYes && voteTx.status == "pending"}
+                  className="profile-tile-box btn"
+                  onClick={() => castVote(false)}
+                >
+                  <div className="pt-avatar-w">
+                    <BlockiesImage seed="Reject" />
+                  </div>
+                  <div className="pt-user-name">Reject Proposal</div>
+                  {!voteTx.isYes && <TransactionWaitingIcon iconReqState={voteTx.status} />}
+                </button>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }

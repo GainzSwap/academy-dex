@@ -7,6 +7,7 @@ import TxButton from "~~/components/TxButton";
 import { useDeployedContractInfo, useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 import { TokenListing } from "~~/types/utils";
 import { isZeroAddress } from "~~/utils/scaffold-eth/common";
+import ProcessPairListing from "./ProcessPairListing";
 
 const reduceToTokenListing = (
   list: readonly [
@@ -50,11 +51,13 @@ export default function NewPair() {
   });
   const activeListing = _activeListing && reduceToTokenListing(_activeListing);
 
-  const { data: userLisiting } = useScaffoldReadContract({
+  const { data: _userListing } = useScaffoldReadContract({
     contractName: "Governance",
     functionName: "pairOwnerListing",
     args: [userAddress],
   });
+  const userListing = _userListing && reduceToTokenListing(_userListing);
+
   const { data: currentVoteToken } = useScaffoldReadContract({
     contractName: "Governance",
     functionName: "userVote",
@@ -63,18 +66,24 @@ export default function NewPair() {
 
   const { data: currentEpoch } = useGovernanceCurrentEpoch();
 
-  if (!activeListing || currentEpoch == undefined || userLisiting == undefined || !currentVoteToken || !userAddress) {
+  if (!activeListing || currentEpoch == undefined || userListing == undefined || !currentVoteToken || !userAddress) {
     return null;
   }
 
   let display: [string, React.ReactNode];
 
-  const hasLisiting = activeListing.owner == userAddress || !isZeroAddress(reduceToTokenListing(userLisiting).owner);
+  const hasLisiting = activeListing.owner == userAddress || !isZeroAddress(userListing.owner);
   const canRecallVote = !isZeroAddress(currentVoteToken);
   const isToCreateNewLisiting = isZeroAddress(activeListing.owner);
 
   if (currentEpoch >= activeListing.endEpoch && hasLisiting) {
-    display = ["Process Pair Listing", <ProcessPairListing key={"process-pair-lisiting"} />];
+    display = [
+      "Process Pair Listing",
+      <ProcessPairListing
+        lisiting={activeListing.owner == userAddress ? activeListing : userListing}
+        key={"process-pair-lisiting"}
+      />,
+    ];
   } else if (currentEpoch >= activeListing.endEpoch && canRecallVote) {
     display = ["Recall Vote", <RecallVote key={"recall-vote"} />];
   } else {
@@ -109,23 +118,4 @@ function RecallVote() {
   };
 
   return <TxButton onClick={() => recallVote()} btnName="Recall Vote" className="btn btn-success" />;
-}
-
-function ProcessPairListing() {
-  const { data: Governance } = useDeployedContractInfo("Governance");
-  const { writeContractAsync } = useWriteContract();
-
-  const processListing = async () => {
-    if (!Governance) {
-      throw new Error("Governance contract not loaded");
-    }
-
-    return await writeContractAsync({
-      abi: Governance.abi,
-      address: Governance.address,
-      functionName: "progressNewPairListing",
-    });
-  };
-
-  return <TxButton onClick={() => processListing()} btnName="Process" className="btn btn-primary" />;
 }
