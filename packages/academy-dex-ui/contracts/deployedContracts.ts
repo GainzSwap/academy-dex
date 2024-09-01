@@ -6,7 +6,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   31337: {
     GTokens: {
-      address: "0x5b68087C4270860412A59DCf8e114cbcbeF4493F",
+      address: "0x1fD726d1d66454F3BF8Ee893e94D26daE9b577a1",
       abi: [
         {
           inputs: [
@@ -908,7 +908,7 @@ const deployedContracts = {
       inheritedFunctions: {},
     },
     Governance: {
-      address: "0xc8CB5439c767A63aca1c01862252B2F3495fDcFE",
+      address: "0xfF33dAF08339Ab237EB75598bf65843FBF25047D",
       abi: [
         {
           inputs: [
@@ -1837,7 +1837,7 @@ const deployedContracts = {
       },
     },
     LaunchPair: {
-      address: "0xeAc23B86B9C1F1CadF4834eAc93A3DAAD3C9556d",
+      address: "0x87dFcC19d247181A15f807D3E78ac19a692ab8F7",
       abi: [
         {
           inputs: [
@@ -2453,7 +2453,7 @@ const deployedContracts = {
       },
     },
     LpToken: {
-      address: "0x3B02fF1e626Ed7a8fd6eC5299e2C54e1421B626B",
+      address: "0x6A358FD7B7700887b0cd974202CdF93208F793E2",
       abi: [
         {
           inputs: [],
@@ -3643,7 +3643,7 @@ const deployedContracts = {
       },
     },
     Router: {
-      address: "0x0165878A594ca255338adfa4d48449f69242Eb8F",
+      address: "0xa82fF9aFd8f496c3d6ac40E2a0F282E47488CFc9",
       abi: [
         {
           inputs: [],
@@ -4659,7 +4659,7 @@ const deployedContracts = {
   },
   656476: {
     GTokens: {
-      address: "0xcC9EE408f2697baa89EE172A61EfC7c28e9ca191",
+      address: "0x95523052CfF3E73B76C97fEC082a3673D01EF7E7",
       abi: [
         {
           inputs: [
@@ -5561,7 +5561,7 @@ const deployedContracts = {
       inheritedFunctions: {},
     },
     Governance: {
-      address: "0x822ca84D0c4E3193E08776EE11D8C9003DaeE7f9",
+      address: "0xCb5c1Af75320c01DBBc4E696b2BA6e808CfFB0EB",
       abi: [
         {
           inputs: [
@@ -6490,7 +6490,7 @@ const deployedContracts = {
       },
     },
     LaunchPair: {
-      address: "0xACD328579b6d3129453903a40cAb78Dd70718bdf",
+      address: "0x96F05a8202F2297AD5E87167423D4dd3B032125D",
       abi: [
         {
           inputs: [
@@ -7106,7 +7106,7 @@ const deployedContracts = {
       },
     },
     LpToken: {
-      address: "0xc5Af5294A371d8b75395652B472A496058bde136",
+      address: "0x5EbE9041fDa8aA336F15b1bd68577bcDAE4d529E",
       abi: [
         {
           inputs: [],
@@ -7814,7 +7814,7 @@ const deployedContracts = {
       },
     },
     Pair: {
-      address: "0x6061008b6cbBC9104270f799E90Df0Ae58c60110",
+      address: "0x06E1A0fAD44fc7eBDC68900ad487eb386a037A0c",
       abi: [
         {
           inputs: [
@@ -8296,7 +8296,7 @@ const deployedContracts = {
       },
     },
     Router: {
-      address: "0xAe3Cd780294Fe3ED1C77d9cb0f4eBde4cBdAaB8E",
+      address: "0xE450d810f6Ee1ac1D1DC1c50c42d8F15f6544091",
       abi: [
         {
           inputs: [],
@@ -8733,6 +8733,37 @@ const deployedContracts = {
               internalType: "uint256",
               name: "totalClaimable",
               type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "userAddress",
+              type: "address",
+            },
+          ],
+          name: "getReferrals",
+          outputs: [
+            {
+              components: [
+                {
+                  internalType: "uint256",
+                  name: "id",
+                  type: "uint256",
+                },
+                {
+                  internalType: "address",
+                  name: "referralAddress",
+                  type: "address",
+                },
+              ],
+              internalType: "struct UserModule.ReferralInfo[]",
+              name: "",
+              type: "tuple[]",
             },
           ],
           stateMutability: "view",
