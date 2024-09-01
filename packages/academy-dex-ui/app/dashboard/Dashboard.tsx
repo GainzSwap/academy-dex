@@ -1,19 +1,94 @@
 "use client";
 
-import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 import AddLiquidity from "./AddLiquidity";
 import ClaimLpRewards from "./ClaimLpRewards";
+import NewPair from "./NewPair";
+import CreateNewListing from "./NewPair/CreateNewListing";
+import { FundCampaign } from "./NewPair/ProcessPairListing/FundCampaign";
 import PortfolioDistribution from "./PortfolioDistribution";
 import Sidebar from "./Sidebar";
 import StakingAndGovernace from "./StakingAndGovernace";
 import Swap from "./Swap";
 import TopBar from "./TopBar";
+import { zeroAddress } from "viem";
+import { useAccount, useBlock } from "wagmi";
 import ReferralCard from "~~/components/ReferralCard";
+import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 import { useContentPanel } from "~~/hooks/useContentPanel";
-import NewPair from "./NewPair";
+import { TokenListing } from "~~/types/utils";
+import { isZeroAddress } from "~~/utils/scaffold-eth/common";
+
+const reduceToTokenListing = (
+  list: readonly [
+    bigint,
+    bigint,
+    bigint,
+    bigint,
+    string,
+    {
+      token: string;
+      amount: bigint;
+      nonce: bigint;
+    },
+    {
+      token: string;
+      amount: bigint;
+      nonce: bigint;
+    },
+    bigint,
+  ],
+): TokenListing => {
+  const [yesVote, noVote, totalLpAmount, endEpoch, owner, securityLpPayment, tradeTokenPayment, campaignId] = list;
+
+  return {
+    yesVote,
+    noVote,
+    totalLpAmount,
+    campaignId,
+    endEpoch,
+    owner,
+    securityLpPayment,
+    tradeTokenPayment,
+  };
+};
 
 export default function Dashboard() {
+  const { data: block } = useBlock({ watch: true });
+  const { address: userAddress } = useAccount();
+
+  const { data: userContibutedCampaignIDs } = useScaffoldReadContract({
+    contractName: "LaunchPair",
+    functionName: "getUserCampaigns",
+    args: [userAddress],
+  });
+  const { data: lastCampaignId } = useScaffoldReadContract({
+    contractName: "LaunchPair",
+    functionName: "campaignCount",
+  });
+  const { data: lastCampaign } = useScaffoldReadContract({
+    contractName: "LaunchPair",
+    functionName: "getCampaignDetails",
+    args: [userContibutedCampaignIDs?.at(-1) || lastCampaignId],
+  });
   const { toggleContentPanel } = useContentPanel();
+
+  const { data: _activeListing } = useScaffoldReadContract({
+    contractName: "Governance",
+    functionName: "activeListing",
+  });
+  const activeListing = _activeListing && reduceToTokenListing(_activeListing);
+
+  const { data: _userListing } = useScaffoldReadContract({
+    contractName: "Governance",
+    functionName: "pairOwnerListing",
+    args: [userAddress],
+  });
+  const userListing = _userListing && reduceToTokenListing(_userListing);
+
+  const hasListing =
+    activeListing?.owner == userAddress || !isZeroAddress(userListing?.tradeTokenPayment.token || zeroAddress);
+  const campaignToFundExists =
+    block && lastCampaign ? lastCampaign.goal > 0 && lastCampaign.deadline > block.timestamp : false;
 
   return (
     <>
@@ -52,9 +127,18 @@ export default function Dashboard() {
           </div>
           <div className="row">
             <div className="col-12 col-xxl-8">
-              <NewPair />
+              {campaignToFundExists ? (
+                <FundCampaign campaign={lastCampaign} campaignId={lastCampaignId} />
+              ) : (
+                <NewPair
+                  userContibutedCampaignIDs={userContibutedCampaignIDs}
+                  activeListing={activeListing}
+                  userListing={userListing}
+                  hasListing={hasListing}
+                />
+              )}
             </div>
-            <div className="col-sm-4"></div>
+            <div className="col-sm-4">{!hasListing && campaignToFundExists && <CreateNewListing />}</div>
           </div>
         </div>
 

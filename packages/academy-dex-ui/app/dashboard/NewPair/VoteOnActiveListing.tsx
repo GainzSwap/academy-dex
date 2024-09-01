@@ -3,6 +3,7 @@ import { useNewTokenInfo } from "./hooks";
 import Select from "react-select";
 import { useAccount, useWriteContract } from "wagmi";
 import BlockiesImage from "~~/components/BlockiesImage";
+import LoadingState from "~~/components/LoadingState";
 import TransactionWaitingIcon, { IconReqState, errorMsg } from "~~/components/TransactionWaitingIcon";
 import { useDeployedContractInfo, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import useGTokens from "~~/hooks/useGTokens";
@@ -47,13 +48,13 @@ export default function VoteOnActiveListing({
     () =>
       gTokens?.map(token => ({
         value: { amount: token.amount, nonce: token.nonce, token: GTokens?.address } as TokenPayment,
-        label: `${gtokenSymbol}-${nonceToRandString(token.nonce, GTokens?.address ?? "")}  ${prettyFormatAmount(token.attributes.lpAmount.toString())}`,
+        label: `${prettyFormatAmount(token.attributes.stakeWeight.toString())} ${gtokenSymbol}-${nonceToRandString(token.nonce, GTokens?.address ?? "")} ${token.attributes.epochsLocked}`,
       })),
     [gTokens, gtokenSymbol, GTokens],
   );
 
-  if (_currentEpoch == undefined || _totalVotersLiq == undefined || !GTokens || !gtokenSymbol) {
-    return null;
+  if (_currentEpoch == undefined || _totalVotersLiq == undefined || !GTokens || !gtokenSymbol || !newTokenInfo) {
+    return <LoadingState text="Loading Campaign Data" />;
   }
 
   const currentEpoch = +_currentEpoch.toString();
@@ -116,19 +117,17 @@ export default function VoteOnActiveListing({
       <div className="row">
         <div className="col-12" style={{ marginBottom: "35px" }}>
           Proposer: {owner} <br />
-          Token:{" "}
-          {JSON.stringify(
-            {
-              token: tradeTokenPayment.token,
-              amount: prettyFormatAmount(tradeTokenPayment.amount.toString(), {
-                decimals: newTokenInfo?.decimals || 0,
-                length: 18,
-                minLength: 5,
-              }),
-            },
-            null,
-            2,
-          )}
+          Token: {tradeTokenPayment.token} <br />
+          Initial Liquidity Amount:{" "}
+          <b style={{ fontWeight: "bolder" }}>
+            {" "}
+            {newTokenInfo.identifier}&nbsp;
+            {prettyFormatAmount(tradeTokenPayment.amount.toString(), {
+              decimals: newTokenInfo.decimals,
+              length: 18,
+              minLength: 5,
+            })}
+          </b>
         </div>
 
         <div className="col-sm-6">

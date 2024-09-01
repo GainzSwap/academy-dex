@@ -8,7 +8,6 @@ import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 
 import { TokenPayment, TokenPayments } from "../common/libs/TokenPayments.sol";
 import { LpToken } from "../modules/LpToken.sol";
-import "hardhat/console.sol";
 
 /**
  * @title LaunchPair
@@ -167,7 +166,12 @@ contract LaunchPair is Ownable, ERC1155Holder {
 		TokenPayment calldata payment,
 		uint256 _campaignId
 	) external onlyOwner campaignExists(_campaignId) hasMetGoal(_campaignId) {
-		require(payment.amount > 0, "Invalid payment");
+		require(
+			payment.amount > 0 &&
+				payment.nonce > 0 &&
+				address(lpToken) == payment.token,
+			"LaunchPair: Invalid LP token received"
+		);
 		payment.receiveToken();
 
 		Campaign storage campaign = campaigns[_campaignId];

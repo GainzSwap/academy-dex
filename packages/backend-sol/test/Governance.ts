@@ -752,6 +752,9 @@ describe("Governance Contract", function () {
       expect(
         (await lpTokenContract.getNonces(lpHaunter1)).length + (await lpTokenContract.getNonces(lpHaunter2)).length,
       ).to.eq(2);
+
+      const campaignAfter = await launchPairContract.getCampaignDetails(campaignId);
+      expect(campaignAfter.lpNonce).to.be.gt(0);
     });
   });
 

@@ -6,10 +6,13 @@ import BigNumber from "bignumber.js";
 import { useAccount } from "wagmi";
 import { useSwapableTokens } from "~~/components/Swap/hooks";
 import { useBasePairAddr } from "~~/hooks/routerHooks";
+import { useDeployedContractInfo, useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 import { useOnPathChange } from "~~/hooks/useContentPanel";
+import useGTokens from "~~/hooks/useGTokens";
 import useLpTokens from "~~/hooks/useLpTokens";
 import { truncateFromInside } from "~~/utils";
 import { prettyFormatAmount } from "~~/utils/formatAmount";
+import nonceToRandString from "~~/utils/nonceToRandom";
 
 const usePortfolioViewToggler = () => {
   const [opened, setOpened] = useState(false);
@@ -55,6 +58,9 @@ export default function PortfolioValue() {
   }, [tokens, basePairIdentifier]);
 
   const { lpBalances } = useLpTokens();
+  const { gTokens } = useGTokens();
+  const { data: GTokens } = useDeployedContractInfo("GTokens");
+  const { data: gtokenSymbol } = useScaffoldReadContract({ contractName: "GTokens", functionName: "symbol" });
 
   return !baseToken ? null : (
     <div className={`fancy-selector-w ${opened ? "opened" : ""}`}>
@@ -114,8 +120,31 @@ export default function PortfolioValue() {
           );
         })}
 
+        {!!gTokens?.length && <>GTokens</>}
+        {gtokenSymbol &&
+          gTokens?.map(({ nonce, attributes: { lpAmount } }) => {
+            const identifier = gtokenSymbol + "-" + nonceToRandString(nonce, GTokens?.address || "");
+            return (
+              <div key={identifier} className="fancy-selector-option">
+                <div className="fs-main-info">
+                  <div className="fs-name">
+                    <span>{identifier}</span>
+                  </div>
+                  <div className="fs-sub">
+                    <span>Liquidity Locked:</span>
+                    <strong>{prettyFormatAmount(lpAmount.toString())}</strong>
+                  </div>
+                  <div className="fs-sub">
+                    <span>Nonce:</span>
+                    <strong>{nonce.toString()}</strong>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
         {!!lpBalances?.length && <>LP Tokens</>}
-        {lpBalances?.map(({ amount, attributes: { pair }, identifier }) => {
+        {lpBalances?.map(({ amount, attributes: { pair }, identifier, nonce }) => {
           return (
             <div key={identifier} className="fancy-selector-option">
               <div className="fs-main-info">
@@ -126,6 +155,10 @@ export default function PortfolioValue() {
                 <div className="fs-sub">
                   <span>Liquidity:</span>
                   <strong>{prettyFormatAmount(amount.toString())}</strong>
+                </div>
+                <div className="fs-sub">
+                  <span> Nonce:</span>
+                  <strong>{nonce.toString()}</strong>
                 </div>
               </div>
             </div>

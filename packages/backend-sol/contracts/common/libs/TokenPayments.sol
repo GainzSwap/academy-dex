@@ -6,8 +6,6 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import { SFT } from "../../modules/SFT.sol";
 import { WEDU } from "./WEDU.sol";
 
-import "hardhat/console.sol";
-
 struct TokenPayment {
 	address token;
 	uint256 amount;

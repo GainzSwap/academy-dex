@@ -1,4 +1,5 @@
 import { useNewTokenInfo } from "./hooks";
+import BigNumber from "bignumber.js";
 import { useFormik } from "formik";
 import { parseEther, parseUnits } from "viem";
 import { useAccount, useWriteContract } from "wagmi";
@@ -100,14 +101,13 @@ export default function CreateNewListing() {
               amount: securityLpPaymentDetails.amount,
               nonce: securityLpPaymentDetails.nonce,
             };
+            console.log(values);
             const listingFeePayment = { token: userAdexInfo.tradeTokenAddr, amount: parseEther("20"), nonce: 0n };
             const tradeTokenPayment = {
               token: newTokenInfo.tradeTokenAddr,
-              amount: parseUnits(values.amount.toString(), newTokenInfo.decimals),
+              amount: parseUnits(BigNumber(values.amount).toFixed(), newTokenInfo.decimals),
               nonce: 0n,
             };
-
-            console.log({ listingFeePayment, securityPayment, tradeTokenPayment, userAdexInfo, newTokenInfo });
 
             if (listingFeePayment.amount > BigInt(userAdexInfo.balance)) {
               throw new Error("Listing Fee balance too low");

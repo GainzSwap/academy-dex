@@ -1,5 +1,7 @@
 import React from "react";
 import CreateNewListing from "./CreateNewListing";
+import ProcessPairListing from "./ProcessPairListing";
+import ProcessUserContributedCampaign from "./ProcessUserContributedCampaign";
 import VoteOnActiveListing from "./VoteOnActiveListing";
 import { useGovernanceCurrentEpoch } from "./hooks";
 import { useAccount, useWriteContract } from "wagmi";
@@ -7,56 +9,19 @@ import TxButton from "~~/components/TxButton";
 import { useDeployedContractInfo, useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 import { TokenListing } from "~~/types/utils";
 import { isZeroAddress } from "~~/utils/scaffold-eth/common";
-import ProcessPairListing from "./ProcessPairListing";
 
-const reduceToTokenListing = (
-  list: readonly [
-    bigint,
-    bigint,
-    bigint,
-    bigint,
-    string,
-    {
-      token: string;
-      amount: bigint;
-      nonce: bigint;
-    },
-    {
-      token: string;
-      amount: bigint;
-      nonce: bigint;
-    },
-    bigint,
-  ],
-): TokenListing => {
-  const [yesVote, noVote, totalLpAmount, endEpoch, owner, securityLpPayment, tradeTokenPayment, campaignId] = list;
-
-  return {
-    yesVote,
-    noVote,
-    totalLpAmount,
-    campaignId,
-    endEpoch,
-    owner,
-    securityLpPayment,
-    tradeTokenPayment,
-  };
-};
-
-export default function NewPair() {
+export default function NewPair({
+  activeListing,
+  userListing,
+  hasListing,
+  userContibutedCampaignIDs,
+}: {
+  activeListing?: TokenListing;
+  userListing?: TokenListing;
+  hasListing: boolean;
+  userContibutedCampaignIDs: readonly bigint[] | undefined;
+}) {
   const { address: userAddress } = useAccount();
-  const { data: _activeListing } = useScaffoldReadContract({
-    contractName: "Governance",
-    functionName: "activeListing",
-  });
-  const activeListing = _activeListing && reduceToTokenListing(_activeListing);
-
-  const { data: _userListing } = useScaffoldReadContract({
-    contractName: "Governance",
-    functionName: "pairOwnerListing",
-    args: [userAddress],
-  });
-  const userListing = _userListing && reduceToTokenListing(_userListing);
 
   const { data: currentVoteToken } = useScaffoldReadContract({
     contractName: "Governance",
@@ -66,28 +31,42 @@ export default function NewPair() {
 
   const { data: currentEpoch } = useGovernanceCurrentEpoch();
 
-  if (!activeListing || currentEpoch == undefined || userListing == undefined || !currentVoteToken || !userAddress) {
+  if (
+    !userContibutedCampaignIDs ||
+    !activeListing ||
+    currentEpoch == undefined ||
+    userListing == undefined ||
+    !currentVoteToken ||
+    !userAddress
+  ) {
     return null;
   }
 
   let display: [string, React.ReactNode];
 
-  const hasLisiting = activeListing.owner == userAddress || !isZeroAddress(userListing.owner);
   const canRecallVote = !isZeroAddress(currentVoteToken);
-  const isToCreateNewLisiting = isZeroAddress(activeListing.owner);
+  const isToCreateNewListing = isZeroAddress(activeListing.owner);
 
-  if (currentEpoch >= activeListing.endEpoch && hasLisiting) {
+  if (currentEpoch >= activeListing.endEpoch && hasListing) {
     display = [
       "Process Pair Listing",
       <ProcessPairListing
-        lisiting={activeListing.owner == userAddress ? activeListing : userListing}
-        key={"process-pair-lisiting"}
+        listing={activeListing.owner == userAddress ? activeListing : userListing}
+        key={"process-pair-listing"}
+      />,
+    ];
+  } else if (userContibutedCampaignIDs.length > 0) {
+    display = [
+      "",
+      <ProcessUserContributedCampaign
+        key={"ProcessUserContributedCampaign"}
+        campaignId={userContibutedCampaignIDs[0]}
       />,
     ];
   } else if (currentEpoch >= activeListing.endEpoch && canRecallVote) {
     display = ["Recall Vote", <RecallVote key={"recall-vote"} />];
   } else {
-    display = isToCreateNewLisiting
+    display = isToCreateNewListing
       ? ["List New Token", <CreateNewListing key={"create-new-listing"} />]
       : ["Voting", <VoteOnActiveListing activeListing={activeListing} key={"vote"} />];
   }

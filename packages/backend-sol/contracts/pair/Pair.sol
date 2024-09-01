@@ -16,8 +16,6 @@ import "./Knowable.sol";
 import { LpToken } from "../modules/LpToken.sol";
 import "../common/utils.sol";
 
-import "hardhat/console.sol";
-
 uint256 constant RPS_DIVISION_CONSTANT = 1e36;
 
 library DeployPair {
@@ -210,6 +208,10 @@ contract Pair is Ownable, KnowablePair {
 			// Send bought tokens to receiver
 			TokenPayment({ nonce: 0, amount: amountOut, token: tradeToken })
 				.sendToken(receiver);
+			if (basePair == (this)) {
+				// Zero out toBurn since base pair is the pair that collects the burn fees
+				toBurn = 0;
+			}
 		}
 		emit BurntFees(address(this), toBurn);
 	}

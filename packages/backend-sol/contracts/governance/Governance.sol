@@ -16,11 +16,9 @@ import "../common/utils.sol";
 import { LpToken } from "../modules/LpToken.sol";
 import { DeployLaunchPair, LaunchPair } from "./DeployLaunchPair.sol";
 
-import "hardhat/console.sol";
-
 library NewGTokens {
-	function create() external returns (GTokens) {
-		return new GTokens();
+	function create(Epochs.Storage memory epoch) external returns (GTokens) {
+		return new GTokens(epoch);
 	}
 }
 
@@ -33,6 +31,7 @@ contract Governance is ERC1155Holder, Ownable {
 	using GToken for GToken.Attributes;
 	using Number for uint256;
 	using EnumerableSet for EnumerableSet.UintSet;
+	using EnumerableSet for EnumerableSet.AddressSet;
 
 	uint256 constant REWARDS_DIVISION_SAFETY_CONSTANT = 1e18;
 
@@ -83,6 +82,7 @@ contract Governance is ERC1155Holder, Ownable {
 	// The current active listing
 	TokenListing public activeListing;
 
+	EnumerableSet.AddressSet private _pendingOrListedTokens;
 	// Mapping of token owner to their proposed listing
 	mapping(address => TokenListing) public pairOwnerListing;
 
@@ -102,9 +102,9 @@ contract Governance is ERC1155Holder, Ownable {
 		lpTokenAddress = _lpToken;
 		adexTokenAddress = _adex;
 
-		gtokens = NewGTokens.create();
-		launchPair = DeployLaunchPair.newLaunchPair(_lpToken);
 		epochs = epochs_;
+		gtokens = NewGTokens.create(epochs);
+		launchPair = DeployLaunchPair.newLaunchPair(_lpToken);
 
 		_router = IRouter(msg.sender);
 
@@ -436,8 +436,11 @@ contract Governance is ERC1155Holder, Ownable {
 		);
 
 		// Validate the trade token and ensure it is not already listed
+		bool isNewAddition = _pendingOrListedTokens.add(tradeToken);
 		require(
-			isERC20(tradeToken) && !_router.tokenIsListed(tradeToken),
+			isERC20(tradeToken) &&
+				isNewAddition &&
+				!_router.tokenIsListed(tradeToken),
 			"Governance: Invalid Trade token"
 		);
 		// Check if the correct listing fee amount is provided
@@ -464,7 +467,7 @@ contract Governance is ERC1155Holder, Ownable {
 		activeListing.owner = msg.sender;
 		activeListing.tradeTokenPayment = tradeTokenPayment;
 		activeListing.securityLpPayment = securityPayment;
-		activeListing.endEpoch = currentEpoch() + 7;
+		activeListing.endEpoch = currentEpoch() + 3;
 	}
 
 	/// @notice Validates the LP payment for the listing based on the total ADEX amount in liquidity.
@@ -502,6 +505,39 @@ contract Governance is ERC1155Holder, Ownable {
 			listing.tradeTokenPayment.sendToken(listing.owner);
 		}
 		delete pairOwnerListing[msg.sender];
+		_pendingOrListedTokens.remove(listing.tradeTokenPayment.token);
+	}
+
+	function getPendingOrListedTokens() public view returns (address[] memory) {
+		return _pendingOrListedTokens.values();
+	}
+
+	function _createFundRaisingCampaignForListing(
+		TokenListing storage listing
+	) private returns (bool) {
+		require(
+			listing.campaignId == 0,
+			"Governance: Campaign Created already for Lisiting"
+		);
+
+		// Check if the proposal passes both the total LP amount and the voting requirements.
+		bool passedForTotalGTokenLp = _checkProposalPass(
+			listing.totalLpAmount,
+			gtokens.totalLpAmount()
+		);
+		bool passedForYesVotes = _checkProposalPass(
+			listing.yesVote,
+			listing.yesVote + listing.noVote
+		);
+		if (!(passedForTotalGTokenLp && passedForYesVotes)) {
+			// If the proposal did not pass, return the deposits to the listing owner.
+			_returnListingDeposits(listing);
+			return false;
+		}
+
+		// Create a new campaign for the listing owner.
+		listing.campaignId = launchPair.createCampaign(listing.owner);
+		return true;
 	}
 
 	/**
@@ -522,25 +558,8 @@ contract Governance is ERC1155Holder, Ownable {
 		// Ensure that a valid listing exists after the potential refresh.
 		require(listing.owner != address(0), "No listing found");
 
-		// Check if the proposal passes both the total LP amount and the voting requirements.
-		bool passedForTotalGTokenLp = _checkProposalPass(
-			listing.totalLpAmount,
-			gtokens.totalLpAmount()
-		);
-		bool passedForYesVotes = _checkProposalPass(
-			listing.yesVote,
-			listing.yesVote + listing.noVote
-		);
-		if (!(passedForTotalGTokenLp && passedForYesVotes)) {
-			// If the proposal did not pass, return the deposits to the listing owner.
-			_returnListingDeposits(listing);
-			return;
-		}
-
-		// Handle the launch pad and price discovery stages.
 		if (listing.campaignId == 0) {
-			// If no campaign has been created yet, create a new one for the listing owner.
-			listing.campaignId = launchPair.createCampaign(listing.owner);
+			_createFundRaisingCampaignForListing(listing);
 		} else {
 			// Retrieve details of the existing campaign.
 			LaunchPair.Campaign memory campaign = launchPair.getCampaignDetails(
@@ -628,14 +647,14 @@ contract Governance is ERC1155Holder, Ownable {
 					listing.tradeTokenPayment
 				);
 
-				// Clear the trade token payment after pair creation.
-				delete listing.tradeTokenPayment;
-
 				// Approve the LP tokens for use by the launch pair contract.
 				lpPayment.approve(address(launchPair));
 
 				// Transfer the LP tokens to the launch pair contract.
 				launchPair.receiveLpToken(lpPayment, listing.campaignId);
+
+				// complete the proposal
+				delete pairOwnerListing[msg.sender];
 			}
 		}
 	}

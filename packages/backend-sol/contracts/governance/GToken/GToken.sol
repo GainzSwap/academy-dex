@@ -4,10 +4,12 @@ pragma solidity ^0.8.9;
 import { GToken } from "./GTokenAttributes.sol";
 import { SFT } from "../../modules/SFT.sol";
 import { TokenPayment } from "../../common/libs/TokenPayments.sol";
+import { Epochs } from "../../common/Epochs.sol";
 
 struct GTokensBalance {
 	uint256 nonce;
 	uint256 amount;
+	uint256 votePower;
 	GToken.Attributes attributes;
 }
 
@@ -18,13 +20,21 @@ uint256 constant GTOKEN_MINT_AMOUNT = 1;
 /// @dev The contract extends a semi-fungible token (SFT) and uses GToken attributes for staking.
 contract GTokens is SFT {
 	using GToken for GToken.Attributes;
+	using Epochs for Epochs.Storage;
 
 	uint256 private _totalStakeWeight;
 	uint256 private _totalLpAmount;
 
+	// Storage for epochs management
+	Epochs.Storage public epochs;
+
 	/// @notice Constructor to initialize the GTokens contract.
 	/// @dev Sets the name and symbol of the SFT for GTokens.
-	constructor() SFT("ADEX Governance Token", "GTADEX") {}
+	constructor(
+		Epochs.Storage memory epochs_
+	) SFT("ADEX Governance Token", "GTADEX") {
+		epochs = epochs_;
+	}
 
 	/// @notice Mints a new GToken for the given address.
 	/// @dev The function encodes GToken attributes and mints the token with those attributes.
@@ -96,13 +106,33 @@ contract GTokens is SFT {
 		);
 
 		return
+			_packageGTokenBalance(
+				nonce,
+				balanceOf(user, nonce),
+				_getRawTokenAttributes(nonce)
+			);
+	}
+
+	function _packageGTokenBalance(
+		uint256 nonce,
+		uint256 amount,
+		bytes memory attr
+	) private view returns (GTokensBalance memory) {
+		GToken.Attributes memory attrUnpacked = abi.decode(
+			attr,
+			(GToken.Attributes)
+		);
+		uint256 epochsLeft = attrUnpacked.epochsLeft(
+			attrUnpacked.epochsElapsed(epochs.currentEpoch())
+		);
+		uint256 votePower = attrUnpacked.votePower(epochsLeft);
+
+		return
 			GTokensBalance({
 				nonce: nonce,
-				amount: balanceOf(user, nonce),
-				attributes: abi.decode(
-					_getRawTokenAttributes(nonce),
-					(GToken.Attributes)
-				)
+				amount: amount,
+				attributes: attrUnpacked,
+				votePower: votePower
 			});
 	}
 
@@ -125,11 +155,11 @@ contract GTokens is SFT {
 		for (uint256 i = 0; i < _sftBals.length; i++) {
 			SftBalance memory _sftBal = _sftBals[i];
 
-			balance[i] = GTokensBalance({
-				nonce: _sftBal.nonce,
-				amount: _sftBal.amount,
-				attributes: abi.decode(_sftBal.attributes, (GToken.Attributes))
-			});
+			balance[i] = _packageGTokenBalance(
+				_sftBal.nonce,
+				_sftBal.amount,
+				_sftBal.attributes
+			);
 		}
 
 		return balance;

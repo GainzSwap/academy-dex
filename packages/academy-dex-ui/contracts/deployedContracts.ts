@@ -9,7 +9,25 @@ const deployedContracts = {
       address: "0x5b68087C4270860412A59DCf8e114cbcbeF4493F",
       abi: [
         {
-          inputs: [],
+          inputs: [
+            {
+              components: [
+                {
+                  internalType: "uint256",
+                  name: "genesis",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "epochLength",
+                  type: "uint256",
+                },
+              ],
+              internalType: "struct Epochs.Storage",
+              name: "epochs_",
+              type: "tuple",
+            },
+          ],
           stateMutability: "nonpayable",
           type: "constructor",
         },
@@ -199,6 +217,24 @@ const deployedContracts = {
           type: "function",
         },
         {
+          inputs: [],
+          name: "epochs",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "genesis",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "epochLength",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
           inputs: [
             {
               internalType: "address",
@@ -223,6 +259,11 @@ const deployedContracts = {
                 {
                   internalType: "uint256",
                   name: "amount",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "votePower",
                   type: "uint256",
                 },
                 {
@@ -313,6 +354,11 @@ const deployedContracts = {
                 {
                   internalType: "uint256",
                   name: "amount",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "votePower",
                   type: "uint256",
                 },
                 {
@@ -1178,6 +1224,19 @@ const deployedContracts = {
               internalType: "uint256",
               name: "totalClaimable",
               type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "getPendingOrListedTokens",
+          outputs: [
+            {
+              internalType: "address[]",
+              name: "",
+              type: "address[]",
             },
           ],
           stateMutability: "view",

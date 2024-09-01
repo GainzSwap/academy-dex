@@ -84,7 +84,7 @@ library GToken {
 		uint256 xPow = (MAX_EPOCHS_LOCK - epochsLeft(self, currentEpoch)) ** 2;
 		uint256 mPow = MAX_EPOCHS_LOCK ** 2;
 
-		uint256 voteWeight = ((9 * xPow) / mPow) - 1;
+		uint256 voteWeight = ((9 * xPow) / mPow) + 1;
 
 		return self.lpAmount * voteWeight;
 	}

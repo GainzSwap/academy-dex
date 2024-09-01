@@ -8,6 +8,9 @@ export default function ClaimStakingRewards() {
   const { gTokens } = useGTokens();
   const { address: userAddress } = useAccount();
 
+  // const { governance, client } = useRawCallsInfo();
+  // useSWR(client && governance && gTokens ?{key:'getSelectedGTokens', client, governance, gTokens}:null,()=>)
+
   const selectedGToken = gTokens?.toSorted((a, b) => +(a.nonce - b.nonce).toString()).at(0);
 
   const { data: totalClaimable } = useScaffoldReadContract({
