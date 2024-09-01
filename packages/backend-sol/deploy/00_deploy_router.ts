@@ -19,8 +19,7 @@ const deployRouterContract: DeployFunction = async function (hre: HardhatRuntime
     autoMine: true,
     libraries: {
       DeployPair: await (await hre.ethers.deployContract("DeployPair")).getAddress(),
-      // TODO When going into production, remember to replace `DeployTestBasePair` with `DeployBasePair`
-      DeployBasePair: await (await hre.ethers.deployContract("DeployTestBasePair")).getAddress(),
+      DeployBasePair: await (await hre.ethers.deployContract("DeployBasePair")).getAddress(),
       DeployEduPair: await (await hre.ethers.deployContract("DeployEduPair")).getAddress(),
       DeployGovernance: await deployGovernance.getAddress(),
     },
