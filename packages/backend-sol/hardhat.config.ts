@@ -52,7 +52,7 @@ const config: HardhatUserConfig = {
   },
   // configuration for harhdat-verify plugin
   etherscan: {
-    apiKey: `${etherscanApiKey}`,
+    apiKey: { opencampus: "NOT NEEDED" },
     customChains: [
       {
         network: "opencampus",

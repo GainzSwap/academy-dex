@@ -4093,6 +4093,37 @@ const deployedContracts = {
               type: "address",
             },
           ],
+          name: "getReferrals",
+          outputs: [
+            {
+              components: [
+                {
+                  internalType: "uint256",
+                  name: "id",
+                  type: "uint256",
+                },
+                {
+                  internalType: "address",
+                  name: "referralAddress",
+                  type: "address",
+                },
+              ],
+              internalType: "struct UserModule.ReferralInfo[]",
+              name: "",
+              type: "tuple[]",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "userAddress",
+              type: "address",
+            },
+          ],
           name: "getReferrer",
           outputs: [
             {

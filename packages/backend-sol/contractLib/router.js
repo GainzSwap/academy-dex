@@ -1,0 +1,6 @@
+module.exports = {
+  DeployPair: "0x546C669a3Daf1A1989Aa7cc693b39c3F2452E367",
+  DeployBasePair: "0x2cBBe36E501f77054707709cb2De1B8b652B81D5",
+  DeployEduPair: "0x0b8760E902e627dBcEd50d831b8B17aE1d2A719f",
+  DeployGovernance: "0x98aecA122aC6A25e2869719FdC2a75708F03a3b8",
+};

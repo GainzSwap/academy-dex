@@ -2,6 +2,11 @@
 pragma solidity 0.8.9;
 
 abstract contract UserModule {
+	struct ReferralInfo {
+		uint256 id;
+		address referralAddress;
+	}
+
 	struct User {
 		uint256 id;
 		address addr;
@@ -32,10 +37,33 @@ abstract contract UserModule {
 		referrerAddress = userIdToAddress[referrerId];
 	}
 
+	/// @notice Gets the user ID for a given address.
+	/// @param userAddress The address of the user.
+	/// @return userId The ID of the user.
 	function getUserId(
 		address userAddress
 	) external view returns (uint256 userId) {
 		return users[userAddress].id;
+	}
+
+	/// @notice Retrieves the referrals of a user.
+	/// @param userAddress The address of the user.
+	/// @return referrals An array of `ReferralInfo` structs representing the user's referrals.
+	function getReferrals(
+		address userAddress
+	) external view returns (ReferralInfo[] memory) {
+		uint256[] memory referralIds = users[userAddress].referrals;
+		ReferralInfo[] memory referrals = new ReferralInfo[](
+			referralIds.length
+		);
+
+		for (uint256 i = 0; i < referralIds.length; i++) {
+			uint256 id = referralIds[i];
+			address refAddr = userIdToAddress[id];
+			referrals[i] = ReferralInfo({ id: id, referralAddress: refAddr });
+		}
+
+		return referrals;
 	}
 
 	/// @notice Internal function to create or get the user ID.
@@ -46,20 +74,29 @@ abstract contract UserModule {
 		address userAddr,
 		uint256 referrerId
 	) internal returns (uint256) {
-		if (users[userAddr].id != 0) {
-			return users[userAddr].id;
+		User storage user = users[userAddr];
+
+		// If user already exists, return the existing ID
+		if (user.id != 0) {
+			return user.id;
 		}
 
+		// Increment user count and assign new user ID
 		userCount++;
 		users[userAddr] = User({
 			id: userCount,
 			addr: userAddr,
 			referrerId: referrerId,
-			referrals: new uint256[](1)
+			referrals: new uint256[](0)
 		});
 		userIdToAddress[userCount] = userAddr;
 
-		if (referrerId != 0 && userIdToAddress[referrerId] != address(0)) {
+		// Add user to referrer's referrals list, if applicable
+		if (
+			referrerId != 0 &&
+			referrerId != userCount &&
+			userIdToAddress[referrerId] != address(0)
+		) {
 			users[userIdToAddress[referrerId]].referrals.push(userCount);
 			emit ReferralAdded(referrerId, userCount);
 		}

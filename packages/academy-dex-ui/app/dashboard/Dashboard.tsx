@@ -6,6 +6,7 @@ import NewPair from "./NewPair";
 import CreateNewListing from "./NewPair/CreateNewListing";
 import { FundCampaign } from "./NewPair/ProcessPairListing/FundCampaign";
 import PortfolioDistribution from "./PortfolioDistribution";
+import Referrals from "./Referrals";
 import Sidebar from "./Sidebar";
 import StakingAndGovernace from "./StakingAndGovernace";
 import Swap from "./Swap";
@@ -114,6 +115,7 @@ export default function Dashboard() {
                   <ClaimLpRewards />
                 </div>
               </div>
+              <Referrals />
             </div>
 
             <div className="col-sm-2 d-none d-lg-block">
