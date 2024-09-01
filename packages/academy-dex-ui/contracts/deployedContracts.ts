@@ -4628,10 +4628,28 @@ const deployedContracts = {
   },
   656476: {
     GTokens: {
-      address: "0xafe3d1F7Da27a40F2Cb57086503724C9796a3E66",
+      address: "0xcC9EE408f2697baa89EE172A61EfC7c28e9ca191",
       abi: [
         {
-          inputs: [],
+          inputs: [
+            {
+              components: [
+                {
+                  internalType: "uint256",
+                  name: "genesis",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "epochLength",
+                  type: "uint256",
+                },
+              ],
+              internalType: "struct Epochs.Storage",
+              name: "epochs_",
+              type: "tuple",
+            },
+          ],
           stateMutability: "nonpayable",
           type: "constructor",
         },
@@ -4821,6 +4839,24 @@ const deployedContracts = {
           type: "function",
         },
         {
+          inputs: [],
+          name: "epochs",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "genesis",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "epochLength",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
           inputs: [
             {
               internalType: "address",
@@ -4845,6 +4881,11 @@ const deployedContracts = {
                 {
                   internalType: "uint256",
                   name: "amount",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "votePower",
                   type: "uint256",
                 },
                 {
@@ -4935,6 +4976,11 @@ const deployedContracts = {
                 {
                   internalType: "uint256",
                   name: "amount",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "votePower",
                   type: "uint256",
                 },
                 {
@@ -5484,7 +5530,7 @@ const deployedContracts = {
       inheritedFunctions: {},
     },
     Governance: {
-      address: "0x88f89376f78C6a7D61A2EE25A795b5E318c1461A",
+      address: "0x822ca84D0c4E3193E08776EE11D8C9003DaeE7f9",
       abi: [
         {
           inputs: [
@@ -5800,6 +5846,38 @@ const deployedContracts = {
               internalType: "uint256",
               name: "totalClaimable",
               type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "getPendingOrListedTokens",
+          outputs: [
+            {
+              internalType: "address[]",
+              name: "",
+              type: "address[]",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "voter",
+              type: "address",
+            },
+          ],
+          name: "getUserActiveVoteGTokenNonces",
+          outputs: [
+            {
+              internalType: "uint256[]",
+              name: "",
+              type: "uint256[]",
             },
           ],
           stateMutability: "view",
@@ -6381,7 +6459,7 @@ const deployedContracts = {
       },
     },
     LaunchPair: {
-      address: "0xF50CCe76b604b82E1cba385fE28cD7AF2a211999",
+      address: "0xACD328579b6d3129453903a40cAb78Dd70718bdf",
       abi: [
         {
           inputs: [
@@ -6997,7 +7075,7 @@ const deployedContracts = {
       },
     },
     LpToken: {
-      address: "0xA5D059a825C5af7337b9a19E06F60bf31D996dBa",
+      address: "0xc5Af5294A371d8b75395652B472A496058bde136",
       abi: [
         {
           inputs: [],
@@ -7705,7 +7783,7 @@ const deployedContracts = {
       },
     },
     Pair: {
-      address: "0xd94cB55625EC787De3Ff295A8F64F503438A3582",
+      address: "0x6061008b6cbBC9104270f799E90Df0Ae58c60110",
       abi: [
         {
           inputs: [
@@ -8187,7 +8265,7 @@ const deployedContracts = {
       },
     },
     Router: {
-      address: "0x983DD2F808b583433eAD7ba0953Ca73de253B276",
+      address: "0xAe3Cd780294Fe3ED1C77d9cb0f4eBde4cBdAaB8E",
       abi: [
         {
           inputs: [],
