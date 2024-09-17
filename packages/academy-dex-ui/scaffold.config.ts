@@ -13,6 +13,10 @@ const scaffoldConfig = {
   // The networks on which your DApp is live
   targetNetworks: [
     {
+      ...chains.hardhat,
+      nativeCurrency: { decimals: 18, name: "EDU Coin", symbol: "dEDU" },
+    },
+    {
       id: 656476,
       name: "opencampus",
       nativeCurrency: { decimals: 18, name: "EDU Coin", symbol: "EDU" },
@@ -22,13 +26,9 @@ const scaffoldConfig = {
       },
       testnet: true,
     },
-    {
-      ...chains.hardhat,
-      nativeCurrency: { decimals: 18, name: "EDU Coin", symbol: "dEDU" },
-    },
   ],
 
-  defaultTargetNetwork: Number(process.env.NEXT_PUBLIC_DEFAULT_TARGET_NETWORK ?? 0),
+  defaultTargetNetwork: Number(process.env.NEXT_PUBLIC_DEFAULT_TARGET_NETWORK ?? 1),
 
   // The interval at which your front-end polls the RPC servers for new data
   // it has no effect if you only target the local network (default is 4000)
