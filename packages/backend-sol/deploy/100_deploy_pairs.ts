@@ -2,7 +2,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 import { ethers } from "hardhat";
 import { ADEX, MintableERC20, Router } from "../typechain-types";
-import { parseEther, ZeroAddress } from "ethers";
+import { parseEther } from "ethers";
 
 const deployPairs: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
@@ -140,4 +140,4 @@ export default deployPairs;
 
 // Tags are useful if you have multiple deploy files and only want to run one of them.
 // e.g. yarn deploy --tags Pairs
-deployPairs.tags = ["Pairs"];
+deployPairs.tags = ["initialDeployment"];

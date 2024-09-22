@@ -33,21 +33,20 @@ contract LaunchPair is OwnableUpgradeable, ERC1155HolderUpgradeable {
 		bool isWithdrawn;
 		CampaignStatus status;
 	}
-
-	// Mapping from campaign ID to Campaign struct
-	mapping(uint256 => Campaign) public campaigns;
-
-	// Mapping from campaign ID to a participant's address to their contribution amount
-	mapping(uint256 => mapping(address => uint256)) public contributions;
-
-	// Mapping from a user's address to the set of campaign IDs they participated in
-	mapping(address => EnumerableSet.UintSet) private _userCampaigns;
-
-	// Set of all campaign IDs
-	EnumerableSet.UintSet private _activeCampaigns;
-
-	// Total number of campaigns created
-	uint256 public campaignCount;
+	/// @custom:storage-location erc7201:adex.launchpair.main
+	struct MainStorage {
+		// Mapping from campaign ID to Campaign struct
+		mapping(uint256 => Campaign) campaigns;
+		// Mapping from campaign ID to a participant's address to their contribution amount
+		mapping(uint256 => mapping(address => uint256)) contributions;
+		// Mapping from a user's address to the set of campaign IDs they participated in
+		mapping(address => EnumerableSet.UintSet) userCampaigns;
+		// Set of all campaign IDs
+		EnumerableSet.UintSet activeCampaigns;
+		// Total number of campaigns created
+		uint256 campaignCount;
+		LpToken lpToken;
+	}
 
 	// Event emitted when a new campaign is created
 	event CampaignCreated(
@@ -85,10 +84,20 @@ contract LaunchPair is OwnableUpgradeable, ERC1155HolderUpgradeable {
 		uint256 amount
 	);
 
+	// keccak256(abi.encode(uint256(keccak256("adex.launchpair.main")) - 1)) & ~bytes32(uint256(0xff));
+	bytes32 private constant MAIN_STORAGE_LOCATION =
+		0x7fb362e6a2f486ec4cf1c2b1e6f78b640a158f866a4ba65c099da760ade11e00;
+
+	function _getMainStorage() private pure returns (MainStorage storage $) {
+		assembly {
+			$.slot := MAIN_STORAGE_LOCATION
+		}
+	}
+
 	// Modifier to ensure the caller is the creator of the campaign
 	modifier onlyCreator(uint256 _campaignId) {
 		require(
-			msg.sender == campaigns[_campaignId].creator,
+			msg.sender == _getMainStorage().campaigns[_campaignId].creator,
 			"Not campaign creator"
 		);
 		_;
@@ -97,7 +106,7 @@ contract LaunchPair is OwnableUpgradeable, ERC1155HolderUpgradeable {
 	// Modifier to ensure the campaign exists
 	modifier campaignExists(uint256 _campaignId) {
 		require(
-			campaigns[_campaignId].creator != address(0),
+			_getMainStorage().campaigns[_campaignId].creator != address(0),
 			"Campaign does not exist"
 		);
 		_;
@@ -106,7 +115,8 @@ contract LaunchPair is OwnableUpgradeable, ERC1155HolderUpgradeable {
 	// Modifier to ensure the campaign has not expired
 	modifier isNotExpired(uint256 _campaignId) {
 		require(
-			block.timestamp <= campaigns[_campaignId].deadline,
+			block.timestamp <=
+				_getMainStorage().campaigns[_campaignId].deadline,
 			"Campaign expired"
 		);
 		_;
@@ -114,8 +124,11 @@ contract LaunchPair is OwnableUpgradeable, ERC1155HolderUpgradeable {
 
 	// Modifier to ensure the campaign has met its funding goal
 	modifier hasMetGoal(uint256 _campaignId) {
+		MainStorage storage $ = _getMainStorage();
+
 		require(
-			campaigns[_campaignId].fundsRaised >= campaigns[_campaignId].goal,
+			$.campaigns[_campaignId].fundsRaised >=
+				$.campaigns[_campaignId].goal,
 			"Goal not met"
 		);
 		_;
@@ -123,24 +136,31 @@ contract LaunchPair is OwnableUpgradeable, ERC1155HolderUpgradeable {
 
 	// Modifier to ensure the campaign funds have not been withdrawn yet
 	modifier hasNotWithdrawn(uint256 _campaignId) {
-		require(!campaigns[_campaignId].isWithdrawn, "Funds already withdrawn");
+		MainStorage storage $ = _getMainStorage();
+
+		require(
+			!$.campaigns[_campaignId].isWithdrawn,
+			"Funds already withdrawn"
+		);
 		_;
 	}
 
 	// Modifier to ensure the caller is a participant in the specified campaign
 	modifier isCampaignParticipant(address user, uint256 _campaignId) {
+		MainStorage storage $ = _getMainStorage();
+
 		require(
-			_userCampaigns[user].contains(_campaignId),
+			$.userCampaigns[user].contains(_campaignId),
 			"Not a participant of selected campaign"
 		);
 		_;
 	}
 
-	LpToken lpToken;
-
 	function initialize(address _lpToken) public initializer {
+		MainStorage storage $ = _getMainStorage();
+
 		__Ownable_init(msg.sender);
-		lpToken = LpToken(_lpToken);
+		$.lpToken = LpToken(_lpToken);
 	}
 
 	/**
@@ -151,8 +171,10 @@ contract LaunchPair is OwnableUpgradeable, ERC1155HolderUpgradeable {
 	function createCampaign(
 		address _creator
 	) external onlyOwner returns (uint256 campaignId) {
-		campaignId = ++campaignCount;
-		campaigns[campaignId] = Campaign({
+		MainStorage storage $ = _getMainStorage();
+
+		campaignId = ++$.campaignCount;
+		$.campaigns[campaignId] = Campaign({
 			creator: payable(_creator),
 			goal: 0,
 			deadline: 0,
@@ -167,15 +189,17 @@ contract LaunchPair is OwnableUpgradeable, ERC1155HolderUpgradeable {
 		TokenPayment calldata payment,
 		uint256 _campaignId
 	) external onlyOwner campaignExists(_campaignId) hasMetGoal(_campaignId) {
+		MainStorage storage $ = _getMainStorage();
+
 		require(
 			payment.amount > 0 &&
 				payment.nonce > 0 &&
-				address(lpToken) == payment.token,
+				address($.lpToken) == payment.token,
 			"LaunchPair: Invalid LP token received"
 		);
 		payment.receiveToken();
 
-		Campaign storage campaign = campaigns[_campaignId];
+		Campaign storage campaign = $.campaigns[_campaignId];
 		require(
 			campaign.lpNonce == 0,
 			"Launchpair: Campaign received lp already"
@@ -195,8 +219,9 @@ contract LaunchPair is OwnableUpgradeable, ERC1155HolderUpgradeable {
 		uint256 _campaignId
 	) external onlyCreator(_campaignId) {
 		require(_goal > 0 && _duration > 0, "Invalid input");
+		MainStorage storage $ = _getMainStorage();
 
-		Campaign storage campaign = campaigns[_campaignId];
+		Campaign storage campaign = $.campaigns[_campaignId];
 		require(
 			campaign.status == CampaignStatus.Pending,
 			"Campaign begun already"
@@ -206,7 +231,7 @@ contract LaunchPair is OwnableUpgradeable, ERC1155HolderUpgradeable {
 		campaign.deadline = block.timestamp + _duration;
 		campaign.status = CampaignStatus.Funding;
 
-		_activeCampaigns.add(_campaignId);
+		$.activeCampaigns.add(_campaignId);
 		emit CampaignCreated(
 			_campaignId,
 			msg.sender,
@@ -223,8 +248,9 @@ contract LaunchPair is OwnableUpgradeable, ERC1155HolderUpgradeable {
 		uint256 _campaignId
 	) external payable campaignExists(_campaignId) isNotExpired(_campaignId) {
 		require(msg.value > 0, "Contribution must be greater than 0");
+		MainStorage storage $ = _getMainStorage();
 
-		Campaign storage campaign = campaigns[_campaignId];
+		Campaign storage campaign = $.campaigns[_campaignId];
 		require(
 			campaign.status == CampaignStatus.Funding,
 			"Campaign is not in funding status"
@@ -232,11 +258,11 @@ contract LaunchPair is OwnableUpgradeable, ERC1155HolderUpgradeable {
 
 		uint256 weiAmount = msg.value;
 		campaign.fundsRaised += weiAmount;
-		contributions[_campaignId][msg.sender] += weiAmount;
+		$.contributions[_campaignId][msg.sender] += weiAmount;
 
 		// Add the campaign to the user's participated campaigns if this is their first contribution
-		if (contributions[_campaignId][msg.sender] == weiAmount) {
-			_userCampaigns[msg.sender].add(_campaignId);
+		if ($.contributions[_campaignId][msg.sender] == weiAmount) {
+			$.userCampaigns[msg.sender].add(_campaignId);
 		}
 
 		emit ContributionMade(_campaignId, msg.sender, weiAmount);
@@ -256,7 +282,9 @@ contract LaunchPair is OwnableUpgradeable, ERC1155HolderUpgradeable {
 		hasNotWithdrawn(_campaignId)
 		returns (uint256 amount)
 	{
-		Campaign storage campaign = campaigns[_campaignId];
+		MainStorage storage $ = _getMainStorage();
+
+		Campaign storage campaign = $.campaigns[_campaignId];
 
 		amount = campaign.fundsRaised;
 		campaign.isWithdrawn = true;
@@ -281,34 +309,40 @@ contract LaunchPair is OwnableUpgradeable, ERC1155HolderUpgradeable {
 		hasMetGoal(_campaignId)
 		isCampaignParticipant(msg.sender, _campaignId)
 	{
-		Campaign storage campaign = campaigns[_campaignId];
+		MainStorage storage $ = _getMainStorage();
+
+		Campaign storage campaign = $.campaigns[_campaignId];
 		require(
 			campaign.status == CampaignStatus.Success,
 			"Campaign is not successful"
 		);
 
-		uint256 lpBalance = lpToken
-			.getBalanceAt(address(this), campaign.lpNonce)
-			.amount;
+		uint256 lpShare;
+		{
+			uint256 lpBalance = $
+				.lpToken
+				.getBalanceAt(address(this), campaign.lpNonce)
+				.amount;
 
-		uint256 contribution = contributions[_campaignId][msg.sender];
-		uint256 lpShare = (contribution * lpBalance) / campaign.fundsRaised;
+			uint256 contribution = $.contributions[_campaignId][msg.sender];
+			lpShare = (contribution * lpBalance) / campaign.fundsRaised;
 
-		address[] memory addresses = new address[](2);
-		uint256[] memory portions = new uint256[](2);
+			address[] memory addresses = new address[](2);
+			uint256[] memory portions = new uint256[](2);
 
-		addresses[0] = address(this);
-		portions[0] = lpBalance - lpShare;
+			addresses[0] = address(this);
+			portions[0] = lpBalance - lpShare;
 
-		addresses[1] = msg.sender;
-		portions[1] = lpShare;
+			addresses[1] = msg.sender;
+			portions[1] = lpShare;
 
-		uint256[] memory nonces = lpToken.split(
-			campaign.lpNonce,
-			addresses,
-			portions
-		);
-		campaign.lpNonce = nonces[0];
+			uint256[] memory nonces = $.lpToken.split(
+				campaign.lpNonce,
+				addresses,
+				portions
+			);
+			campaign.lpNonce = nonces[0];
+		}
 
 		// Remove the campaign from the user's participated campaigns after token withdrawal
 		_removeCampaignFromUserCampaigns(msg.sender, _campaignId);
@@ -327,17 +361,19 @@ contract LaunchPair is OwnableUpgradeable, ERC1155HolderUpgradeable {
 		campaignExists(_campaignId)
 		isCampaignParticipant(msg.sender, _campaignId)
 	{
-		Campaign storage campaign = campaigns[_campaignId];
+		MainStorage storage $ = _getMainStorage();
+
+		Campaign storage campaign = $.campaigns[_campaignId];
 		require(
 			block.timestamp > campaign.deadline &&
 				campaign.fundsRaised < campaign.goal,
 			"Refund not available"
 		);
 
-		uint256 amount = contributions[_campaignId][msg.sender];
+		uint256 amount = $.contributions[_campaignId][msg.sender];
 		require(amount > 0, "No contributions to refund");
 
-		contributions[_campaignId][msg.sender] = 0;
+		$.contributions[_campaignId][msg.sender] = 0;
 		payable(msg.sender).transfer(amount);
 
 		// Update the status to Failed
@@ -357,7 +393,9 @@ contract LaunchPair is OwnableUpgradeable, ERC1155HolderUpgradeable {
 	function getCampaignDetails(
 		uint256 _campaignId
 	) external view returns (Campaign memory) {
-		return campaigns[_campaignId];
+		MainStorage storage $ = _getMainStorage();
+
+		return $.campaigns[_campaignId];
 	}
 
 	/**
@@ -365,7 +403,9 @@ contract LaunchPair is OwnableUpgradeable, ERC1155HolderUpgradeable {
 	 * @return campaignIds An array of all campaign IDs.
 	 */
 	function getActiveCampaigns() external view returns (uint256[] memory) {
-		return _activeCampaigns.values();
+		MainStorage storage $ = _getMainStorage();
+
+		return $.activeCampaigns.values();
 	}
 
 	/**
@@ -376,7 +416,9 @@ contract LaunchPair is OwnableUpgradeable, ERC1155HolderUpgradeable {
 	function getUserCampaigns(
 		address user
 	) external view returns (uint256[] memory) {
-		return _userCampaigns[user].values();
+		MainStorage storage $ = _getMainStorage();
+
+		return $.userCampaigns[user].values();
 	}
 
 	/**
@@ -384,7 +426,9 @@ contract LaunchPair is OwnableUpgradeable, ERC1155HolderUpgradeable {
 	 * @param campaignId The ID of the campaign to remove.
 	 */
 	function _removeCampaignFromActiveCampaigns(uint256 campaignId) internal {
-		_activeCampaigns.remove(campaignId);
+		MainStorage storage $ = _getMainStorage();
+
+		$.activeCampaigns.remove(campaignId);
 	}
 
 	/**
@@ -396,6 +440,21 @@ contract LaunchPair is OwnableUpgradeable, ERC1155HolderUpgradeable {
 		address user,
 		uint256 campaignId
 	) internal {
-		_userCampaigns[user].remove(campaignId);
+		MainStorage storage $ = _getMainStorage();
+
+		$.userCampaigns[user].remove(campaignId);
+	}
+
+	function campaigns(
+		uint256 campaignId
+	) public view returns (Campaign memory) {
+		return _getMainStorage().campaigns[campaignId];
+	}
+
+	function contributions(
+		uint256 campaignId,
+		address contributor
+	) public view returns (uint256) {
+		return _getMainStorage().contributions[campaignId][contributor];
 	}
 }

@@ -90,7 +90,7 @@ contract LpToken is SFT {
 		require(addresses.length > 1, "LpToken: addresses too short");
 		require(
 			addresses.length == portions.length,
-			"LpToken: Portions addresses missmatch"
+			"LpToken: Portions addresses mismatch"
 		);
 
 		address caller = msg.sender;

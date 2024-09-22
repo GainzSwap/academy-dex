@@ -79,22 +79,72 @@ contract Router is
 		uint256 totalLiq;
 	}
 
-	Epochs.Storage private epochs;
+	/// @custom:storage-location erc7201:router.storage
+	struct RouterStorage {
+		Epochs.Storage epochs;
+		EnumerableSet.AddressSet pairs;
+		EnumerableSet.AddressSet tradeTokens;
+		address _wEduAddress;
+		mapping(address => address) tokensPairAddress;
+		mapping(address => PairData) pairsData;
+		GlobalData globalData;
+		LpToken lpToken;
+		Governance governance;
+		address adexTokenAddress;
+		address proxyAdmin;
+		address pairBeacon;
+	}
 
-	EnumerableSet.AddressSet private pairs;
-	EnumerableSet.AddressSet private tradeTokens;
-	address private _wEduAddress;
+	// keccak256(abi.encode(uint256(keccak256("router.storage")) - 1)) & ~bytes32(uint256(0xff));
+	bytes32 private constant ROUTER_STORAGE_LOCATION =
+		0x012ef321094c8c682aa635dfdfcd754624a7473f08ad6ac415bb7f35eb12a100;
 
-	mapping(address => address) public tokensPairAddress;
-	mapping(address => PairData) public pairsData;
-	GlobalData public globalData;
+	function _getRouterStorage()
+		private
+		pure
+		returns (RouterStorage storage $)
+	{
+		assembly {
+			$.slot := ROUTER_STORAGE_LOCATION
+		}
+	}
 
-	LpToken public lpToken;
-	Governance public governance;
-	address private adexTokenAddress;
+	function _getPairData(
+		address pair
+	) internal view returns (PairData storage) {
+		RouterStorage storage $ = _getRouterStorage();
+		return $.pairsData[pair];
+	}
 
-	address proxyAdmin;
-	address private _pairBeacon;
+	function pairsData(address pair) public view returns (PairData memory) {
+		return _getPairData(pair);
+	}
+
+	function lpToken() public view returns (LpToken) {
+		return _getRouterStorage().lpToken;
+	}
+
+	function governance() public view returns (Governance) {
+		return _getRouterStorage().governance;
+	}
+
+	function tokensPairAddress(address pair) public view returns (address) {
+		return _getRouterStorage().tokensPairAddress[pair];
+	}
+
+	function _getGlobalData() internal view returns (GlobalData storage) {
+		RouterStorage storage $ = _getRouterStorage();
+		return $.globalData;
+	}
+
+	function _getEpochsStorage()
+		internal
+		view
+		returns (Epochs.Storage storage)
+	{
+		RouterStorage storage $ = _getRouterStorage();
+		return $.epochs;
+	}
 
 	event LiquidityRemoved(
 		address indexed user,
@@ -107,19 +157,30 @@ contract Router is
 	function initialize(address initialOwner) public initializer {
 		__Ownable_init(initialOwner);
 
-		epochs.initialize(24 hours);
+		RouterStorage storage $ = _getRouterStorage();
 
-		globalData.lastTimestamp = block.timestamp;
-		proxyAdmin = msg.sender;
+		$.epochs.initialize(24 hours);
+
+		// Access and modify globalData via the storage function
+		$.globalData.lastTimestamp = block.timestamp;
+
+		// Set the proxy admin via the storage function
+		$.proxyAdmin = msg.sender;
 
 		// Use the DeployLpToken library to deploy and initialize the LpToken
-		lpToken = DeployLpToken.newLpToken(address(this), proxyAdmin);
-		_pairBeacon = DeployPair.deployPairBeacon(proxyAdmin);
+		$.lpToken = DeployLpToken.newLpToken(address(this), $.proxyAdmin);
+
+		$.pairBeacon = DeployPair.deployPairBeacon($.proxyAdmin);
 	}
 
 	function getWEDU() public view returns (address) {
-		require(_wEduAddress != address(0), "Router: EDUPair not yet deployed");
-		return _wEduAddress;
+		RouterStorage storage $ = _getRouterStorage();
+
+		require(
+			$._wEduAddress != address(0),
+			"Router: EDUPair not yet deployed"
+		);
+		return $._wEduAddress;
 	}
 
 	function _computeEdgeEmissions(
@@ -127,7 +188,10 @@ contract Router is
 		uint256 lastTimestamp,
 		uint256 latestTimestamp
 	) internal view returns (uint256) {
-		(uint256 startTimestamp, uint256 endTimestamp) = epochs
+		RouterStorage storage $ = _getRouterStorage(); // Access namespaced storage
+
+		(uint256 startTimestamp, uint256 endTimestamp) = $
+			.epochs
 			.epochEdgeTimestamps(epoch);
 
 		uint256 upperBoundTime = 0;
@@ -153,7 +217,7 @@ contract Router is
 			AdexEmission.throughTimeRange(
 				epoch,
 				upperBoundTime - lowerBoundTime,
-				epochs.epochLength
+				$.epochs.epochLength
 			);
 	}
 
@@ -173,6 +237,9 @@ contract Router is
 		view
 		returns (GlobalData memory newGlobalData)
 	{
+		GlobalData memory globalData = _getGlobalData();
+		Epochs.Storage storage epochs = _getEpochsStorage();
+
 		newGlobalData = globalData;
 
 		uint256 currentTimestamp = block.timestamp;
@@ -266,7 +333,7 @@ contract Router is
 		)
 	{
 		(pairData, newGlobalData) = _generateRewards(
-			pairsData[balance.attributes.pair]
+			_getPairData(balance.attributes.pair)
 		);
 		(claimable, newAttr) = _computeLpClaimable(pairData, balance);
 	}
@@ -294,15 +361,20 @@ contract Router is
 	}
 
 	function _sendTaxRewards() private {
-		uint256 taxRewards = globalData.taxRewards;
+		RouterStorage storage $ = _getRouterStorage();
+
+		uint256 taxRewards = $.globalData.taxRewards;
 
 		if (taxRewards > 0) {
-			globalData.taxRewards = 0;
+			$.globalData.taxRewards = 0;
 
-			IERC20(adexTokenAddress).approve(address(governance), taxRewards);
-			governance.receiveRewards(
+			IERC20($.adexTokenAddress).approve(
+				address($.governance),
+				taxRewards
+			);
+			$.governance.receiveRewards(
 				TokenPayment({
-					token: adexTokenAddress,
+					token: $.adexTokenAddress,
 					nonce: 0,
 					amount: taxRewards
 				})
@@ -311,7 +383,9 @@ contract Router is
 	}
 
 	function _updateGlobalData(GlobalData memory newGlobalData) private {
-		globalData = newGlobalData;
+		RouterStorage storage $ = _getRouterStorage();
+
+		$.globalData = newGlobalData;
 		_sendTaxRewards();
 	}
 
@@ -334,8 +408,10 @@ contract Router is
 	}
 
 	modifier canCreatePair() {
+		RouterStorage storage $ = _getRouterStorage();
+
 		require(
-			msg.sender == owner() || msg.sender == address(governance),
+			msg.sender == owner() || msg.sender == address($.governance),
 			"Router: Not allowed to list token"
 		);
 		_;
@@ -345,11 +421,14 @@ contract Router is
 		address pairAddress,
 		TokenPayment memory payment
 	) private returns (TokenPayment memory lpPayment) {
+		RouterStorage storage $ = _getRouterStorage();
+
 		payment.approve(pairAddress);
 		lpPayment.nonce = this.addLiquidity(payment);
 
-		lpPayment.token = address(lpToken);
-		lpPayment.amount = lpToken
+		lpPayment.token = address($.lpToken);
+		lpPayment.amount = $
+			.lpToken
 			.getBalanceAt(address(this), lpPayment.nonce)
 			.amount;
 
@@ -370,12 +449,14 @@ contract Router is
 		private
 		returns (TokenPayment memory payment)
 	{
+		RouterStorage storage $ = _getRouterStorage();
+
 		payment.token = getWEDU();
 		payment.amount = msg.value;
 
 		WEDU(payable(payment.token)).receiveForSpender{ value: msg.value }(
 			msg.sender,
-			tokensPairAddress[payment.token]
+			$.tokensPairAddress[payment.token]
 		);
 	}
 
@@ -392,38 +473,40 @@ contract Router is
 		canCreatePair
 		returns (address pairAddress, TokenPayment memory lpPayment)
 	{
+		RouterStorage storage $ = _getRouterStorage();
+
 		address tradeToken = payment.token;
 
 		require(
-			tokensPairAddress[tradeToken] == address(0),
+			$.tokensPairAddress[tradeToken] == address(0),
 			"Token already added"
 		);
 
 		Pair pair;
 
 		if (pairsCount() == 0) {
-			pair = DeployBasePair.newBasePair(proxyAdmin, address(this));
+			pair = DeployBasePair.newBasePair($.proxyAdmin, address(this));
 			tradeToken = pair.tradeToken();
-			adexTokenAddress = tradeToken;
+			$.adexTokenAddress = tradeToken;
 
-			IERC20(adexTokenAddress).transfer(owner(), ADexInfo.ICO_FUNDS);
-			governance = DeployGovernance.newGovernance(
-				address(lpToken),
-				adexTokenAddress,
-				epochs,
+			IERC20($.adexTokenAddress).transfer(owner(), ADexInfo.ICO_FUNDS);
+			$.governance = DeployGovernance.newGovernance(
+				address($.lpToken),
+				$.adexTokenAddress,
+				$.epochs,
 				address(this),
-				proxyAdmin
+				$.proxyAdmin
 			);
 
 			payment = TokenPayment({
-				token: adexTokenAddress,
+				token: $.adexTokenAddress,
 				nonce: 0,
 				amount: ADexInfo.INTIAL_LIQUIDITY
 			});
 		} else if (msg.value > 0) {
-			pair = DeployEduPair.newEDUPair(basePairAddr(), proxyAdmin);
+			pair = DeployEduPair.newEDUPair(basePairAddr(), $.proxyAdmin);
 			tradeToken = address(pair.tradeToken());
-			_wEduAddress = tradeToken;
+			$._wEduAddress = tradeToken;
 
 			// Prepare native token
 			payment = _prepareWEDUReception();
@@ -434,14 +517,14 @@ contract Router is
 			);
 			payment.receiveToken();
 
-			pair = DeployPair.newPair(_pairBeacon, tradeToken, basePairAddr());
+			pair = DeployPair.newPair($.pairBeacon, tradeToken, basePairAddr());
 		}
 
 		pairAddress = address(pair);
 
-		pairs.add(pairAddress);
-		tradeTokens.add(tradeToken);
-		tokensPairAddress[tradeToken] = pairAddress;
+		$.pairs.add(pairAddress);
+		$.tradeTokens.add(tradeToken);
+		$.tokensPairAddress[tradeToken] = pairAddress;
 
 		lpPayment = _addInitialLiquidity(pairAddress, payment);
 	}
@@ -453,17 +536,19 @@ contract Router is
 	function addLiquidity(
 		TokenPayment memory wholePayment
 	) external payable returns (uint256) {
+		RouterStorage storage $ = _getRouterStorage();
+
 		address caller = msg.sender;
 		if (msg.value > 0) {
 			wholePayment = _receiveEDUForSpend();
 		}
 
 		address tokenAddress = address(wholePayment.token);
-		address pairAddress = tokensPairAddress[tokenAddress];
+		address pairAddress = $.tokensPairAddress[tokenAddress];
 		require(pairAddress != address(0), "Router: Invalid pair address");
 		require(wholePayment.amount > 0, "Router: Invalid liquidity payment");
 
-		PairData storage pairData = pairsData[pairAddress];
+		PairData storage pairData = $.pairsData[pairAddress];
 		(
 			PairData memory newPairData,
 			GlobalData memory newGlobalData
@@ -474,13 +559,13 @@ contract Router is
 			.addLiquidity(wholePayment, caller);
 
 		// Upadte liquidity data to be used for other computations like fee
-		globalData.totalLiq += liqAdded;
+		$.globalData.totalLiq += liqAdded;
 
 		// Update pairData
 		pairData.totalLiq += liqAdded;
 
 		return
-			lpToken.mint(
+			$.lpToken.mint(
 				pairData.lpRewardsPershare,
 				liqAdded,
 				pairAddress,
@@ -497,6 +582,8 @@ contract Router is
 	function claimRewards(
 		uint256[] memory nonces
 	) external returns (uint256 totalClaimed, uint256[] memory newNonces) {
+		RouterStorage storage $ = _getRouterStorage();
+
 		address user = msg.sender;
 		newNonces = nonces;
 
@@ -505,15 +592,15 @@ contract Router is
 		// Claim from max of 10 lp tokens at a time
 		uint256 totalToClaim = nonces.length < 10 ? nonces.length : 10;
 		for (uint256 i = 0; i < totalToClaim; i++) {
-			LpToken.LpBalance memory balance = lpToken.getBalanceAt(
+			LpToken.LpBalance memory balance = $.lpToken.getBalanceAt(
 				user,
 				nonces[i]
 			);
 
-			PairData storage pairData = pairsData[balance.attributes.pair];
+			PairData storage pairData = $.pairsData[balance.attributes.pair];
 			PairData memory newPairData = _generatePairReward(
 				pairData,
-				globalData
+				$.globalData
 			);
 			(
 				uint256 claimable,
@@ -526,7 +613,7 @@ contract Router is
 				totalClaimed += claimable;
 
 				// Update LP attributes and data
-				uint256 newNonce = lpToken.update(
+				uint256 newNonce = $.lpToken.update(
 					user,
 					balance.nonce,
 					balance.amount,
@@ -539,7 +626,7 @@ contract Router is
 		if (totalClaimed > 0) {
 			// Transfer the claimed rewards to the user
 			require(
-				IERC20(adexTokenAddress).transfer(user, totalClaimed),
+				IERC20($.adexTokenAddress).transfer(user, totalClaimed),
 				"Reward transfer failed"
 			);
 		}
@@ -551,10 +638,12 @@ contract Router is
 	 * @param liqRemoval The amount of LP tokens to burn.
 	 */
 	function removeLiquidity(uint256 nonce, uint256 liqRemoval) external {
+		RouterStorage storage $ = _getRouterStorage();
+
 		require(liqRemoval > 0, "Router: Amount must be greater than zero");
 
 		// Retrieve the user's LP balance and ensure sufficient balance for removal
-		LpToken.LpBalance memory liquidity = lpToken.getBalanceAt(
+		LpToken.LpBalance memory liquidity = $.lpToken.getBalanceAt(
 			msg.sender,
 			nonce
 		);
@@ -565,7 +654,7 @@ contract Router is
 
 		// Get pair address and corresponding pair data
 		address pairAddr = liquidity.attributes.pair;
-		PairData storage pairData = pairsData[pairAddr];
+		PairData storage pairData = $.pairsData[pairAddr];
 
 		// Compute rewards claimable before removing liquidity
 		(
@@ -589,7 +678,7 @@ contract Router is
 		);
 
 		// Update LP token balance with the new attributes after liquidity removal
-		lpToken.update(
+		$.lpToken.update(
 			msg.sender,
 			liquidity.nonce,
 			liquidity.amount,
@@ -598,12 +687,12 @@ contract Router is
 
 		// Update total liquidity for the pair and globally
 		pairData.totalLiq -= liqRemoval;
-		globalData.totalLiq -= liqRemoval;
+		$.globalData.totalLiq -= liqRemoval;
 
 		// Transfer rewards if any are claimable
 		if (claimable > 0) {
 			require(
-				IERC20(adexTokenAddress).transfer(msg.sender, claimable),
+				IERC20($.adexTokenAddress).transfer(msg.sender, claimable),
 				"Reward transfer failed"
 			);
 		}
@@ -621,7 +710,9 @@ contract Router is
 	function getClaimableRewards(
 		address user
 	) external view returns (uint256 totalClaimable) {
-		LpToken.LpBalance[] memory balances = lpToken.lpBalanceOf(user);
+		RouterStorage storage $ = _getRouterStorage();
+
+		LpToken.LpBalance[] memory balances = $.lpToken.lpBalanceOf(user);
 
 		for (uint256 i = 0; i < balances.length; i++) {
 			(uint256 claimable, , , ) = _computeRewardsClaimable(balances[i]);
@@ -633,7 +724,8 @@ contract Router is
 		address user,
 		uint256 nonce
 	) external view returns (uint256 claimable) {
-		LpToken.LpBalance memory balance = lpToken.getBalanceAt(user, nonce);
+		RouterStorage storage $ = _getRouterStorage();
+		LpToken.LpBalance memory balance = $.lpToken.getBalanceAt(user, nonce);
 
 		(claimable, , , ) = _computeRewardsClaimable(balance);
 	}
@@ -679,13 +771,15 @@ contract Router is
 		address outPairAddr,
 		uint256 slippage // FIXME I think we can compute the min optimal amount out off chain and pass the calue here, this could save some gas
 	) public payable {
+		RouterStorage storage $ = _getRouterStorage();
+
 		if (msg.value > 0) {
 			inPayment = _receiveEDUForSpend();
 		}
-		address inPairAddr = tokensPairAddress[address(inPayment.token)];
+		address inPairAddr = $.tokensPairAddress[address(inPayment.token)];
 
-		require(pairs.contains(inPairAddr), "Router: Input pair not found");
-		require(pairs.contains(outPairAddr), "Router: Output pair not found");
+		require($.pairs.contains(inPairAddr), "Router: Input pair not found");
+		require($.pairs.contains(outPairAddr), "Router: Output pair not found");
 
 		Pair outPair = Pair(outPairAddr);
 		Pair inPair = Pair(inPairAddr);
@@ -693,13 +787,12 @@ contract Router is
 		address basePairAddr_ = basePairAddr();
 		Pair basePair = Pair(basePairAddr_);
 
-		uint256 inPairReserve = inPair.reserve();
 		uint256 outPairReserve = outPair.reserve();
 		uint256 basePairReserve = basePair.reserve();
 
 		uint256 tradeVolume = Amm.quote(
 			inPayment.amount,
-			inPairReserve,
+			inPair.reserve(),
 			basePairReserve
 		);
 
@@ -720,11 +813,10 @@ contract Router is
 			tradeVolume -= feeCollected;
 
 			// Update reward computation data
-			pairsData[inPairAddr].sellVolume += tradeVolume;
-			pairsData[outPairAddr].buyVolume += tradeVolume;
-
-			pairsData[basePairAddr_].buyVolume += feeCollected;
-			globalData.totalTradeVolume += tradeVolume + feeCollected;
+			$.pairsData[inPairAddr].sellVolume += tradeVolume;
+			$.pairsData[outPairAddr].buyVolume += tradeVolume;
+			$.pairsData[basePairAddr_].buyVolume += feeCollected;
+			$.globalData.totalTradeVolume += tradeVolume + feeCollected;
 		}
 	}
 
@@ -739,7 +831,8 @@ contract Router is
 		address pairAddress,
 		uint256 tradeVolume
 	) internal view returns (uint256 feePercent) {
-		PairData memory data = pairsData[pairAddress];
+		RouterStorage storage $ = _getRouterStorage();
+		PairData memory data = $.pairsData[pairAddress];
 		uint256 projectedSales = data.sellVolume + tradeVolume;
 		uint256 pairBuys = data.buyVolume;
 
@@ -747,7 +840,7 @@ contract Router is
 			? projectedSales - pairBuys
 			: 0;
 
-		uint256 otherLiq = globalData.totalLiq - data.totalLiq;
+		uint256 otherLiq = $.globalData.totalLiq - data.totalLiq;
 		feePercent = FeeUtil.feePercent(salesDiff, otherLiq, pairsCount());
 	}
 
@@ -776,7 +869,8 @@ contract Router is
 	 * @return Array of pair addresses.
 	 */
 	function getAllPairs() public view returns (address[] memory) {
-		return pairs.values();
+		RouterStorage storage $ = _getRouterStorage();
+		return $.pairs.values();
 	}
 
 	/**
@@ -784,7 +878,8 @@ contract Router is
 	 * @return Array of pair addresses.
 	 */
 	function tradeableTokens() public view returns (address[] memory) {
-		return tradeTokens.values();
+		RouterStorage storage $ = _getRouterStorage();
+		return $.tradeTokens.values();
 	}
 
 	function tokenIsListed(address tokenAddress) public view returns (bool) {
@@ -792,21 +887,24 @@ contract Router is
 			tokenAddress != address(0),
 			"Router: Invalid trade token address"
 		);
-		return tradeTokens.contains(tokenAddress);
+		RouterStorage storage $ = _getRouterStorage();
+		return $.tradeTokens.contains(tokenAddress);
 	}
 
 	/**
 	 * @return Returns the basePair address.
 	 */
 	function basePairAddr() public view returns (address) {
-		return pairs.at(0);
+		RouterStorage storage $ = _getRouterStorage();
+		return $.pairs.at(0);
 	}
 
 	/**
 	 * @return count the total count of listed pairs.
 	 */
 	function pairsCount() public view returns (uint64) {
-		return uint64(pairs.length());
+		RouterStorage storage $ = _getRouterStorage();
+		return uint64($.pairs.length());
 	}
 
 	/**
@@ -824,25 +922,21 @@ contract Router is
 		uint256 inAmount,
 		uint256 slippage
 	) public view returns (uint256 amountOut) {
-		// Ensure the input and output pairs are registered in the Router
-		require(pairs.contains(inPair), "Router: Input pair not found");
-		require(pairs.contains(outPair), "Router: Output pair not found");
+		RouterStorage storage $ = _getRouterStorage();
 
-		// Instantiate Pair contracts for input and output pairs
+		require($.pairs.contains(inPair), "Router: Input pair not found");
+		require($.pairs.contains(outPair), "Router: Output pair not found");
+
 		Pair inputPair = Pair(inPair);
 		Pair outputPair = Pair(outPair);
 
-		// Get reserves for input and output pairs from their respective reserve methods
 		uint256 inPairReserve = inputPair.reserve();
 		uint256 outPairReserve = outputPair.reserve();
 
-		// Calculate the fee using the Router's computeFeePercent method
 		uint256 feePercent = computeFeePercent(inPair, inAmount);
 
-		// Adjust input amount for slippage
 		uint256 adjustedInAmount = Slippage.compute(inAmount, slippage);
 
-		// Calculate the output amount using the AMM formula, accounting for the computed fee and slippage
 		amountOut = Amm.getAmountOut(
 			adjustedInAmount,
 			inPairReserve,
@@ -860,8 +954,10 @@ contract Router is
 	function getClaimableRewardsByNonces(
 		uint256[] calldata nonces
 	) external view returns (uint256 totalClaimable) {
+		RouterStorage storage $ = _getRouterStorage();
+
 		for (uint256 i = 0; i < nonces.length; i++) {
-			LpToken.LpBalance memory balance = lpToken.getBalanceAt(
+			LpToken.LpBalance memory balance = $.lpToken.getBalanceAt(
 				msg.sender,
 				nonces[i]
 			);

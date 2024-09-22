@@ -341,24 +341,6 @@ const deployedContracts = {
           type: "function",
         },
         {
-          inputs: [],
-          name: "epochs",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "genesis",
-              type: "uint256",
-            },
-            {
-              internalType: "uint256",
-              name: "epochLength",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
           inputs: [
             {
               internalType: "address",
@@ -1130,19 +1112,6 @@ const deployedContracts = {
         },
         {
           inputs: [],
-          name: "LISTING_FEE",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
           name: "MAX_LP_TOKENS",
           outputs: [
             {
@@ -1172,91 +1141,85 @@ const deployedContracts = {
           name: "activeListing",
           outputs: [
             {
-              internalType: "uint256",
-              name: "yesVote",
-              type: "uint256",
-            },
-            {
-              internalType: "uint256",
-              name: "noVote",
-              type: "uint256",
-            },
-            {
-              internalType: "uint256",
-              name: "totalLpAmount",
-              type: "uint256",
-            },
-            {
-              internalType: "uint256",
-              name: "endEpoch",
-              type: "uint256",
-            },
-            {
-              internalType: "address",
-              name: "owner",
-              type: "address",
-            },
-            {
               components: [
                 {
+                  internalType: "uint256",
+                  name: "yesVote",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "noVote",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "totalLpAmount",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "endEpoch",
+                  type: "uint256",
+                },
+                {
                   internalType: "address",
-                  name: "token",
+                  name: "owner",
                   type: "address",
                 },
                 {
-                  internalType: "uint256",
-                  name: "amount",
-                  type: "uint256",
+                  components: [
+                    {
+                      internalType: "address",
+                      name: "token",
+                      type: "address",
+                    },
+                    {
+                      internalType: "uint256",
+                      name: "amount",
+                      type: "uint256",
+                    },
+                    {
+                      internalType: "uint256",
+                      name: "nonce",
+                      type: "uint256",
+                    },
+                  ],
+                  internalType: "struct TokenPayment",
+                  name: "securityLpPayment",
+                  type: "tuple",
+                },
+                {
+                  components: [
+                    {
+                      internalType: "address",
+                      name: "token",
+                      type: "address",
+                    },
+                    {
+                      internalType: "uint256",
+                      name: "amount",
+                      type: "uint256",
+                    },
+                    {
+                      internalType: "uint256",
+                      name: "nonce",
+                      type: "uint256",
+                    },
+                  ],
+                  internalType: "struct TokenPayment",
+                  name: "tradeTokenPayment",
+                  type: "tuple",
                 },
                 {
                   internalType: "uint256",
-                  name: "nonce",
+                  name: "campaignId",
                   type: "uint256",
                 },
               ],
-              internalType: "struct TokenPayment",
-              name: "securityLpPayment",
-              type: "tuple",
-            },
-            {
-              components: [
-                {
-                  internalType: "address",
-                  name: "token",
-                  type: "address",
-                },
-                {
-                  internalType: "uint256",
-                  name: "amount",
-                  type: "uint256",
-                },
-                {
-                  internalType: "uint256",
-                  name: "nonce",
-                  type: "uint256",
-                },
-              ],
-              internalType: "struct TokenPayment",
-              name: "tradeTokenPayment",
-              type: "tuple",
-            },
-            {
-              internalType: "uint256",
-              name: "campaignId",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "adexTokenAddress",
-          outputs: [
-            {
-              internalType: "address",
+              internalType: "struct Governance.TokenListing",
               name: "",
-              type: "address",
+              type: "tuple",
             },
           ],
           stateMutability: "view",
@@ -1340,14 +1303,21 @@ const deployedContracts = {
           name: "epochs",
           outputs: [
             {
-              internalType: "uint256",
-              name: "genesis",
-              type: "uint256",
-            },
-            {
-              internalType: "uint256",
-              name: "epochLength",
-              type: "uint256",
+              components: [
+                {
+                  internalType: "uint256",
+                  name: "genesis",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "epochLength",
+                  type: "uint256",
+                },
+              ],
+              internalType: "struct Epochs.Storage",
+              name: "",
+              type: "tuple",
             },
           ],
           stateMutability: "view",
@@ -1578,6 +1548,19 @@ const deployedContracts = {
         },
         {
           inputs: [],
+          name: "listing_fees",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "pure",
+          type: "function",
+        },
+        {
+          inputs: [],
           name: "lpTokenAddress",
           outputs: [
             {
@@ -1684,85 +1667,92 @@ const deployedContracts = {
           inputs: [
             {
               internalType: "address",
-              name: "",
+              name: "pairOwner",
               type: "address",
             },
           ],
           name: "pairOwnerListing",
           outputs: [
             {
-              internalType: "uint256",
-              name: "yesVote",
-              type: "uint256",
-            },
-            {
-              internalType: "uint256",
-              name: "noVote",
-              type: "uint256",
-            },
-            {
-              internalType: "uint256",
-              name: "totalLpAmount",
-              type: "uint256",
-            },
-            {
-              internalType: "uint256",
-              name: "endEpoch",
-              type: "uint256",
-            },
-            {
-              internalType: "address",
-              name: "owner",
-              type: "address",
-            },
-            {
               components: [
                 {
+                  internalType: "uint256",
+                  name: "yesVote",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "noVote",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "totalLpAmount",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "endEpoch",
+                  type: "uint256",
+                },
+                {
                   internalType: "address",
-                  name: "token",
+                  name: "owner",
                   type: "address",
                 },
                 {
-                  internalType: "uint256",
-                  name: "amount",
-                  type: "uint256",
+                  components: [
+                    {
+                      internalType: "address",
+                      name: "token",
+                      type: "address",
+                    },
+                    {
+                      internalType: "uint256",
+                      name: "amount",
+                      type: "uint256",
+                    },
+                    {
+                      internalType: "uint256",
+                      name: "nonce",
+                      type: "uint256",
+                    },
+                  ],
+                  internalType: "struct TokenPayment",
+                  name: "securityLpPayment",
+                  type: "tuple",
+                },
+                {
+                  components: [
+                    {
+                      internalType: "address",
+                      name: "token",
+                      type: "address",
+                    },
+                    {
+                      internalType: "uint256",
+                      name: "amount",
+                      type: "uint256",
+                    },
+                    {
+                      internalType: "uint256",
+                      name: "nonce",
+                      type: "uint256",
+                    },
+                  ],
+                  internalType: "struct TokenPayment",
+                  name: "tradeTokenPayment",
+                  type: "tuple",
                 },
                 {
                   internalType: "uint256",
-                  name: "nonce",
+                  name: "campaignId",
                   type: "uint256",
                 },
               ],
-              internalType: "struct TokenPayment",
-              name: "securityLpPayment",
+              internalType: "struct Governance.TokenListing",
+              name: "",
               type: "tuple",
-            },
-            {
-              components: [
-                {
-                  internalType: "address",
-                  name: "token",
-                  type: "address",
-                },
-                {
-                  internalType: "uint256",
-                  name: "amount",
-                  type: "uint256",
-                },
-                {
-                  internalType: "uint256",
-                  name: "nonce",
-                  type: "uint256",
-                },
-              ],
-              internalType: "struct TokenPayment",
-              name: "tradeTokenPayment",
-              type: "tuple",
-            },
-            {
-              internalType: "uint256",
-              name: "campaignId",
-              type: "uint256",
             },
           ],
           stateMutability: "view",
@@ -1969,25 +1959,6 @@ const deployedContracts = {
           name: "transferOwnership",
           outputs: [],
           stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "address",
-              name: "",
-              type: "address",
-            },
-          ],
-          name: "userVote",
-          outputs: [
-            {
-              internalType: "address",
-              name: "",
-              type: "address",
-            },
-          ],
-          stateMutability: "view",
           type: "function",
         },
         {
@@ -2249,62 +2220,56 @@ const deployedContracts = {
           type: "event",
         },
         {
-          inputs: [],
-          name: "campaignCount",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
           inputs: [
             {
               internalType: "uint256",
-              name: "",
+              name: "campaignId",
               type: "uint256",
             },
           ],
           name: "campaigns",
           outputs: [
             {
-              internalType: "address",
-              name: "creator",
-              type: "address",
-            },
-            {
-              internalType: "uint256",
-              name: "lpNonce",
-              type: "uint256",
-            },
-            {
-              internalType: "uint256",
-              name: "goal",
-              type: "uint256",
-            },
-            {
-              internalType: "uint256",
-              name: "deadline",
-              type: "uint256",
-            },
-            {
-              internalType: "uint256",
-              name: "fundsRaised",
-              type: "uint256",
-            },
-            {
-              internalType: "bool",
-              name: "isWithdrawn",
-              type: "bool",
-            },
-            {
-              internalType: "enum LaunchPair.CampaignStatus",
-              name: "status",
-              type: "uint8",
+              components: [
+                {
+                  internalType: "address",
+                  name: "creator",
+                  type: "address",
+                },
+                {
+                  internalType: "uint256",
+                  name: "lpNonce",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "goal",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "deadline",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "fundsRaised",
+                  type: "uint256",
+                },
+                {
+                  internalType: "bool",
+                  name: "isWithdrawn",
+                  type: "bool",
+                },
+                {
+                  internalType: "enum LaunchPair.CampaignStatus",
+                  name: "status",
+                  type: "uint8",
+                },
+              ],
+              internalType: "struct LaunchPair.Campaign",
+              name: "",
+              type: "tuple",
             },
           ],
           stateMutability: "view",
@@ -2327,12 +2292,12 @@ const deployedContracts = {
           inputs: [
             {
               internalType: "uint256",
-              name: "",
+              name: "campaignId",
               type: "uint256",
             },
             {
               internalType: "address",
-              name: "",
+              name: "contributor",
               type: "address",
             },
           ],
@@ -3775,6 +3740,32 @@ const deployedContracts = {
         },
         {
           inputs: [],
+          name: "basePair",
+          outputs: [
+            {
+              internalType: "contract Pair",
+              name: "",
+              type: "address",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "depValuePerShare",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
           name: "deposits",
           outputs: [
             {
@@ -4676,44 +4667,6 @@ const deployedContracts = {
         },
         {
           inputs: [],
-          name: "globalData",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "rewardsReserve",
-              type: "uint256",
-            },
-            {
-              internalType: "uint256",
-              name: "taxRewards",
-              type: "uint256",
-            },
-            {
-              internalType: "uint256",
-              name: "rewardsPerShare",
-              type: "uint256",
-            },
-            {
-              internalType: "uint256",
-              name: "totalTradeVolume",
-              type: "uint256",
-            },
-            {
-              internalType: "uint256",
-              name: "lastTimestamp",
-              type: "uint256",
-            },
-            {
-              internalType: "uint256",
-              name: "totalLiq",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
           name: "governance",
           outputs: [
             {
@@ -4859,41 +4812,48 @@ const deployedContracts = {
           inputs: [
             {
               internalType: "address",
-              name: "",
+              name: "pair",
               type: "address",
             },
           ],
           name: "pairsData",
           outputs: [
             {
-              internalType: "uint256",
-              name: "sellVolume",
-              type: "uint256",
-            },
-            {
-              internalType: "uint256",
-              name: "buyVolume",
-              type: "uint256",
-            },
-            {
-              internalType: "uint256",
-              name: "lpRewardsPershare",
-              type: "uint256",
-            },
-            {
-              internalType: "uint256",
-              name: "tradeRewardsPershare",
-              type: "uint256",
-            },
-            {
-              internalType: "uint256",
-              name: "totalLiq",
-              type: "uint256",
-            },
-            {
-              internalType: "uint256",
-              name: "rewardsReserve",
-              type: "uint256",
+              components: [
+                {
+                  internalType: "uint256",
+                  name: "sellVolume",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "buyVolume",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "lpRewardsPershare",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "tradeRewardsPershare",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "totalLiq",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "rewardsReserve",
+                  type: "uint256",
+                },
+              ],
+              internalType: "struct Router.PairData",
+              name: "",
+              type: "tuple",
             },
           ],
           stateMutability: "view",
@@ -5051,7 +5011,7 @@ const deployedContracts = {
           inputs: [
             {
               internalType: "address",
-              name: "",
+              name: "pair",
               type: "address",
             },
           ],
@@ -5090,67 +5050,6 @@ const deployedContracts = {
           name: "transferOwnership",
           outputs: [],
           stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "userCount",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          name: "userIdToAddress",
-          outputs: [
-            {
-              internalType: "address",
-              name: "",
-              type: "address",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "address",
-              name: "",
-              type: "address",
-            },
-          ],
-          name: "users",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "id",
-              type: "uint256",
-            },
-            {
-              internalType: "address",
-              name: "addr",
-              type: "address",
-            },
-            {
-              internalType: "uint256",
-              name: "referrerId",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
           type: "function",
         },
       ],

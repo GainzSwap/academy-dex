@@ -273,7 +273,7 @@ export async function claimRewardsFixture() {
     governanceContract,
     computeLpBalance,
     addLiquidityAndEnterGovernance,
-    LISTING_FEE: await governanceContract.LISTING_FEE(),
+    LISTING_FEE: await governanceContract.listing_fees(),
     adex,
     router,
     user,

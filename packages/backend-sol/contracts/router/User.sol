@@ -1,7 +1,15 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.20;
+pragma solidity ^0.8.20;
+import "hardhat/console.sol";
 
 abstract contract UserModule {
+	/// @custom:storage-location erc7201:userModule.storage
+	struct UserStorage {
+		uint256 userCount;
+		mapping(address => User) users;
+		mapping(uint256 => address) userIdToAddress;
+	}
+
 	struct ReferralInfo {
 		uint256 id;
 		address referralAddress;
@@ -14,10 +22,18 @@ abstract contract UserModule {
 		uint256[] referrals;
 	}
 
-	uint256 public userCount;
-	mapping(address => User) public users;
-	mapping(uint256 => address) public userIdToAddress;
+	// keccak256(abi.encode(uint256(keccak256("userModule.storage")) - 1)) & ~bytes32(uint256(0xff));
+	bytes32 private constant USER_STORAGE_LOCATION =
+		0x0038ec5cf8f0d1747ebb72ff0e651cf1b10ea4f74874fe0bde352ae49428c500;
 
+	// Accessor for the namespaced storage slot
+	function _getUserStorage() private pure returns (UserStorage storage us) {
+		assembly {
+			us.slot := USER_STORAGE_LOCATION
+		}
+	}
+
+	// Event declarations
 	event UserRegistered(
 		uint256 userId,
 		address userAddress,
@@ -32,9 +48,10 @@ abstract contract UserModule {
 	function getReferrer(
 		address userAddress
 	) public view returns (uint256 referrerId, address referrerAddress) {
-		User storage user = users[userAddress];
+		UserStorage storage us = _getUserStorage();
+		User storage user = us.users[userAddress];
 		referrerId = user.referrerId;
-		referrerAddress = userIdToAddress[referrerId];
+		referrerAddress = us.userIdToAddress[referrerId];
 	}
 
 	/// @notice Gets the user ID for a given address.
@@ -43,7 +60,8 @@ abstract contract UserModule {
 	function getUserId(
 		address userAddress
 	) external view returns (uint256 userId) {
-		return users[userAddress].id;
+		UserStorage storage us = _getUserStorage();
+		return us.users[userAddress].id;
 	}
 
 	/// @notice Retrieves the referrals of a user.
@@ -52,14 +70,15 @@ abstract contract UserModule {
 	function getReferrals(
 		address userAddress
 	) external view returns (ReferralInfo[] memory) {
-		uint256[] memory referralIds = users[userAddress].referrals;
+		UserStorage storage us = _getUserStorage();
+		uint256[] memory referralIds = us.users[userAddress].referrals;
 		ReferralInfo[] memory referrals = new ReferralInfo[](
 			referralIds.length
 		);
 
 		for (uint256 i = 0; i < referralIds.length; i++) {
 			uint256 id = referralIds[i];
-			address refAddr = userIdToAddress[id];
+			address refAddr = us.userIdToAddress[id];
 			referrals[i] = ReferralInfo({ id: id, referralAddress: refAddr });
 		}
 
@@ -74,7 +93,8 @@ abstract contract UserModule {
 		address userAddr,
 		uint256 referrerId
 	) internal returns (uint256) {
-		User storage user = users[userAddr];
+		UserStorage storage us = _getUserStorage();
+		User storage user = us.users[userAddr];
 
 		// If user already exists, return the existing ID
 		if (user.id != 0) {
@@ -82,26 +102,28 @@ abstract contract UserModule {
 		}
 
 		// Increment user count and assign new user ID
-		userCount++;
-		users[userAddr] = User({
-			id: userCount,
+		us.userCount++;
+		us.users[userAddr] = User({
+			id: us.userCount,
 			addr: userAddr,
 			referrerId: referrerId,
 			referrals: new uint256[](0)
 		});
-		userIdToAddress[userCount] = userAddr;
+		us.userIdToAddress[us.userCount] = userAddr;
 
 		// Add user to referrer's referrals list, if applicable
 		if (
 			referrerId != 0 &&
-			referrerId != userCount &&
-			userIdToAddress[referrerId] != address(0)
+			referrerId != us.userCount &&
+			us.userIdToAddress[referrerId] != address(0)
 		) {
-			users[userIdToAddress[referrerId]].referrals.push(userCount);
-			emit ReferralAdded(referrerId, userCount);
+			us.users[us.userIdToAddress[referrerId]].referrals.push(
+				us.userCount
+			);
+			emit ReferralAdded(referrerId, us.userCount);
 		}
 
-		emit UserRegistered(userCount, userAddr, referrerId);
-		return userCount;
+		emit UserRegistered(us.userCount, userAddr, referrerId);
+		return us.userCount;
 	}
 }

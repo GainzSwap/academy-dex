@@ -14,15 +14,23 @@ abstract contract SFT is ERC1155Upgradeable, OwnableUpgradeable {
 		bytes attributes;
 	}
 
-	uint256 private _nonceCounter;
-	string private _name;
-	string private _symbol;
+	/// @custom:storage-location erc7201:adex.sft.storage
+	struct SFTStorage {
+		uint256 nonceCounter;
+		string name;
+		string symbol;
+		mapping(uint256 => bytes) tokenAttributes; // Mapping from nonce to token attributes as bytes
+		mapping(address => EnumerableSet.UintSet) addressToNonces; // Mapping from address to list of owned token nonces
+	}
 
-	// Mapping from nonce to token attributes as bytes
-	mapping(uint256 => bytes) private _tokenAttributes;
+	bytes32 private constant SFT_STORAGE_LOCATION =
+		0x62c7181558777c0450efc6bc1cd8d37cd6f6f3ac939cea4e0ebf7ac80730d200;
 
-	// Mapping from address to list of owned token nonces
-	mapping(address => EnumerableSet.UintSet) private _addressToNonces;
+	function _getSFTStorage() private pure returns (SFTStorage storage s) {
+		assembly {
+			s.slot := SFT_STORAGE_LOCATION
+		}
+	}
 
 	/// @dev Replaces constructor. Initialize the contract with name and symbol.
 	/// @param name_ The name of the SFT token.
@@ -34,8 +42,9 @@ abstract contract SFT is ERC1155Upgradeable, OwnableUpgradeable {
 	) internal onlyInitializing {
 		__ERC1155_init(""); // Initialize ERC1155
 		__Ownable_init(initialOwner); // Initialize Ownable
-		_name = name_;
-		_symbol = symbol_;
+		SFTStorage storage $ = _getSFTStorage();
+		$.name = name_;
+		$.symbol = symbol_;
 	}
 
 	/// @dev Internal function to mint new tokens with attributes and store the nonce.
@@ -44,31 +53,32 @@ abstract contract SFT is ERC1155Upgradeable, OwnableUpgradeable {
 		uint256 amount,
 		bytes memory attributes
 	) internal returns (uint256 nonce) {
-		nonce = ++_nonceCounter;
+		SFTStorage storage $ = _getSFTStorage();
+		nonce = ++$.nonceCounter;
 
-		// Store the attributes
-		_tokenAttributes[nonce] = attributes;
+		// $tore the attributes
+		$.tokenAttributes[nonce] = attributes;
 
 		// Mint the token with the nonce as its ID
 		super._mint(to, nonce, amount, "");
 
 		// Track the nonce for the address
-		_addressToNonces[to].add(nonce);
+		$.addressToNonces[to].add(nonce);
 	}
 
 	/// @dev Returns the name of the token.
 	function name() public view returns (string memory) {
-		return _name;
+		return _getSFTStorage().name;
 	}
 
 	/// @dev Returns the symbol of the token.
 	function symbol() public view returns (string memory) {
-		return _symbol;
+		return _getSFTStorage().symbol;
 	}
 
 	/// @dev Returns the token name and symbol.
 	function tokenInfo() public view returns (string memory, string memory) {
-		return (_name, _symbol);
+		return (name(), symbol());
 	}
 
 	/// @dev Returns raw token attributes by nonce.
@@ -77,14 +87,14 @@ abstract contract SFT is ERC1155Upgradeable, OwnableUpgradeable {
 	function _getRawTokenAttributes(
 		uint256 nonce
 	) internal view returns (bytes memory) {
-		return _tokenAttributes[nonce];
+		return _getSFTStorage().tokenAttributes[nonce];
 	}
 
 	/// @dev Returns the list of nonces owned by an address.
 	/// @param owner The address of the token owner.
 	/// @return Array of nonces.
 	function getNonces(address owner) public view returns (uint256[] memory) {
-		return _addressToNonces[owner].values();
+		return _getSFTStorage().addressToNonces[owner].values();
 	}
 
 	/// @dev Checks if the address owns a specific nonce.
@@ -92,7 +102,7 @@ abstract contract SFT is ERC1155Upgradeable, OwnableUpgradeable {
 	/// @param nonce The nonce to check.
 	/// @return True if the address owns the nonce, otherwise false.
 	function hasSFT(address owner, uint256 nonce) public view returns (bool) {
-		return _addressToNonces[owner].contains(nonce);
+		return _getSFTStorage().addressToNonces[owner].contains(nonce);
 	}
 
 	/// @dev Burns the tokens of a specific nonce and mints new tokens with updated attributes.
@@ -122,7 +132,7 @@ abstract contract SFT is ERC1155Upgradeable, OwnableUpgradeable {
 
 		for (uint256 i; i < nonces.length; i++) {
 			uint256 nonce = nonces[i];
-			bytes memory attributes = _tokenAttributes[nonce];
+			bytes memory attributes = _getRawTokenAttributes(nonce);
 			uint256 amount = balanceOf(user, nonce);
 
 			balance[i] = SftBalance({
@@ -151,8 +161,8 @@ abstract contract SFT is ERC1155Upgradeable, OwnableUpgradeable {
 		for (uint256 i = 0; i < ids.length; i++) {
 			uint256 id = ids[i];
 
-			_addressToNonces[from].remove(id);
-			_addressToNonces[to].add(id);
+			_getSFTStorage().addressToNonces[from].remove(id);
+			_getSFTStorage().addressToNonces[to].add(id);
 		}
 	}
 }

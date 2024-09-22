@@ -13,10 +13,10 @@ import "./Knowable.sol";
 import { LpToken } from "../modules/LpToken.sol";
 import "../common/utils.sol";
 
-uint256 constant RPS_DIVISION_CONSTANT = 1e36;
-
 import { UpgradeableBeacon } from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
 import { BeaconProxy } from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
+
+uint256 constant RPS_DIVISION_CONSTANT = 1e36;
 
 library DeployPair {
 	function newPair(
@@ -55,16 +55,19 @@ library DeployPair {
 contract Pair is KnowablePair {
 	using FeeUtil for FeeUtil.Values;
 	using TokenPayments for TokenPayment;
+	/// @custom:storage-location erc7201:pair.main
+	struct MainStorage {
+		uint256 deposits;
+		uint256 sales;
+		uint256 depValuePerShare;
+		uint256 lpSupply;
+		address tradeToken;
+		Pair basePair;
+	}
 
-	// Reserve data
-	uint256 public deposits;
-	uint256 public sales;
-	uint256 private depValuePerShare;
-
-	uint256 public lpSupply;
-
-	address public tradeToken;
-	Pair basePair;
+	// keccak256(abi.encode(uint256(keccak256("pair.main")) - 1)) & ~bytes32(uint256(0xff));
+	bytes32 private constant MAIN_STORAGE_LOCATION =
+		0x97d1e57c471298f17711cbbbe041432b8615000019f983389f60cd43dafec500;
 
 	uint256 constant MIN_MINT_DEPOSIT = 4_000;
 
@@ -80,6 +83,37 @@ contract Pair is KnowablePair {
 		uint256 amountOut,
 		uint256 fee
 	);
+
+	function _getMainStorage() internal pure returns (MainStorage storage $) {
+		assembly {
+			$.slot := MAIN_STORAGE_LOCATION
+		}
+	}
+
+	// Use $ to access storage variables
+	function deposits() public view returns (uint256) {
+		return _getMainStorage().deposits;
+	}
+
+	function sales() public view returns (uint256) {
+		return _getMainStorage().sales;
+	}
+
+	function depValuePerShare() public view returns (uint256) {
+		return _getMainStorage().depValuePerShare;
+	}
+
+	function lpSupply() public view returns (uint256) {
+		return _getMainStorage().lpSupply;
+	}
+
+	function tradeToken() public view returns (address) {
+		return _getMainStorage().tradeToken;
+	}
+
+	function basePair() public view returns (Pair) {
+		return _getMainStorage().basePair;
+	}
 
 	/**
 	 * @dev Constructor for initializing the Pair contract.
@@ -99,13 +133,14 @@ contract Pair is KnowablePair {
 		require(tradeToken_ != address(0), "Pair: Invalid trade token address");
 
 		require(isERC20(tradeToken_), "Pair: Invalid trade token");
-		tradeToken = tradeToken_;
+		_getMainStorage().tradeToken = tradeToken_;
 	}
 
 	function _setBasePair(address basePairAddr) internal virtual {
 		require(basePairAddr != address(0), "Pair: Invalid base pair address");
+		MainStorage storage $ = _getMainStorage();
 
-		basePair = Pair(basePairAddr);
+		$.basePair = Pair(basePairAddr);
 		require(
 			isERC20(Pair(basePairAddr).tradeToken()),
 			"Pair: Invalid base pair contract"
@@ -113,7 +148,9 @@ contract Pair is KnowablePair {
 	}
 
 	modifier onlyBasePair() {
-		require(msg.sender == address(basePair), "not allowed");
+		MainStorage storage $ = _getMainStorage();
+
+		require(msg.sender == address($.basePair), "not allowed");
 		_;
 	}
 
@@ -134,7 +171,9 @@ contract Pair is KnowablePair {
 		address from,
 		uint256 min
 	) internal {
-		if (payment.token != address(tradeToken) || payment.amount < min) {
+		MainStorage storage $ = _getMainStorage();
+
+		if (payment.token != address($.tradeToken) || payment.amount < min) {
 			revert("Pair: Bad received payment");
 		}
 
@@ -146,7 +185,9 @@ contract Pair is KnowablePair {
 		view
 		returns (uint256 paymentTokenReserve, uint256 baseTokenReserve)
 	{
-		return (reserve(), basePair.reserve());
+		MainStorage storage $ = _getMainStorage();
+
+		return (reserve(), $.basePair.reserve());
 	}
 
 	function _getLiqAdded(
@@ -166,15 +207,17 @@ contract Pair is KnowablePair {
 	}
 
 	function _takeFromReserve(uint256 amount) internal returns (uint256 taken) {
-		if (sales >= amount) {
-			sales -= amount;
+		MainStorage storage $ = _getMainStorage();
+
+		if ($.sales >= amount) {
+			$.sales -= amount;
 			return amount;
 		}
 
-		if ((deposits + sales) >= amount) {
+		if (($.deposits + $.sales) >= amount) {
 			taken = amount;
-			_takeFromDeposits(taken - sales);
-			sales = 0;
+			_takeFromDeposits(taken - $.sales);
+			$.sales = 0;
 		} else {
 			revert("Amount to be taken is too large");
 		}
@@ -204,6 +247,7 @@ contract Pair is KnowablePair {
 		require(amountOut != 0, "Pair: Zero out amount");
 
 		FeeUtil.Values memory values = FeeUtil.splitFee(fee);
+		MainStorage storage $ = _getMainStorage();
 
 		toBurn = values.toBurnValue;
 		// Distribute values
@@ -212,7 +256,7 @@ contract Pair is KnowablePair {
 				TokenPayment({
 					nonce: 0,
 					amount: values.referrerValue,
-					token: tradeToken
+					token: $.tradeToken
 				}).sendToken(referrer);
 			} else {
 				toBurn += values.referrerValue;
@@ -221,19 +265,19 @@ contract Pair is KnowablePair {
 			// Increasing sales genrally implies the `toBurn`
 			// is available for ecosystem wide usage
 			require(toBurn > 0, "Pair: Swap amount too low");
-			sales += toBurn;
+			$.sales += toBurn;
 
 			// Give liqProviders value
-			if (lpSupply > 0) {
+			if ($.lpSupply > 0) {
 				_addToDeposits(values.liqProvidersValue);
 			} else {
-				sales += values.liqProvidersValue;
+				$.sales += values.liqProvidersValue;
 			}
 
 			// Send bought tokens to receiver
-			TokenPayment({ nonce: 0, amount: amountOut, token: tradeToken })
+			TokenPayment({ nonce: 0, amount: amountOut, token: $.tradeToken })
 				.sendToken(receiver);
-			if (basePair == (this)) {
+			if ($.basePair == (this)) {
 				// Zero out toBurn since base pair is the pair that collects the burn fees
 				toBurn = 0;
 			}
@@ -249,6 +293,8 @@ contract Pair is KnowablePair {
 		uint256 slippage,
 		uint256 totalFeePercent
 	) private returns (uint256 burntFee) {
+		MainStorage storage $ = _getMainStorage();
+
 		uint256 inTokenReserve = reserve();
 		uint256 outTokenReserve = outPair.reserve();
 
@@ -259,13 +305,13 @@ contract Pair is KnowablePair {
 		);
 		require(outTokenReserve > amountOutMin, "Pair: not enough reserve");
 
-		uint256 initialK = Amm.calculateKConstant(
-			inTokenReserve,
-			outTokenReserve
-		);
-
 		uint256 amountOut = 0;
 		{
+			uint256 initialK = Amm.calculateKConstant(
+				inTokenReserve,
+				outTokenReserve
+			);
+
 			uint256 amountOutOptimal = Amm.getAmountOut(
 				amountIn,
 				inTokenReserve,
@@ -280,11 +326,11 @@ contract Pair is KnowablePair {
 
 			require(amountOut >= amountOutMin, "Pair: Slippage Exceeded");
 
-			sales += amountIn;
-		}
+			$.sales += amountIn;
 
-		uint256 newK = Amm.calculateKConstant(reserve(), outPair.reserve());
-		require(initialK <= newK, "ERROR_K_INVARIANT_FAILED");
+			uint256 newK = Amm.calculateKConstant(reserve(), outPair.reserve());
+			require(initialK <= newK, "ERROR_K_INVARIANT_FAILED");
+		}
 
 		emit SellExecuted(
 			from,
@@ -296,7 +342,9 @@ contract Pair is KnowablePair {
 	}
 
 	function _insertLiqValues(AddLiquidityContext memory context) internal {
-		lpSupply += context.liq;
+		MainStorage storage $ = _getMainStorage();
+
+		$.lpSupply += context.liq;
 		_addToDeposits(context.deposit);
 	}
 
@@ -331,29 +379,27 @@ contract Pair is KnowablePair {
 	}
 
 	function _takeFromDeposits(uint256 deduction) internal {
+		MainStorage storage $ = _getMainStorage();
 		if (deduction <= 0) {
 			return;
 		}
-
-		uint256 rpsDecrease = (deduction * RPS_DIVISION_CONSTANT) / lpSupply;
+		uint256 rpsDecrease = (deduction * RPS_DIVISION_CONSTANT) / $.lpSupply;
 		require(
 			rpsDecrease > 0 &&
-				rpsDecrease <= depValuePerShare &&
-				deduction <= deposits,
+				rpsDecrease <= $.depValuePerShare &&
+				deduction <= $.deposits,
 			"Pair: Invalid deposits deduction"
 		);
-
-		depValuePerShare -= rpsDecrease;
-		deposits -= deduction;
+		$.depValuePerShare -= rpsDecrease;
+		$.deposits -= deduction;
 	}
 
 	function _addToDeposits(uint256 addition) internal {
-		uint256 rpsIncrease = (addition * RPS_DIVISION_CONSTANT) / lpSupply;
-
+		MainStorage storage $ = _getMainStorage();
+		uint256 rpsIncrease = (addition * RPS_DIVISION_CONSTANT) / $.lpSupply;
 		require(rpsIncrease > 0, "Pair: Invalid deposit addition");
-
-		depValuePerShare += rpsIncrease;
-		deposits += addition;
+		$.depValuePerShare += rpsIncrease;
+		$.deposits += addition;
 	}
 
 	/**
@@ -366,15 +412,16 @@ contract Pair is KnowablePair {
 		TokenPayment calldata wholePayment,
 		address from
 	) external onlyOwner returns (uint256 liqAdded, uint256 rps) {
+		MainStorage storage $ = _getMainStorage();
 		_checkAndReceivePayment(wholePayment, from);
 
-		uint256 initalLp = lpSupply;
+		uint256 initalLp = $.lpSupply;
 
-		rps = depValuePerShare;
+		rps = $.depValuePerShare;
 		_addLiq(wholePayment);
 
-		require(lpSupply > initalLp, "Pair: invalid liquidity addition");
-		liqAdded = lpSupply - initalLp;
+		require($.lpSupply > initalLp, "Pair: invalid liquidity addition");
+		liqAdded = $.lpSupply - initalLp;
 
 		emit LiquidityAdded(from, wholePayment.amount, liqAdded);
 	}
@@ -398,17 +445,18 @@ contract Pair is KnowablePair {
 		onlyOwner
 		returns (LpToken.LpBalance memory liq, uint256 depositClaimed)
 	{
+		MainStorage storage $ = _getMainStorage();
 		require(liquidity.amount > 0, "Pair: LP balance is zero");
 		require(
-			liqToRemove <= liquidity.amount && liqToRemove <= lpSupply,
+			liqToRemove <= liquidity.amount && liqToRemove <= $.lpSupply,
 			"Pair: Invalid liquidity removal amount"
 		);
 
 		// Calculate the total deposit that can be claimed based on the updated depValuePerShare
 		uint256 totalDepositClaimed = 0;
-		if (liquidity.attributes.depValuePerShare < depValuePerShare) {
+		if (liquidity.attributes.depValuePerShare < $.depValuePerShare) {
 			totalDepositClaimed =
-				((depValuePerShare - liquidity.attributes.depValuePerShare) *
+				(($.depValuePerShare - liquidity.attributes.depValuePerShare) *
 					liquidity.amount) /
 				RPS_DIVISION_CONSTANT;
 		}
@@ -417,10 +465,10 @@ contract Pair is KnowablePair {
 		_takeFromDeposits(totalDepositClaimed);
 
 		// Reduce global lpSupply by the LP's total liquidity amount
-		lpSupply -= liquidity.amount;
+		$.lpSupply -= liquidity.amount;
 
 		// Update the LP's deposit value per share to the current depValuePerShare
-		liquidity.attributes.depValuePerShare = depValuePerShare;
+		liquidity.attributes.depValuePerShare = $.depValuePerShare;
 
 		// Calculate the deposit to be claimed based on the liquidity being removed
 		depositClaimed = (liqToRemove * totalDepositClaimed) / liquidity.amount;
@@ -441,7 +489,7 @@ contract Pair is KnowablePair {
 			TokenPayment({
 				nonce: 0,
 				amount: depositClaimed,
-				token: tradeToken
+				token: $.tradeToken
 			}).sendToken(from);
 		}
 
@@ -482,6 +530,6 @@ contract Pair is KnowablePair {
 	 * @return The reserve amount.
 	 */
 	function reserve() public view returns (uint256) {
-		return deposits + sales;
+		return deposits() + sales();
 	}
 }

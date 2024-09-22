@@ -21,12 +21,16 @@ uint256 constant GTOKEN_MINT_AMOUNT = 1;
 contract GTokens is SFT {
 	using GToken for GToken.Attributes;
 	using Epochs for Epochs.Storage;
+	/// @custom:storage-location erc7201:adex.gtokens.main
+	struct MainStorage {
+		uint256 totalStakeWeight;
+		uint256 totalLpAmount;
+		Epochs.Storage epochs;
+	}
 
-	uint256 private _totalStakeWeight;
-	uint256 private _totalLpAmount;
-
-	// Storage for epochs management
-	Epochs.Storage public epochs;
+	// keccak256(abi.encode(uint256(keccak256("adex.gtokens.main")) - 1)) & ~bytes32(uint256(0xff));
+	bytes32 private constant MAIN_STORAGE_LOCATION =
+		0xc048f6a6cddd0222ae138724249840b0c3d43f274bd5ac59da4b6ef9928fc200;
 
 	/// @notice Constructor to initialize the GTokens contract.
 	/// @dev Sets the name and symbol of the SFT for GTokens.
@@ -35,7 +39,13 @@ contract GTokens is SFT {
 		address initialOwner
 	) public initializer {
 		__SFT_init("ADEX Governance Token", "GTADEX", initialOwner);
-		epochs = epochs_;
+		_getMainStorage().epochs = epochs_;
+	}
+
+	function _getMainStorage() private pure returns (MainStorage storage $) {
+		assembly {
+			$.slot := MAIN_STORAGE_LOCATION
+		}
 	}
 
 	/// @notice Mints a new GToken for the given address.
@@ -125,7 +135,7 @@ contract GTokens is SFT {
 			(GToken.Attributes)
 		);
 		uint256 epochsLeft = attrUnpacked.epochsLeft(
-			attrUnpacked.epochsElapsed(epochs.currentEpoch())
+			attrUnpacked.epochsElapsed(_getMainStorage().epochs.currentEpoch())
 		);
 		uint256 votePower = attrUnpacked.votePower(epochsLeft);
 
@@ -168,11 +178,11 @@ contract GTokens is SFT {
 	}
 
 	function totalStakeWeight() public view returns (uint256) {
-		return _totalStakeWeight;
+		return _getMainStorage().totalStakeWeight;
 	}
 
 	function totalLpAmount() public view returns (uint256) {
-		return _totalLpAmount;
+		return _getMainStorage().totalLpAmount;
 	}
 
 	function _update(
@@ -191,13 +201,15 @@ contract GTokens is SFT {
 			);
 
 			if (from == address(0) && to != address(0)) {
-				// We are minting, so increease staking weight
-				_totalStakeWeight += attr.stakeWeight;
-				_totalLpAmount += attr.lpAmount;
+				// We are minting, so increase staking weight
+				MainStorage storage $ = _getMainStorage();
+				$.totalStakeWeight += attr.stakeWeight;
+				$.totalLpAmount += attr.lpAmount;
 			} else if (from != address(0) && to == address(0)) {
 				// We are burning, so decrease staking weight
-				_totalStakeWeight -= attr.stakeWeight;
-				_totalLpAmount -= attr.lpAmount;
+				MainStorage storage $ = _getMainStorage();
+				$.totalStakeWeight -= attr.stakeWeight;
+				$.totalLpAmount -= attr.lpAmount;
 			}
 		}
 	}

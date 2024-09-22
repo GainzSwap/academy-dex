@@ -41,15 +41,24 @@ library NewGTokens {
 	}
 }
 
+uint256 constant REWARDS_DIVISION_SAFETY_CONSTANT = 1e18;
+uint256 constant LISTING_FEE = 20e18;
+
 library GovernanceLib {
+	using Epochs for Epochs.Storage;
+	using GToken for GToken.Attributes;
+	using TokenPayments for TokenPayment;
+	using Number for uint256;
+	using EnumerableSet for EnumerableSet.AddressSet;
+
 	/// @notice Validates the LP payment for the listing based on the total ADEX amount in liquidity.
 	/// @param payment The payment details for the LP.
 	/// @return bool indicating if the LP payment is valid.
-	function isValidLpPaymentForListing(
+	function _isValidLpPaymentForListing(
 		TokenPayment calldata payment,
 		address lpTokenAddress,
 		address adexTokenAddress
-	) public view returns (bool) {
+	) private view returns (bool) {
 		// Ensure the payment token is the correct GToken contract
 		if (payment.token != lpTokenAddress) {
 			return false;
@@ -64,6 +73,156 @@ library GovernanceLib {
 			attributes.tradeToken == adexTokenAddress &&
 			payment.amount >= 1_000e18;
 	}
+
+	/**
+	 * @notice Ends the voting process for the active token listing.
+	 * @dev This function ensures that the voting period has ended before finalizing the listing.
+	 */
+	function endVoting(Governance.MainStorage storage $) public {
+		require(
+			$.activeListing.endEpoch <= $.epochs.currentEpoch(),
+			"Voting not complete"
+		);
+
+		// Finalize the listing and store it under the owner's address.
+		$.pairOwnerListing[$.activeListing.owner] = $.activeListing;
+		delete $.activeListing; // Clear the active listing to prepare for the next one.
+	}
+
+	function addReward(
+		Governance.MainStorage storage $,
+		TokenPayment calldata payment
+	) public {
+		uint256 rewardAmount = payment.amount;
+		require(
+			rewardAmount > 0,
+			"Governance: Reward amount must be greater than zero"
+		);
+		require(
+			payment.token == $.adexTokenAddress,
+			"Governance: Invalid reward payment"
+		);
+		payment.receiveToken();
+
+		uint256 protocolAmount;
+		(rewardAmount, protocolAmount) = rewardAmount.take(
+			(rewardAmount * 3) / 10
+		); // 30% for protocol fee
+
+		uint256 totalStakeWeight = $.gtokens.totalStakeWeight();
+		if (totalStakeWeight > 0) {
+			$.rewardPerShare +=
+				(rewardAmount * REWARDS_DIVISION_SAFETY_CONSTANT) /
+				totalStakeWeight;
+		}
+
+		$.protocolFees += protocolAmount;
+		$.rewardsReserve += rewardAmount;
+	}
+
+	function exitGovernance(
+		Governance.MainStorage storage $,
+		uint256 nonce
+	) external {
+		address user = msg.sender;
+
+		GToken.Attributes memory attributes = $
+			.gtokens
+			.getBalanceAt(user, nonce)
+			.attributes;
+
+		// Calculate the amount of LP tokens to return to the user
+		uint256 lpAmountToReturn = attributes.valueToKeep(
+			attributes.lpAmount,
+			attributes.epochsElapsed($.epochs.currentEpoch())
+		);
+		TokenPayment[] memory lpPayments = attributes.lpPayments;
+		// Process each LP payment associated with the staking position
+		for (uint256 i; i < lpPayments.length; i++) {
+			TokenPayment memory lpPayment = lpPayments[i];
+
+			// Adjust the LP payment amount based on the remaining LP amount to return
+			if (lpAmountToReturn == 0) {
+				lpPayment.amount = 0;
+				lpPayment.nonce = 0;
+			} else if (lpAmountToReturn > lpPayment.amount) {
+				lpAmountToReturn -= lpPayment.amount;
+			} else {
+				lpPayment.amount = lpAmountToReturn;
+				lpAmountToReturn = 0;
+			}
+
+			// Transfer the LP tokens back to the user if there's an amount to return
+			if (lpPayment.amount > 0) {
+				LpToken($.lpTokenAddress).safeTransferFrom(
+					address(this),
+					user,
+					lpPayment.nonce,
+					lpPayment.amount,
+					""
+				);
+			}
+		}
+
+		$.gtokens.update(user, nonce, 0, attributes);
+	}
+
+	function proposeNewPairListing(
+		Governance.MainStorage storage $,
+		TokenPayment calldata listingFeePayment,
+		TokenPayment calldata securityPayment,
+		TokenPayment calldata tradeTokenPayment
+	) external {
+		endVoting($);
+
+		address tradeToken = tradeTokenPayment.token;
+
+		// Ensure there is no active listing proposal
+		require(
+			$.pairOwnerListing[msg.sender].owner == address(0) &&
+				$.activeListing.owner == address(0),
+			"Governance: Previous proposal not completed"
+		);
+
+		// Validate the trade token and ensure it is not already listed
+		bool isNewAddition = $.pendingOrListedTokens.add(tradeToken);
+		require(
+			isERC20(tradeToken) &&
+				isNewAddition &&
+				!$.router.tokenIsListed(tradeToken),
+			"Governance: Invalid Trade token"
+		);
+
+		// Check if the correct listing fee amount is provided
+		require(
+			listingFeePayment.amount == LISTING_FEE,
+			"Governance: Invalid sent listing fee"
+		);
+		// Add the listing fee to the rewards pool
+		addReward($, listingFeePayment);
+
+		require(
+			_isValidLpPaymentForListing(
+				securityPayment,
+				$.lpTokenAddress,
+				$.adexTokenAddress
+			),
+			"Governance: Invalid LP Payment for proposal"
+		);
+		securityPayment.receiveToken();
+
+		require(
+			tradeTokenPayment.amount > 0,
+			"Governance: Must send potential initial liquidity"
+		);
+		tradeTokenPayment.receiveToken();
+
+		// Update the active listing with the new proposal details
+		$.activeListing.owner = msg.sender;
+		$.activeListing.tradeTokenPayment = tradeTokenPayment;
+		$.activeListing.securityLpPayment = securityPayment;
+		$.activeListing.endEpoch = $.epochs.currentEpoch() + 3;
+	}
 }
 
 /// @title Governance Contract
@@ -76,8 +235,6 @@ contract Governance is ERC1155HolderUpgradeable, OwnableUpgradeable {
 	using Number for uint256;
 	using EnumerableSet for EnumerableSet.UintSet;
 	using EnumerableSet for EnumerableSet.AddressSet;
-
-	uint256 constant REWARDS_DIVISION_SAFETY_CONSTANT = 1e18;
 
 	// Constants for minimum and maximum LP tokens that can be locked
 	uint256 public constant MIN_LP_TOKENS = 1;
@@ -94,43 +251,34 @@ contract Governance is ERC1155HolderUpgradeable, OwnableUpgradeable {
 		uint256 campaignId; // launchPair campaign ID
 	}
 
-	// This could be set by governance
-	uint256 public constant LISTING_FEE = 20e18;
+	/// @custom:storage-location erc7201:adex.governance.main
+	struct MainStorage {
+		uint256 rewardPerShare;
+		uint256 rewardsReserve;
+		uint256 protocolFees;
+		address protocolFeesCollector;
+		GTokens gtokens;
+		address lpTokenAddress;
+		address adexTokenAddress;
+		IRouter router;
+		Epochs.Storage epochs;
+		mapping(address => EnumerableSet.UintSet) userVotes;
+		mapping(address => address) userVote;
+		TokenListing activeListing;
+		EnumerableSet.AddressSet pendingOrListedTokens;
+		mapping(address => TokenListing) pairOwnerListing;
+		LaunchPair launchPair;
+	}
 
-	// Reward per share for governance users
-	uint256 public rewardPerShare;
-	uint256 public rewardsReserve;
+	// keccak256(abi.encode(uint256(keccak256("adex.governance.main")) - 1)) & ~bytes32(uint256(0xff));
+	bytes32 private constant MAIN_STORAGE_LOCATION =
+		0x7fb362e6a2f486ec4cf1c2b1e6f78b640a158f866a4ba65c099da760ade11e00;
 
-	uint256 public protocolFees;
-	address protocolFeesCollector;
-
-	// Instance of GTokens contract
-	GTokens public gtokens;
-
-	// Address of the LP token contract
-	address public lpTokenAddress;
-
-	// Address of the Base token contract
-	address public adexTokenAddress;
-	IRouter private _router;
-
-	// Storage for epochs management
-	Epochs.Storage public epochs;
-
-	// Mapping of user to their active votes on token listings
-	mapping(address => EnumerableSet.UintSet) private _userVotes;
-
-	// Mapping of user to the token they voted for
-	mapping(address => address) public userVote;
-
-	// The current active listing
-	TokenListing public activeListing;
-
-	EnumerableSet.AddressSet private _pendingOrListedTokens;
-	// Mapping of token owner to their proposed listing
-	mapping(address => TokenListing) public pairOwnerListing;
-
-	LaunchPair public launchPair;
+	function _getMainStorage() private pure returns (MainStorage storage $) {
+		assembly {
+			$.slot := MAIN_STORAGE_LOCATION
+		}
+	}
 
 	/// @notice Constructor to initialize the Governance contract.
 	/// @param _lpToken The address of the LP token contract.
@@ -147,32 +295,39 @@ contract Governance is ERC1155HolderUpgradeable, OwnableUpgradeable {
 	) public initializer {
 		__Ownable_init(msg.sender);
 
-		lpTokenAddress = _lpToken;
-		adexTokenAddress = _adex;
+		MainStorage storage $ = _getMainStorage();
 
-		epochs = epochs_;
-		gtokens = NewGTokens.create(epochs, address(this), proxyAdmin);
-		launchPair = DeployLaunchPair.newLaunchPair(_lpToken, proxyAdmin);
+		$.lpTokenAddress = _lpToken;
+		$.adexTokenAddress = _adex;
 
-		_router = IRouter(router);
+		$.epochs = epochs_;
+		$.gtokens = NewGTokens.create($.epochs, address(this), proxyAdmin);
+		$.launchPair = DeployLaunchPair.newLaunchPair(_lpToken, proxyAdmin);
+
+		$.router = IRouter(router);
 
 		require(
 			protocolFeesCollector_ != address(0),
 			"Invalid Protocol Fees collector"
 		);
-		protocolFeesCollector = protocolFeesCollector_;
+		$.protocolFeesCollector = protocolFeesCollector_;
 	}
 
 	function currentEpoch() public view returns (uint256) {
-		return epochs.currentEpoch();
+		MainStorage storage $ = _getMainStorage();
+		return $.epochs.currentEpoch();
 	}
 
 	function takeProtocolFees() external {
+		MainStorage storage $ = _getMainStorage();
 		address caller = msg.sender;
-		require(caller == protocolFeesCollector, "Not allowed");
+		require(caller == $.protocolFeesCollector, "Not allowed");
 
-		IERC20(adexTokenAddress).transfer(protocolFeesCollector, protocolFees);
-		protocolFees = 0;
+		IERC20($.adexTokenAddress).transfer(
+			$.protocolFeesCollector,
+			$.protocolFees
+		);
+		$.protocolFees = 0;
 	}
 
 	/// @notice Internal function to validate if a TokenPayment is a valid LP token payment.
@@ -181,39 +336,11 @@ contract Governance is ERC1155HolderUpgradeable, OwnableUpgradeable {
 	function _isValidLpPayment(
 		TokenPayment memory payment
 	) internal view returns (bool) {
+		MainStorage storage $ = _getMainStorage();
 		return
 			payment.nonce > 0 &&
-			payment.token == lpTokenAddress &&
+			payment.token == $.lpTokenAddress &&
 			payment.amount > 0;
-	}
-
-	function _addReward(TokenPayment calldata payment) private {
-		uint256 rewardAmount = payment.amount;
-		require(
-			rewardAmount > 0,
-			"Governance: Reward amount must be greater than zero"
-		);
-		require(
-			payment.token == adexTokenAddress,
-			"Governance: Invalid reward payment"
-		);
-		payment.receiveToken();
-
-		uint256 protocolAmount;
-		(rewardAmount, protocolAmount) = rewardAmount.take(
-			(rewardAmount * 3) / 10
-		); // 30% for protocol fee
-
-		uint256 totalStakeWeight = gtokens.totalStakeWeight();
-		// We will receive rewards regardless of if Governance staking has begun
-		if (totalStakeWeight > 0) {
-			rewardPerShare +=
-				(rewardAmount * REWARDS_DIVISION_SAFETY_CONSTANT) /
-				totalStakeWeight;
-		}
-
-		protocolFees += protocolAmount;
-		rewardsReserve += rewardAmount;
 	}
 
 	/// @notice Function to enter governance by locking LP tokens and minting GTokens.
@@ -223,8 +350,8 @@ contract Governance is ERC1155HolderUpgradeable, OwnableUpgradeable {
 		TokenPayment[] calldata receivedPayments,
 		uint256 epochsLocked
 	) external returns (uint256) {
-		if (rewardPerShare == 0 && rewardsReserve > 0) {
-			// First staker when there's reward must lock for max lock time
+		MainStorage storage $ = _getMainStorage();
+		if ($.rewardPerShare == 0 && $.rewardsReserve > 0) {
 			require(
 				epochsLocked == GToken.MAX_EPOCHS_LOCK,
 				"Governance: First stakers must lock for max epoch"
@@ -258,10 +385,10 @@ contract Governance is ERC1155HolderUpgradeable, OwnableUpgradeable {
 				lpAmount += payment.amount;
 				lpPayments[lpIndex] = payment;
 
-				LpToken.LpAttributes memory attr = LpToken(lpTokenAddress)
+				LpToken.LpAttributes memory attr = LpToken($.lpTokenAddress)
 					.getBalanceAt(address(this), payment.nonce)
 					.attributes;
-				if (attr.tradeToken == adexTokenAddress) {
+				if (attr.tradeToken == $.adexTokenAddress) {
 					adexAmount += payment.amount;
 				}
 
@@ -272,19 +399,19 @@ contract Governance is ERC1155HolderUpgradeable, OwnableUpgradeable {
 		if (msg.sender != address(this)) {
 			// ADEX is first class token in the DEX, so All GTokens holders must possess sufficient amount based on liq they provided
 			require(
-				((adexAmount * 100) / lpAmount) >= 10, // 10% for now
+				((adexAmount * 100) / lpAmount) >= 10,
 				"Not enough ADEX liquidity used"
 			);
 		}
 
 		// Mint GTokens for the user
 		return
-			gtokens.mintGToken(
+			$.gtokens.mintGToken(
 				msg.sender,
-				rewardPerShare,
+				$.rewardPerShare,
 				epochsLocked,
 				lpAmount,
-				epochs.currentEpoch(),
+				$.epochs.currentEpoch(),
 				lpPayments
 			);
 	}
@@ -307,7 +434,7 @@ contract Governance is ERC1155HolderUpgradeable, OwnableUpgradeable {
 	 * - "Governance: Invalid payment" if the payment token is not the ADEX token.
 	 */
 	function receiveRewards(TokenPayment calldata payment) external onlyOwner {
-		_addReward(payment);
+		GovernanceLib.addReward(_getMainStorage(), payment);
 	}
 
 	function _calculateClaimableReward(
@@ -318,11 +445,10 @@ contract Governance is ERC1155HolderUpgradeable, OwnableUpgradeable {
 		view
 		returns (uint256 claimableReward, GToken.Attributes memory attributes)
 	{
-		attributes = gtokens.getBalanceAt(user, nonce).attributes;
+		MainStorage storage $ = _getMainStorage();
+		attributes = $.gtokens.getBalanceAt(user, nonce).attributes;
 
-		// Calculate the difference in reward per share since the last claim
-		uint256 rewardDifference = rewardPerShare - attributes.rewardPerShare;
-
+		uint256 rewardDifference = $.rewardPerShare - attributes.rewardPerShare;
 		claimableReward =
 			(attributes.stakeWeight * rewardDifference) /
 			REWARDS_DIVISION_SAFETY_CONSTANT;
@@ -334,24 +460,24 @@ contract Governance is ERC1155HolderUpgradeable, OwnableUpgradeable {
 	/// @param nonce The specific nonce representing a unique staking position of the user.
 	/// @return Updated staking attributes for the user after claiming the reward.
 	function claimRewards(uint256 nonce) external returns (uint256) {
+		MainStorage storage $ = _getMainStorage();
 		address user = msg.sender;
 		(
 			uint256 claimableReward,
 			GToken.Attributes memory attributes
 		) = _calculateClaimableReward(user, nonce);
 		uint256[] memory nonces = _getLpNonces(attributes);
-		(uint256 lpRewardsClaimed, uint256[] memory newLpNonces) = _router
+		(uint256 lpRewardsClaimed, uint256[] memory newLpNonces) = $
+			.router
 			.claimRewards(nonces);
 
 		uint256 total = claimableReward + lpRewardsClaimed;
 		require(total > 0, "Governance: No rewards to claim");
 
 		if (claimableReward > 0) {
-			// Reduce the rewards reserve by the claimed amount
-			rewardsReserve -= claimableReward;
-			// Update user's rewardPerShare to the current rewardPerShare
-			attributes.rewardPerShare = rewardPerShare;
-			attributes.lastClaimEpoch = epochs.currentEpoch();
+			$.rewardsReserve -= claimableReward;
+			attributes.rewardPerShare = $.rewardPerShare;
+			attributes.lastClaimEpoch = $.epochs.currentEpoch();
 		}
 
 		if (lpRewardsClaimed > 0) {
@@ -360,16 +486,15 @@ contract Governance is ERC1155HolderUpgradeable, OwnableUpgradeable {
 			}
 		}
 
-		// Transfer the claimable reward to the user
-		IERC20(adexTokenAddress).transfer(user, total);
-
-		return gtokens.update(user, nonce, GTOKEN_MINT_AMOUNT, attributes);
+		IERC20($.adexTokenAddress).transfer(user, total);
+		return $.gtokens.update(user, nonce, GTOKEN_MINT_AMOUNT, attributes);
 	}
 
 	function increaseEpochsLocked(
 		uint256 nonce,
 		uint256 extraEpochs
 	) external returns (GToken.Attributes memory attributes) {
+		MainStorage storage $ = _getMainStorage();
 		address user = msg.sender;
 
 		{
@@ -382,7 +507,7 @@ contract Governance is ERC1155HolderUpgradeable, OwnableUpgradeable {
 
 			if (claimableReward > 0) {
 				nonce = this.claimRewards(nonce);
-				attributes = gtokens.getBalanceAt(user, nonce).attributes;
+				attributes = $.gtokens.getBalanceAt(user, nonce).attributes;
 			}
 		}
 
@@ -391,7 +516,7 @@ contract Governance is ERC1155HolderUpgradeable, OwnableUpgradeable {
 			attributes.epochsLocked = GToken.MAX_EPOCHS_LOCK;
 		}
 
-		gtokens.update(user, nonce, GTOKEN_MINT_AMOUNT, attributes);
+		$.gtokens.update(user, nonce, GTOKEN_MINT_AMOUNT, attributes);
 	}
 
 	function _getLpNonces(
@@ -408,59 +533,19 @@ contract Governance is ERC1155HolderUpgradeable, OwnableUpgradeable {
 		address user,
 		uint256 nonce
 	) external view returns (uint256 totalClaimable) {
+		MainStorage storage $ = _getMainStorage();
 		GToken.Attributes memory attributes;
 
 		(totalClaimable, attributes) = _calculateClaimableReward(user, nonce);
 
 		uint256[] memory nonces = _getLpNonces(attributes);
-		totalClaimable += _router.getClaimableRewardsByNonces(nonces);
+		totalClaimable += $.router.getClaimableRewardsByNonces(nonces);
 	}
 
 	/// @notice Exits governance by burning GTokens and unlocking the user's staked LP tokens.
 	/// @param nonce The nonce representing the user's specific staking position.
 	function exitGovernance(uint256 nonce) external {
-		address user = msg.sender;
-
-		// Retrieve the user's GToken attributes for the specified nonce
-		GToken.Attributes memory attributes = gtokens
-			.getBalanceAt(user, nonce)
-			.attributes;
-
-		// Calculate the amount of LP tokens to return to the user
-		uint256 lpAmountToReturn = attributes.valueToKeep(
-			attributes.lpAmount,
-			attributes.epochsElapsed(epochs.currentEpoch())
-		);
-		TokenPayment[] memory lpPayments = attributes.lpPayments;
-		// Process each LP payment associated with the staking position
-		for (uint256 i; i < lpPayments.length; i++) {
-			TokenPayment memory lpPayment = lpPayments[i];
-
-			// Adjust the LP payment amount based on the remaining LP amount to return
-			if (lpAmountToReturn == 0) {
-				lpPayment.amount = 0;
-				lpPayment.nonce = 0;
-			} else if (lpAmountToReturn > lpPayment.amount) {
-				lpAmountToReturn -= lpPayment.amount;
-			} else {
-				lpPayment.amount = lpAmountToReturn;
-				lpAmountToReturn = 0;
-			}
-
-			// Transfer the LP tokens back to the user if there's an amount to return
-			if (lpPayment.amount > 0) {
-				LpToken(lpTokenAddress).safeTransferFrom(
-					address(this),
-					user,
-					lpPayment.nonce,
-					lpPayment.amount,
-					""
-				);
-			}
-		}
-
-		// Burn the user's GToken by setting the amount to 0
-		gtokens.update(user, nonce, 0, attributes);
+		GovernanceLib.exitGovernance(_getMainStorage(), nonce);
 	}
 
 	/// @notice Proposes a new pair listing by submitting the required listing fee and GToken payment.
@@ -472,54 +557,12 @@ contract Governance is ERC1155HolderUpgradeable, OwnableUpgradeable {
 		TokenPayment calldata securityPayment,
 		TokenPayment calldata tradeTokenPayment
 	) external {
-		_endVoting();
-
-		address tradeToken = tradeTokenPayment.token;
-
-		// Ensure there is no active listing proposal
-		require(
-			pairOwnerListing[msg.sender].owner == address(0) &&
-				activeListing.owner == address(0),
-			"Governance: Previous proposal not completed"
+		GovernanceLib.proposeNewPairListing(
+			_getMainStorage(),
+			listingFeePayment,
+			securityPayment,
+			tradeTokenPayment
 		);
-
-		// Validate the trade token and ensure it is not already listed
-		bool isNewAddition = _pendingOrListedTokens.add(tradeToken);
-		require(
-			isERC20(tradeToken) &&
-				isNewAddition &&
-				!_router.tokenIsListed(tradeToken),
-			"Governance: Invalid Trade token"
-		);
-		// Check if the correct listing fee amount is provided
-		require(
-			listingFeePayment.amount == LISTING_FEE,
-			"Governance: Invalid sent listing fee"
-		);
-		// Add the listing fee to the rewards pool
-		_addReward(listingFeePayment);
-
-		require(
-			GovernanceLib.isValidLpPaymentForListing(
-				securityPayment,
-				lpTokenAddress,
-				adexTokenAddress
-			),
-			"Governance: Invalid LP Payment for proposal"
-		);
-		securityPayment.receiveToken();
-
-		require(
-			tradeTokenPayment.amount > 0,
-			"Governance: Must send potential initial liquidity"
-		);
-		tradeTokenPayment.receiveToken();
-
-		// Update the active listing with the new proposal details
-		activeListing.owner = msg.sender;
-		activeListing.tradeTokenPayment = tradeTokenPayment;
-		activeListing.securityLpPayment = securityPayment;
-		activeListing.endEpoch = currentEpoch() + 3;
 	}
 
 	function _checkProposalPass(
@@ -535,12 +578,14 @@ contract Governance is ERC1155HolderUpgradeable, OwnableUpgradeable {
 		if (listing.tradeTokenPayment.amount > 0) {
 			listing.tradeTokenPayment.sendToken(listing.owner);
 		}
-		delete pairOwnerListing[msg.sender];
-		_pendingOrListedTokens.remove(listing.tradeTokenPayment.token);
+		delete _getMainStorage().pairOwnerListing[msg.sender];
+		_getMainStorage().pendingOrListedTokens.remove(
+			listing.tradeTokenPayment.token
+		);
 	}
 
 	function getPendingOrListedTokens() public view returns (address[] memory) {
-		return _pendingOrListedTokens.values();
+		return _getMainStorage().pendingOrListedTokens.values();
 	}
 
 	function _createFundRaisingCampaignForListing(
@@ -548,13 +593,15 @@ contract Governance is ERC1155HolderUpgradeable, OwnableUpgradeable {
 	) private returns (bool) {
 		require(
 			listing.campaignId == 0,
-			"Governance: Campaign Created already for Lisiting"
+			"Governance: Campaign Created already for Listing"
 		);
+
+		MainStorage storage $ = _getMainStorage();
 
 		// Check if the proposal passes both the total LP amount and the voting requirements.
 		bool passedForTotalGTokenLp = _checkProposalPass(
 			listing.totalLpAmount,
-			gtokens.totalLpAmount()
+			$.gtokens.totalLpAmount()
 		);
 		bool passedForYesVotes = _checkProposalPass(
 			listing.yesVote,
@@ -567,7 +614,7 @@ contract Governance is ERC1155HolderUpgradeable, OwnableUpgradeable {
 		}
 
 		// Create a new campaign for the listing owner.
-		listing.campaignId = launchPair.createCampaign(listing.owner);
+		listing.campaignId = $.launchPair.createCampaign(listing.owner);
 		return true;
 	}
 
@@ -577,13 +624,15 @@ contract Governance is ERC1155HolderUpgradeable, OwnableUpgradeable {
 	 *         voting, launch pad campaign, and liquidity provision.
 	 */
 	function progressNewPairListing() external {
+		MainStorage storage $ = _getMainStorage();
+
 		// Retrieve the token listing associated with the caller's address.
-		TokenListing storage listing = pairOwnerListing[msg.sender];
+		TokenListing storage listing = $.pairOwnerListing[msg.sender];
 
 		// If no listing is found for the sender, end the current voting session.
 		if (listing.owner == address(0)) {
-			_endVoting(); // End the current voting session if no valid listing exists.
-			listing = pairOwnerListing[msg.sender]; // Refresh listing after ending the vote.
+			GovernanceLib.endVoting($); // End the current voting session if no valid listing exists.
+			listing = $.pairOwnerListing[msg.sender]; // Refresh listing after ending the vote.
 		}
 
 		// Ensure that a valid listing exists after the potential refresh.
@@ -593,9 +642,9 @@ contract Governance is ERC1155HolderUpgradeable, OwnableUpgradeable {
 			_createFundRaisingCampaignForListing(listing);
 		} else {
 			// Retrieve details of the existing campaign.
-			LaunchPair.Campaign memory campaign = launchPair.getCampaignDetails(
-				listing.campaignId
-			);
+			LaunchPair.Campaign memory campaign = $
+				.launchPair
+				.getCampaignDetails(listing.campaignId);
 
 			if (campaign.goal > 0 && block.timestamp > campaign.deadline) {
 				if (campaign.fundsRaised < campaign.goal) {
@@ -623,7 +672,7 @@ contract Governance is ERC1155HolderUpgradeable, OwnableUpgradeable {
 				uint256 ethBal = address(this).balance;
 
 				// Withdraw the funds raised in the campaign.
-				uint256 fundsRaised = launchPair.withdrawFunds(
+				uint256 fundsRaised = $.launchPair.withdrawFunds(
 					listing.campaignId
 				);
 
@@ -634,12 +683,12 @@ contract Governance is ERC1155HolderUpgradeable, OwnableUpgradeable {
 				);
 
 				// Add liquidity to the router with the withdrawn funds.
-				uint256 lpNonce = _router.addLiquidity{ value: fundsRaised }(
+				uint256 lpNonce = $.router.addLiquidity{ value: fundsRaised }(
 					TokenPayment({ token: address(0), amount: 0, nonce: 0 })
 				);
 
 				// Get the LP token balance resulting from the liquidity addition.
-				uint256 lpAmount = LpToken(lpTokenAddress)
+				uint256 lpAmount = LpToken($.lpTokenAddress)
 					.getBalanceAt(address(this), lpNonce)
 					.amount;
 
@@ -649,7 +698,7 @@ contract Governance is ERC1155HolderUpgradeable, OwnableUpgradeable {
 				payments[1] = TokenPayment({
 					amount: lpAmount,
 					nonce: lpNonce,
-					token: lpTokenAddress
+					token: $.lpTokenAddress
 				});
 
 				// Enter governance with the provided payments and lock the GTokens.
@@ -659,7 +708,7 @@ contract Governance is ERC1155HolderUpgradeable, OwnableUpgradeable {
 				);
 
 				// Transfer the minted GTokens to the listing owner.
-				gtokens.safeTransferFrom(
+				$.gtokens.safeTransferFrom(
 					address(this),
 					listing.owner,
 					gTokenNonce,
@@ -671,21 +720,21 @@ contract Governance is ERC1155HolderUpgradeable, OwnableUpgradeable {
 				delete listing.securityLpPayment;
 			} else {
 				// If funds have already been withdrawn, proceed to create the trading pair.
-				listing.tradeTokenPayment.approve(address(_router));
+				listing.tradeTokenPayment.approve(address($.router));
 
 				// Create the trading pair using the router and receive LP tokens.
-				(, TokenPayment memory lpPayment) = _router.createPair(
+				(, TokenPayment memory lpPayment) = $.router.createPair(
 					listing.tradeTokenPayment
 				);
 
 				// Approve the LP tokens for use by the launch pair contract.
-				lpPayment.approve(address(launchPair));
+				lpPayment.approve(address($.launchPair));
 
 				// Transfer the LP tokens to the launch pair contract.
-				launchPair.receiveLpToken(lpPayment, listing.campaignId);
+				$.launchPair.receiveLpToken(lpPayment, listing.campaignId);
 
 				// complete the proposal
-				delete pairOwnerListing[msg.sender];
+				delete $.pairOwnerListing[msg.sender];
 			}
 		}
 	}
@@ -701,88 +750,78 @@ contract Governance is ERC1155HolderUpgradeable, OwnableUpgradeable {
 		address tradeToken,
 		bool shouldList
 	) external {
+		MainStorage storage $ = _getMainStorage();
 		address user = msg.sender;
 
-		require(activeListing.endEpoch > currentEpoch(), "Voting complete");
+		require($.activeListing.endEpoch > currentEpoch(), "Voting complete");
 
 		// Ensure that the trade token is valid and active for voting.
 		require(
 			isERC20(tradeToken) &&
-				activeListing.tradeTokenPayment.token == tradeToken,
+				$.activeListing.tradeTokenPayment.token == tradeToken,
 			"Token not active"
 		);
 
-		address userLastVotedToken = userVote[user];
+		address userLastVotedToken = $.userVote[user];
 		require(
 			userLastVotedToken == address(0) ||
-				userLastVotedToken == activeListing.tradeTokenPayment.token,
+				userLastVotedToken == $.activeListing.tradeTokenPayment.token,
 			"Please recall previous votes"
 		);
 		require(
-			gTokenPayment.token == address(gtokens),
+			gTokenPayment.token == address($.gtokens),
 			"Governance: Invalid Payment"
 		);
 
 		// Calculate the user's vote power based on their gToken attributes.
-		GToken.Attributes memory attributes = gtokens
+		GToken.Attributes memory attributes = $
+			.gtokens
 			.getBalanceAt(user, gTokenPayment.nonce)
 			.attributes;
 		uint256 epochsLeft = attributes.epochsLeft(
-			attributes.epochsElapsed(epochs.currentEpoch())
+			attributes.epochsElapsed($.epochs.currentEpoch())
 		);
 
 		require(
 			epochsLeft >= 360,
-			"GToken expired, must have atleast 360 epochs left to vote with"
+			"GToken expired, must have at least 360 epochs left to vote with"
 		);
 
 		uint256 votePower = attributes.votePower(epochsLeft);
 
 		// Receive the gToken payment and record the user's vote.
 		gTokenPayment.receiveToken();
-		_userVotes[user].add(gTokenPayment.nonce);
+		$.userVotes[user].add(gTokenPayment.nonce);
 
 		// Apply the user's vote to the active listing.
 		if (shouldList) {
-			activeListing.yesVote += votePower;
+			$.activeListing.yesVote += votePower;
 		} else {
-			activeListing.noVote += votePower;
+			$.activeListing.noVote += votePower;
 		}
 
 		// Update the total LP amount and record the user's vote for the trade token.
-		activeListing.totalLpAmount += attributes.lpAmount;
-		userVote[user] = tradeToken;
-	}
-
-	/**
-	 * @notice Ends the voting process for the active token listing.
-	 * @dev This function ensures that the voting period has ended before finalizing the listing.
-	 */
-	function _endVoting() private {
-		require(
-			activeListing.endEpoch <= currentEpoch(),
-			"Voting not complete"
-		);
-
-		// Finalize the listing and store it under the owner's address.
-		pairOwnerListing[activeListing.owner] = activeListing;
-		delete activeListing; // Clear the active listing to prepare for the next one.
+		$.activeListing.totalLpAmount += attributes.lpAmount;
+		$.userVote[user] = tradeToken;
 	}
 
 	/**
 	 * @notice Allows users to recall their vote tokens after voting has ended or been canceled.
 	 */
 	function recallVoteToken() external {
+		MainStorage storage $ = _getMainStorage(); // Access the main storage
+
 		address user = msg.sender;
-		address tradeToken = userVote[user];
-		EnumerableSet.UintSet storage userVoteNonces = _userVotes[user];
+		address tradeToken = $.userVote[user];
+		EnumerableSet.UintSet storage userVoteNonces = $.userVotes[user];
 
 		// Ensure the user has votes to recall.
 		require(userVoteNonces.length() > 0, "No vote found");
 
 		if (tradeToken != address(0)) {
-			if (tradeToken == activeListing.tradeTokenPayment.token)
-				_endVoting();
+			if (tradeToken == $.activeListing.tradeTokenPayment.token) {
+				GovernanceLib.endVoting($);
+			}
 		}
 
 		// Recall up to 10 vote tokens at a time.
@@ -792,7 +831,7 @@ contract Governance is ERC1155HolderUpgradeable, OwnableUpgradeable {
 
 			uint256 nonce = userVoteNonces.at(userVoteNonces.length() - 1);
 			userVoteNonces.remove(nonce);
-			gtokens.safeTransferFrom(
+			$.gtokens.safeTransferFrom(
 				address(this),
 				user,
 				nonce,
@@ -802,14 +841,61 @@ contract Governance is ERC1155HolderUpgradeable, OwnableUpgradeable {
 		}
 
 		if (userVoteNonces.length() == 0) {
-			delete userVote[user]; // Clear the user's vote record.
+			delete $.userVote[user]; // Clear the user's vote record.
 		}
 	}
 
 	function getUserActiveVoteGTokenNonces(
 		address voter
 	) public view returns (uint256[] memory) {
-		return _userVotes[voter].values();
+		MainStorage storage $ = _getMainStorage(); // Access the main storage
+		return $.userVotes[voter].values();
+	}
+
+	function protocolFees() public view returns (uint256) {
+		return _getMainStorage().protocolFees;
+	}
+
+	function gtokens() public view returns (GTokens) {
+		return _getMainStorage().gtokens;
+	}
+
+	function rewardPerShare() public view returns (uint256) {
+		return _getMainStorage().rewardPerShare;
+	}
+
+	function lpTokenAddress() public view returns (address) {
+		return _getMainStorage().lpTokenAddress;
+	}
+
+	function rewardsReserve() public view returns (uint256) {
+		return _getMainStorage().rewardsReserve;
+	}
+
+	function launchPair() public view returns (LaunchPair) {
+		return _getMainStorage().launchPair;
+	}
+
+	function activeListing()
+		public
+		view
+		returns (Governance.TokenListing memory)
+	{
+		return _getMainStorage().activeListing;
+	}
+
+	function pairOwnerListing(
+		address pairOwner
+	) public view returns (Governance.TokenListing memory) {
+		return _getMainStorage().pairOwnerListing[pairOwner];
+	}
+
+	function epochs() public view returns (Epochs.Storage memory) {
+		return _getMainStorage().epochs;
+	}
+
+	function listing_fees() public pure returns (uint256) {
+		return LISTING_FEE;
 	}
 
 	receive() external payable {}

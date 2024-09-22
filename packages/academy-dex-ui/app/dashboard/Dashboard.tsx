@@ -39,18 +39,19 @@ const reduceToTokenListing = (
     bigint,
   ],
 ): TokenListing => {
-  const [yesVote, noVote, totalLpAmount, endEpoch, owner, securityLpPayment, tradeTokenPayment, campaignId] = list;
+  return list as unknown as TokenListing;
+  // const [yesVote, noVote, totalLpAmount, endEpoch, owner, securityLpPayment, tradeTokenPayment, campaignId] = list;
 
-  return {
-    yesVote,
-    noVote,
-    totalLpAmount,
-    campaignId,
-    endEpoch,
-    owner,
-    securityLpPayment,
-    tradeTokenPayment,
-  };
+  // return {
+  //   yesVote,
+  //   noVote,
+  //   totalLpAmount,
+  //   campaignId,
+  //   endEpoch,
+  //   owner,
+  //   securityLpPayment,
+  //   tradeTokenPayment,
+  // };
 };
 
 export default function Dashboard() {

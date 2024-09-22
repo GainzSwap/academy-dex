@@ -44,7 +44,9 @@ contract EDUPair is Pair {
 	/// @param tradeToken_ The address of the trade token.
 	/// @dev A new instance of the `WEDU` contract is deployed and assigned as the trade token.
 	function _setTradeToken(address tradeToken_) internal override {
-		tradeToken = address(new WEDU());
+		MainStorage storage $ = _getMainStorage();
+
+		$.tradeToken = address(new WEDU());
 	}
 
 	/// @notice Fallback function to handle incoming EDU payments.
