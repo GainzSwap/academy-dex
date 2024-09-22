@@ -135,7 +135,7 @@ describe("Pair", function () {
           buyContract: basePairContract,
           someUser: user,
         }),
-      ).to.be.revertedWith("ERC20: transfer amount exceeds balance");
+      ).to.be.revertedWithCustomError(pairTradeToken, "ERC20InsufficientBalance");
     });
   });
 

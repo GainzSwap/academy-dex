@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.9;
+pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts/interfaces/IERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
@@ -55,7 +55,7 @@ library TokenPayments {
 	function sendToken(TokenPayment memory payment, address to) internal {
 		if (payment.nonce == 0) {
 			bool shouldMoveEthBalance = false;
-			if (!to.isContract()) {
+			if (to.code.length > 0) {
 				uint256 beforeBal = address(this).balance;
 
 				// Try to withdraw ETH assuming payment.token is WEDU

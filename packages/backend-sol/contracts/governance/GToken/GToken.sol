@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.20;
 
 import { GToken } from "./GTokenAttributes.sol";
 import { SFT } from "../../modules/SFT.sol";
@@ -30,9 +30,11 @@ contract GTokens is SFT {
 
 	/// @notice Constructor to initialize the GTokens contract.
 	/// @dev Sets the name and symbol of the SFT for GTokens.
-	constructor(
-		Epochs.Storage memory epochs_
-	) SFT("ADEX Governance Token", "GTADEX") {
+	function initialize(
+		Epochs.Storage memory epochs_,
+		address initialOwner
+	) public initializer {
+		__SFT_init("ADEX Governance Token", "GTADEX", initialOwner);
 		epochs = epochs_;
 	}
 
@@ -173,15 +175,13 @@ contract GTokens is SFT {
 		return _totalLpAmount;
 	}
 
-	function _beforeTokenTransfer(
-		address operator,
+	function _update(
 		address from,
 		address to,
 		uint256[] memory ids,
-		uint256[] memory amounts,
-		bytes memory data
+		uint256[] memory values
 	) internal override {
-		super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
+		super._update(from, to, ids, values);
 
 		for (uint256 i; i < ids.length; i++) {
 			uint256 id = ids[i];

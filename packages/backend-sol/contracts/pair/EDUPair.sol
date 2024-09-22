@@ -1,17 +1,31 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.9;
+pragma solidity 0.8.20;
 
 import { Pair, TokenPayment, AddLiquidityContext } from "./Pair.sol";
 import { WEDU } from "../common/libs/WEDU.sol";
+import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
-/// @title DeployEduPair
-/// @notice Library to deploy new instances of `EDUPair`.
 library DeployEduPair {
-	/// @notice Deploys a new instance of the `EDUPair` contract.
+	/// @notice Deploys a new instance of the `EDUPair` contract using an upgradeable proxy.
 	/// @param basePairAddr The address of the base pair contract.
+	/// @param proxyAdmin The address of the ProxyAdmin.
 	/// @return A new instance of the `EDUPair` contract.
-	function newEDUPair(address basePairAddr) external returns (EDUPair) {
-		return new EDUPair(basePairAddr);
+	function newEDUPair(
+		address basePairAddr,
+		address proxyAdmin
+	) external returns (EDUPair) {
+		// Deploy the implementation contract
+		EDUPair eduPairImpl = new EDUPair();
+
+		// Deploy the proxy and point it to the implementation
+		TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
+			address(eduPairImpl), // implementation address
+			proxyAdmin, // admin for the proxy
+			abi.encodeWithSignature("initialize(address)", basePairAddr) // initializer data
+		);
+
+		// Cast the proxy to the EDUPair type and return
+		return EDUPair(payable(address(proxy)));
 	}
 }
 
@@ -21,7 +35,9 @@ library DeployEduPair {
 contract EDUPair is Pair {
 	/// @notice Initializes the EDUPair contract with the base pair address.
 	/// @param basePair The address of the base pair.
-	constructor(address basePair) Pair(address(0), basePair) {}
+	function initialize(address basePair) public {
+		initialize(address(0), basePair);
+	}
 
 	/// @notice Internal function to set the trade token as `WEDU`.
 	/// @dev Overrides the `_setTradeToken` function from the `Pair` contract to use `WEDU`.

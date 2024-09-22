@@ -1,13 +1,15 @@
 import { AddressLike, BigNumberish, parseEther, ZeroAddress } from "ethers";
 import { ethers } from "hardhat";
-import { ERC20, MintableERC20, Pair, Router } from "../typechain-types";
+import { ADEX, EDUPair, ERC20, MintableERC20, Pair, Router, WEDU } from "../typechain-types";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { expect } from "chai";
 import { TokenPaymentStruct } from "../typechain-types/contracts/governance/Governance";
-import { time } from "@nomicfoundation/hardhat-network-helpers";
+import { BasePair } from "../typechain-types/contracts/pair/BasePair.sol";
+
+type Pairish = Pair | BasePair | EDUPair;
 
 // Helper function for token approval
-async function approveToken(signer: HardhatEthersSigner, token: ERC20, amount: BigNumberish, contract: Pair) {
+async function approveToken(signer: HardhatEthersSigner, token: ERC20, amount: BigNumberish, contract: Pairish) {
   await token.connect(signer).approve(contract, amount);
 }
 
@@ -23,6 +25,7 @@ export async function deployRouterFixture() {
     libraries: {
       NewGTokens: await (await ethers.deployContract("NewGTokens")).getAddress(),
       DeployLaunchPair: await (await ethers.deployContract("DeployLaunchPair")).getAddress(),
+      GovernanceLib: await (await ethers.deployContract("GovernanceLib")).getAddress(),
     },
   });
   const deployGovernance = await DeployGovernanceFactory.deploy();
@@ -31,16 +34,19 @@ export async function deployRouterFixture() {
   const router = await ethers.deployContract("Router", {
     signer: owner,
     libraries: {
+      DeployLpToken: await (await ethers.deployContract("DeployLpToken")).getAddress(),
       DeployPair: await (await ethers.deployContract("DeployPair")).getAddress(),
-      DeployBasePair: await (await ethers.deployContract("DeployTestBasePair")).getAddress(),
+      DeployBasePair: await (await ethers.deployContract("DeployBasePair")).getAddress(),
       DeployEduPair: await (await ethers.deployContract("DeployEduPair")).getAddress(),
       DeployGovernance: await deployGovernance.getAddress(),
     },
   });
+  await router.initialize(owner);
 
   await router.createPair({ amount: 0, token: ZeroAddress, nonce: 0 });
-  const basePairContract = await ethers.getContractAt("BasePair", await router.basePairAddr());
-  const baseTradeToken = await ethers.getContractAt("MintableADEX", await basePairContract.tradeToken());
+  const basePairAddr = await router.basePairAddr();
+  const basePairContract = await ethers.getContractAt("Pair", basePairAddr);
+  const baseTradeToken = await ethers.getContractAt("ADEX", await basePairContract.tradeToken());
 
   // Check lisiting of EDU
   const transferAmt = parseEther("34");
@@ -79,12 +85,14 @@ export async function deployRouterFixture() {
       tradeToken,
       contract,
       signer = user,
-    }: { contract: Pair; tradeToken?: MintableERC20; signer?: HardhatEthersSigner },
+    }: { contract: Pair | BasePair | EDUPair; tradeToken?: MintableERC20 | ADEX | WEDU; signer?: HardhatEthersSigner },
     ...args: Parameters<Router["addLiquidity"]>
   ) => {
     const payment = args[0] as TokenPaymentStruct;
     if (tradeToken) {
-      await tradeToken.connect(owner).mint(signer, payment.amount);
+      "mint" in tradeToken
+        ? await tradeToken.connect(owner).mint(signer, payment.amount)
+        : await tradeToken.connect(owner).transfer(signer, payment.amount);
       await approveToken(signer, tradeToken, payment.amount, contract);
     }
     return router.connect(signer).addLiquidity(...args);
@@ -99,8 +107,8 @@ export async function deployRouterFixture() {
     mint = false,
     checkBalances = true,
   }: {
-    buyContract: Pair;
-    sellContract: Pair;
+    buyContract: Pairish;
+    sellContract: Pairish;
     sellAmt: BigNumberish;
     someUser?: HardhatEthersSigner;
     slippage?: number;
@@ -108,8 +116,16 @@ export async function deployRouterFixture() {
     checkBalances?: boolean;
   }) => {
     const buyToken = await ethers.getContractAt("ERC20", await buyContract.tradeToken());
-    const sellToken = await ethers.getContractAt("MintableERC20", await sellContract.tradeToken());
-    mint && (await sellToken.connect(owner).mint(someUser, sellAmt));
+    const sellToken =
+      (await sellContract.getAddress()) == basePairAddr
+        ? baseTradeToken
+        : await ethers.getContractAt("MintableERC20", await sellContract.tradeToken());
+
+    if (mint) {
+      "mint" in sellToken
+        ? await sellToken.connect(owner).mint(someUser, sellAmt)
+        : await sellToken.connect(owner).transfer(someUser, sellAmt);
+    }
 
     const tokenApprovalTx = await sellToken.connect(someUser).approve(sellContract, sellAmt);
     await tokenApprovalTx.wait();

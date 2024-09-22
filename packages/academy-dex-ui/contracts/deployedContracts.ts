@@ -6,30 +6,141 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   31337: {
     GTokens: {
-      address: "0x1fD726d1d66454F3BF8Ee893e94D26daE9b577a1",
+      address: "0x436E1EB4dECf0eBd8B8C51d5cF91fF106dEB709e",
       abi: [
         {
           inputs: [
             {
-              components: [
-                {
-                  internalType: "uint256",
-                  name: "genesis",
-                  type: "uint256",
-                },
-                {
-                  internalType: "uint256",
-                  name: "epochLength",
-                  type: "uint256",
-                },
-              ],
-              internalType: "struct Epochs.Storage",
-              name: "epochs_",
-              type: "tuple",
+              internalType: "address",
+              name: "sender",
+              type: "address",
+            },
+            {
+              internalType: "uint256",
+              name: "balance",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "needed",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "tokenId",
+              type: "uint256",
             },
           ],
-          stateMutability: "nonpayable",
-          type: "constructor",
+          name: "ERC1155InsufficientBalance",
+          type: "error",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "approver",
+              type: "address",
+            },
+          ],
+          name: "ERC1155InvalidApprover",
+          type: "error",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "idsLength",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "valuesLength",
+              type: "uint256",
+            },
+          ],
+          name: "ERC1155InvalidArrayLength",
+          type: "error",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "operator",
+              type: "address",
+            },
+          ],
+          name: "ERC1155InvalidOperator",
+          type: "error",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "receiver",
+              type: "address",
+            },
+          ],
+          name: "ERC1155InvalidReceiver",
+          type: "error",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "sender",
+              type: "address",
+            },
+          ],
+          name: "ERC1155InvalidSender",
+          type: "error",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "operator",
+              type: "address",
+            },
+            {
+              internalType: "address",
+              name: "owner",
+              type: "address",
+            },
+          ],
+          name: "ERC1155MissingApprovalForAll",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "InvalidInitialization",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "NotInitializing",
+          type: "error",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "owner",
+              type: "address",
+            },
+          ],
+          name: "OwnableInvalidOwner",
+          type: "error",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "account",
+              type: "address",
+            },
+          ],
+          name: "OwnableUnauthorizedAccount",
+          type: "error",
         },
         {
           anonymous: false,
@@ -54,6 +165,19 @@ const deployedContracts = {
             },
           ],
           name: "ApprovalForAll",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: false,
+              internalType: "uint64",
+              name: "version",
+              type: "uint64",
+            },
+          ],
+          name: "Initialized",
           type: "event",
         },
         {
@@ -475,6 +599,36 @@ const deployedContracts = {
         {
           inputs: [
             {
+              components: [
+                {
+                  internalType: "uint256",
+                  name: "genesis",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "epochLength",
+                  type: "uint256",
+                },
+              ],
+              internalType: "struct Epochs.Storage",
+              name: "epochs_",
+              type: "tuple",
+            },
+            {
+              internalType: "address",
+              name: "initialOwner",
+              type: "address",
+            },
+          ],
+          name: "initialize",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
               internalType: "address",
               name: "account",
               type: "address",
@@ -609,7 +763,7 @@ const deployedContracts = {
             },
             {
               internalType: "uint256[]",
-              name: "amounts",
+              name: "values",
               type: "uint256[]",
             },
             {
@@ -642,7 +796,7 @@ const deployedContracts = {
             },
             {
               internalType: "uint256",
-              name: "amount",
+              name: "value",
               type: "uint256",
             },
             {
@@ -908,45 +1062,52 @@ const deployedContracts = {
       inheritedFunctions: {},
     },
     Governance: {
-      address: "0xfF33dAF08339Ab237EB75598bf65843FBF25047D",
+      address: "0xf9e94137dB29f260b14817D9a3093CAAb1B2a845",
       abi: [
+        {
+          inputs: [],
+          name: "InvalidInitialization",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "NotInitializing",
+          type: "error",
+        },
         {
           inputs: [
             {
               internalType: "address",
-              name: "_lpToken",
-              type: "address",
-            },
-            {
-              internalType: "address",
-              name: "_adex",
-              type: "address",
-            },
-            {
-              components: [
-                {
-                  internalType: "uint256",
-                  name: "genesis",
-                  type: "uint256",
-                },
-                {
-                  internalType: "uint256",
-                  name: "epochLength",
-                  type: "uint256",
-                },
-              ],
-              internalType: "struct Epochs.Storage",
-              name: "epochs_",
-              type: "tuple",
-            },
-            {
-              internalType: "address",
-              name: "protocolFeesCollector_",
+              name: "owner",
               type: "address",
             },
           ],
-          stateMutability: "nonpayable",
-          type: "constructor",
+          name: "OwnableInvalidOwner",
+          type: "error",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "account",
+              type: "address",
+            },
+          ],
+          name: "OwnableUnauthorizedAccount",
+          type: "error",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: false,
+              internalType: "uint64",
+              name: "version",
+              type: "uint64",
+            },
+          ],
+          name: "Initialized",
+          type: "event",
         },
         {
           anonymous: false,
@@ -1349,6 +1510,56 @@ const deployedContracts = {
               type: "tuple",
             },
           ],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "_lpToken",
+              type: "address",
+            },
+            {
+              internalType: "address",
+              name: "_adex",
+              type: "address",
+            },
+            {
+              components: [
+                {
+                  internalType: "uint256",
+                  name: "genesis",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "epochLength",
+                  type: "uint256",
+                },
+              ],
+              internalType: "struct Epochs.Storage",
+              name: "epochs_",
+              type: "tuple",
+            },
+            {
+              internalType: "address",
+              name: "protocolFeesCollector_",
+              type: "address",
+            },
+            {
+              internalType: "address",
+              name: "router",
+              type: "address",
+            },
+            {
+              internalType: "address",
+              name: "proxyAdmin",
+              type: "address",
+            },
+          ],
+          name: "initialize",
+          outputs: [],
           stateMutability: "nonpayable",
           type: "function",
         },
@@ -1826,29 +2037,53 @@ const deployedContracts = {
       ],
       inheritedFunctions: {
         onERC1155BatchReceived:
-          "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol",
+          "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol",
         onERC1155Received:
-          "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol",
+          "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol",
         supportsInterface:
-          "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol",
-        owner: "@openzeppelin/contracts/access/Ownable.sol",
-        renounceOwnership: "@openzeppelin/contracts/access/Ownable.sol",
-        transferOwnership: "@openzeppelin/contracts/access/Ownable.sol",
+          "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol",
+        owner:
+          "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol",
+        renounceOwnership:
+          "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol",
+        transferOwnership:
+          "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol",
       },
     },
     LaunchPair: {
-      address: "0x87dFcC19d247181A15f807D3E78ac19a692ab8F7",
+      address: "0x7446d906EdA720832Ebc32BdED1B6862C004f346",
       abi: [
+        {
+          inputs: [],
+          name: "InvalidInitialization",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "NotInitializing",
+          type: "error",
+        },
         {
           inputs: [
             {
               internalType: "address",
-              name: "_lpToken",
+              name: "owner",
               type: "address",
             },
           ],
-          stateMutability: "nonpayable",
-          type: "constructor",
+          name: "OwnableInvalidOwner",
+          type: "error",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "account",
+              type: "address",
+            },
+          ],
+          name: "OwnableUnauthorizedAccount",
+          type: "error",
         },
         {
           anonymous: false,
@@ -1929,6 +2164,19 @@ const deployedContracts = {
             },
           ],
           name: "FundsWithdrawn",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: false,
+              internalType: "uint64",
+              name: "version",
+              type: "uint64",
+            },
+          ],
+          name: "Initialized",
           type: "event",
         },
         {
@@ -2223,6 +2471,19 @@ const deployedContracts = {
           inputs: [
             {
               internalType: "address",
+              name: "_lpToken",
+              type: "address",
+            },
+          ],
+          name: "initialize",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
               name: "",
               type: "address",
             },
@@ -2441,24 +2702,156 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {
-        owner: "@openzeppelin/contracts/access/Ownable.sol",
-        renounceOwnership: "@openzeppelin/contracts/access/Ownable.sol",
-        transferOwnership: "@openzeppelin/contracts/access/Ownable.sol",
+        owner:
+          "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol",
+        renounceOwnership:
+          "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol",
+        transferOwnership:
+          "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol",
         onERC1155BatchReceived:
-          "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol",
+          "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol",
         onERC1155Received:
-          "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol",
+          "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol",
         supportsInterface:
-          "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol",
+          "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol",
       },
     },
     LpToken: {
-      address: "0x6A358FD7B7700887b0cd974202CdF93208F793E2",
+      address: "0xe082b26cEf079a095147F35c9647eC97c2401B83",
       abi: [
         {
+          inputs: [
+            {
+              internalType: "address",
+              name: "sender",
+              type: "address",
+            },
+            {
+              internalType: "uint256",
+              name: "balance",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "needed",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "tokenId",
+              type: "uint256",
+            },
+          ],
+          name: "ERC1155InsufficientBalance",
+          type: "error",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "approver",
+              type: "address",
+            },
+          ],
+          name: "ERC1155InvalidApprover",
+          type: "error",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "idsLength",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "valuesLength",
+              type: "uint256",
+            },
+          ],
+          name: "ERC1155InvalidArrayLength",
+          type: "error",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "operator",
+              type: "address",
+            },
+          ],
+          name: "ERC1155InvalidOperator",
+          type: "error",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "receiver",
+              type: "address",
+            },
+          ],
+          name: "ERC1155InvalidReceiver",
+          type: "error",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "sender",
+              type: "address",
+            },
+          ],
+          name: "ERC1155InvalidSender",
+          type: "error",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "operator",
+              type: "address",
+            },
+            {
+              internalType: "address",
+              name: "owner",
+              type: "address",
+            },
+          ],
+          name: "ERC1155MissingApprovalForAll",
+          type: "error",
+        },
+        {
           inputs: [],
-          stateMutability: "nonpayable",
-          type: "constructor",
+          name: "InvalidInitialization",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "NotInitializing",
+          type: "error",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "owner",
+              type: "address",
+            },
+          ],
+          name: "OwnableInvalidOwner",
+          type: "error",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "account",
+              type: "address",
+            },
+          ],
+          name: "OwnableUnauthorizedAccount",
+          type: "error",
         },
         {
           anonymous: false,
@@ -2483,6 +2876,19 @@ const deployedContracts = {
             },
           ],
           name: "ApprovalForAll",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: false,
+              internalType: "uint64",
+              name: "version",
+              type: "uint64",
+            },
+          ],
+          name: "Initialized",
           type: "event",
         },
         {
@@ -2755,6 +3161,19 @@ const deployedContracts = {
           inputs: [
             {
               internalType: "address",
+              name: "initialOwner",
+              type: "address",
+            },
+          ],
+          name: "initialize",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
               name: "account",
               type: "address",
             },
@@ -2929,7 +3348,7 @@ const deployedContracts = {
             },
             {
               internalType: "uint256[]",
-              name: "amounts",
+              name: "values",
               type: "uint256[]",
             },
             {
@@ -2962,7 +3381,7 @@ const deployedContracts = {
             },
             {
               internalType: "uint256",
-              name: "amount",
+              name: "value",
               type: "uint256",
             },
             {
@@ -3161,23 +3580,39 @@ const deployedContracts = {
       },
     },
     Pair: {
-      address: "0x0000000000000000000000000000000000000000",
+      address: "0x2c93cf64dffeb39054c15B8103F1D4C5aCc7C22C",
       abi: [
+        {
+          inputs: [],
+          name: "InvalidInitialization",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "NotInitializing",
+          type: "error",
+        },
         {
           inputs: [
             {
               internalType: "address",
-              name: "tradeToken_",
-              type: "address",
-            },
-            {
-              internalType: "address",
-              name: "basePairAddr",
+              name: "owner",
               type: "address",
             },
           ],
-          stateMutability: "nonpayable",
-          type: "constructor",
+          name: "OwnableInvalidOwner",
+          type: "error",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "account",
+              type: "address",
+            },
+          ],
+          name: "OwnableUnauthorizedAccount",
+          type: "error",
         },
         {
           anonymous: false,
@@ -3196,6 +3631,19 @@ const deployedContracts = {
             },
           ],
           name: "BurntFees",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: false,
+              internalType: "uint64",
+              name: "version",
+              type: "uint64",
+            },
+          ],
+          name: "Initialized",
           type: "event",
         },
         {
@@ -3336,6 +3784,24 @@ const deployedContracts = {
             },
           ],
           stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "tradeToken_",
+              type: "address",
+            },
+            {
+              internalType: "address",
+              name: "basePairAddr",
+              type: "address",
+            },
+          ],
+          name: "initialize",
+          outputs: [],
+          stateMutability: "nonpayable",
           type: "function",
         },
         {
@@ -3636,19 +4102,42 @@ const deployedContracts = {
           type: "function",
         },
       ],
-      inheritedFunctions: {
-        owner: "@openzeppelin/contracts/access/Ownable.sol",
-        renounceOwnership: "@openzeppelin/contracts/access/Ownable.sol",
-        transferOwnership: "@openzeppelin/contracts/access/Ownable.sol",
-      },
+      inheritedFunctions: {},
     },
     Router: {
-      address: "0xa82fF9aFd8f496c3d6ac40E2a0F282E47488CFc9",
+      address: "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
       abi: [
         {
           inputs: [],
-          stateMutability: "nonpayable",
-          type: "constructor",
+          name: "InvalidInitialization",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "NotInitializing",
+          type: "error",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "owner",
+              type: "address",
+            },
+          ],
+          name: "OwnableInvalidOwner",
+          type: "error",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "account",
+              type: "address",
+            },
+          ],
+          name: "OwnableUnauthorizedAccount",
+          type: "error",
         },
         {
           inputs: [
@@ -3720,6 +4209,19 @@ const deployedContracts = {
           ],
           name: "ToUint256CastOverflow",
           type: "error",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: false,
+              internalType: "uint64",
+              name: "version",
+              type: "uint64",
+            },
+          ],
+          name: "Initialized",
+          type: "event",
         },
         {
           anonymous: false,
@@ -4224,6 +4726,19 @@ const deployedContracts = {
           type: "function",
         },
         {
+          inputs: [
+            {
+              internalType: "address",
+              name: "initialOwner",
+              type: "address",
+            },
+          ],
+          name: "initialize",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
           inputs: [],
           name: "lpToken",
           outputs: [
@@ -4645,15 +5160,18 @@ const deployedContracts = {
         createPair: "contracts/router/IRouter.sol",
         getClaimableRewardsByNonces: "contracts/router/IRouter.sol",
         tokenIsListed: "contracts/router/IRouter.sol",
-        owner: "@openzeppelin/contracts/access/Ownable.sol",
-        renounceOwnership: "@openzeppelin/contracts/access/Ownable.sol",
-        transferOwnership: "@openzeppelin/contracts/access/Ownable.sol",
+        owner:
+          "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol",
+        renounceOwnership:
+          "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol",
+        transferOwnership:
+          "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol",
         onERC1155BatchReceived:
-          "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol",
+          "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol",
         onERC1155Received:
-          "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol",
+          "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol",
         supportsInterface:
-          "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol",
+          "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol",
       },
     },
   },

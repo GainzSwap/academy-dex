@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.9;
+pragma solidity 0.8.20;
 
-import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import { ERC1155HolderUpgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 import { TokenPayment, TokenPayments, IERC20 } from "../common/libs/TokenPayments.sol";
 import { GTokens, GToken, GTOKEN_MINT_AMOUNT } from "./GToken/GToken.sol";
@@ -17,15 +18,58 @@ import { LpToken } from "../modules/LpToken.sol";
 import { DeployLaunchPair, LaunchPair } from "./DeployLaunchPair.sol";
 
 library NewGTokens {
-	function create(Epochs.Storage memory epoch) external returns (GTokens) {
-		return new GTokens(epoch);
+	function create(
+		Epochs.Storage memory epochs,
+		address initialOwner,
+		address proxyAdmin
+	) external returns (GTokens) {
+		address gTokensImplementation = address(new GTokens());
+
+		// Deploy TransparentUpgradeableProxy for GTokens
+		TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
+			gTokensImplementation, // GTokens implementation address
+			proxyAdmin, // Address that will act as the admin of the proxy
+			abi.encodeWithSelector(
+				GTokens.initialize.selector,
+				epochs,
+				initialOwner
+			) // Data for initialization
+		);
+
+		// Cast the proxy to the GTokens type and return it
+		return GTokens(address(proxy));
+	}
+}
+
+library GovernanceLib {
+	/// @notice Validates the LP payment for the listing based on the total ADEX amount in liquidity.
+	/// @param payment The payment details for the LP.
+	/// @return bool indicating if the LP payment is valid.
+	function isValidLpPaymentForListing(
+		TokenPayment calldata payment,
+		address lpTokenAddress,
+		address adexTokenAddress
+	) public view returns (bool) {
+		// Ensure the payment token is the correct GToken contract
+		if (payment.token != lpTokenAddress) {
+			return false;
+		}
+
+		// Retrieve the GToken attributes for the specified nonce
+		LpToken.LpAttributes memory attributes = LpToken(lpTokenAddress)
+			.getBalanceAt(msg.sender, payment.nonce)
+			.attributes;
+
+		return
+			attributes.tradeToken == adexTokenAddress &&
+			payment.amount >= 1_000e18;
 	}
 }
 
 /// @title Governance Contract
 /// @notice This contract handles the governance process by allowing users to lock LP tokens and mint GTokens.
 /// @dev This contract interacts with the GTokens library and manages LP token payments.
-contract Governance is ERC1155Holder, Ownable {
+contract Governance is ERC1155HolderUpgradeable, OwnableUpgradeable {
 	using TokenPayments for TokenPayment;
 	using Epochs for Epochs.Storage;
 	using GToken for GToken.Attributes;
@@ -58,17 +102,17 @@ contract Governance is ERC1155Holder, Ownable {
 	uint256 public rewardsReserve;
 
 	uint256 public protocolFees;
-	address immutable protocolFeesCollector;
+	address protocolFeesCollector;
 
 	// Instance of GTokens contract
-	GTokens public immutable gtokens;
+	GTokens public gtokens;
 
 	// Address of the LP token contract
-	address public immutable lpTokenAddress;
+	address public lpTokenAddress;
 
 	// Address of the Base token contract
-	address public immutable adexTokenAddress;
-	IRouter private immutable _router;
+	address public adexTokenAddress;
+	IRouter private _router;
 
 	// Storage for epochs management
 	Epochs.Storage public epochs;
@@ -93,20 +137,24 @@ contract Governance is ERC1155Holder, Ownable {
 	/// @param _adex The address of the ADEX token contract.
 	/// @param epochs_ The epochs storage instance for managing epochs.
 	/// @param protocolFeesCollector_ The address to collect protocol fees.
-	constructor(
+	function initialize(
 		address _lpToken,
 		address _adex,
 		Epochs.Storage memory epochs_,
-		address protocolFeesCollector_
-	) {
+		address protocolFeesCollector_,
+		address router,
+		address proxyAdmin
+	) public initializer {
+		__Ownable_init(msg.sender);
+
 		lpTokenAddress = _lpToken;
 		adexTokenAddress = _adex;
 
 		epochs = epochs_;
-		gtokens = NewGTokens.create(epochs);
-		launchPair = DeployLaunchPair.newLaunchPair(_lpToken);
+		gtokens = NewGTokens.create(epochs, address(this), proxyAdmin);
+		launchPair = DeployLaunchPair.newLaunchPair(_lpToken, proxyAdmin);
 
-		_router = IRouter(msg.sender);
+		_router = IRouter(router);
 
 		require(
 			protocolFeesCollector_ != address(0),
@@ -452,7 +500,11 @@ contract Governance is ERC1155Holder, Ownable {
 		_addReward(listingFeePayment);
 
 		require(
-			_isValidLpPaymentForListing(securityPayment),
+			GovernanceLib.isValidLpPaymentForListing(
+				securityPayment,
+				lpTokenAddress,
+				adexTokenAddress
+			),
 			"Governance: Invalid LP Payment for proposal"
 		);
 		securityPayment.receiveToken();
@@ -468,27 +520,6 @@ contract Governance is ERC1155Holder, Ownable {
 		activeListing.tradeTokenPayment = tradeTokenPayment;
 		activeListing.securityLpPayment = securityPayment;
 		activeListing.endEpoch = currentEpoch() + 3;
-	}
-
-	/// @notice Validates the LP payment for the listing based on the total ADEX amount in liquidity.
-	/// @param payment The payment details for the LP.
-	/// @return bool indicating if the LP payment is valid.
-	function _isValidLpPaymentForListing(
-		TokenPayment calldata payment
-	) private view returns (bool) {
-		// Ensure the payment token is the correct GToken contract
-		if (payment.token != lpTokenAddress) {
-			return false;
-		}
-
-		// Retrieve the GToken attributes for the specified nonce
-		LpToken.LpAttributes memory attributes = LpToken(lpTokenAddress)
-			.getBalanceAt(msg.sender, payment.nonce)
-			.attributes;
-
-		return
-			attributes.tradeToken == adexTokenAddress &&
-			payment.amount >= 1_000e18;
 	}
 
 	function _checkProposalPass(

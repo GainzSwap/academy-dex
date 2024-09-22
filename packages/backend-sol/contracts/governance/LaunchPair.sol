@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
+import { ERC1155HolderUpgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol";
 
 import { TokenPayment, TokenPayments } from "../common/libs/TokenPayments.sol";
 import { LpToken } from "../modules/LpToken.sol";
@@ -13,7 +13,7 @@ import { LpToken } from "../modules/LpToken.sol";
  * @title LaunchPair
  * @dev This contract facilitates the creation and management of crowdfunding campaigns for launching new tokens. Participants contribute funds to campaigns, and if the campaign is successful, they receive launchPair tokens in return. If the campaign fails, their contributions are refunded.
  */
-contract LaunchPair is Ownable, ERC1155Holder {
+contract LaunchPair is OwnableUpgradeable, ERC1155HolderUpgradeable {
 	using TokenPayments for TokenPayment;
 	using EnumerableSet for EnumerableSet.UintSet;
 
@@ -136,9 +136,10 @@ contract LaunchPair is Ownable, ERC1155Holder {
 		_;
 	}
 
-	LpToken immutable lpToken;
+	LpToken lpToken;
 
-	constructor(address _lpToken) {
+	function initialize(address _lpToken) public initializer {
+		__Ownable_init(msg.sender);
 		lpToken = LpToken(_lpToken);
 	}
 

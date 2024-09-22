@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.9;
+pragma solidity 0.8.20;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
+import { ERC1155HolderUpgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol";
 
 import "../common/libs/Fee.sol";
 
@@ -28,7 +28,33 @@ import { IRouter } from "./IRouter.sol";
 
 uint256 constant REWARDS_DIVISION_CONSTANT = 1e18;
 
-contract Router is IRouter, Ownable, UserModule, ERC1155Holder {
+import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+
+library DeployLpToken {
+	function newLpToken(
+		address initialOwner,
+		address proxyAdmin
+	) external returns (LpToken) {
+		address lpTokenImplementation = address(new LpToken());
+
+		// Deploy the TransparentUpgradeableProxy and initialize the LpToken contract
+		TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
+			lpTokenImplementation,
+			proxyAdmin,
+			abi.encodeWithSelector(LpToken.initialize.selector, initialOwner)
+		);
+
+		// Return the LpToken instance through the proxy
+		return LpToken(address(proxy));
+	}
+}
+
+contract Router is
+	IRouter,
+	OwnableUpgradeable,
+	UserModule,
+	ERC1155HolderUpgradeable
+{
 	using EnumerableSet for EnumerableSet.AddressSet;
 	using Address for address;
 	using Epochs for Epochs.Storage;
@@ -63,9 +89,12 @@ contract Router is IRouter, Ownable, UserModule, ERC1155Holder {
 	mapping(address => PairData) public pairsData;
 	GlobalData public globalData;
 
-	LpToken public immutable lpToken;
+	LpToken public lpToken;
 	Governance public governance;
 	address private adexTokenAddress;
+
+	address proxyAdmin;
+	address private _pairBeacon;
 
 	event LiquidityRemoved(
 		address indexed user,
@@ -75,12 +104,17 @@ contract Router is IRouter, Ownable, UserModule, ERC1155Holder {
 		uint256 baseTokenAmount
 	);
 
-	constructor() {
+	function initialize(address initialOwner) public initializer {
+		__Ownable_init(initialOwner);
+
 		epochs.initialize(24 hours);
 
-		lpToken = new LpToken();
-
 		globalData.lastTimestamp = block.timestamp;
+		proxyAdmin = msg.sender;
+
+		// Use the DeployLpToken library to deploy and initialize the LpToken
+		lpToken = DeployLpToken.newLpToken(address(this), proxyAdmin);
+		_pairBeacon = DeployPair.deployPairBeacon(proxyAdmin);
 	}
 
 	function getWEDU() public view returns (address) {
@@ -368,15 +402,17 @@ contract Router is IRouter, Ownable, UserModule, ERC1155Holder {
 		Pair pair;
 
 		if (pairsCount() == 0) {
-			pair = DeployBasePair.newBasePair();
+			pair = DeployBasePair.newBasePair(proxyAdmin, address(this));
 			tradeToken = pair.tradeToken();
 			adexTokenAddress = tradeToken;
 
 			IERC20(adexTokenAddress).transfer(owner(), ADexInfo.ICO_FUNDS);
 			governance = DeployGovernance.newGovernance(
 				address(lpToken),
-				tradeToken,
-				epochs
+				adexTokenAddress,
+				epochs,
+				address(this),
+				proxyAdmin
 			);
 
 			payment = TokenPayment({
@@ -385,7 +421,7 @@ contract Router is IRouter, Ownable, UserModule, ERC1155Holder {
 				amount: ADexInfo.INTIAL_LIQUIDITY
 			});
 		} else if (msg.value > 0) {
-			pair = DeployEduPair.newEDUPair(basePairAddr());
+			pair = DeployEduPair.newEDUPair(basePairAddr(), proxyAdmin);
 			tradeToken = address(pair.tradeToken());
 			_wEduAddress = tradeToken;
 
@@ -398,7 +434,7 @@ contract Router is IRouter, Ownable, UserModule, ERC1155Holder {
 			);
 			payment.receiveToken();
 
-			pair = DeployPair.newPair(tradeToken, basePairAddr());
+			pair = DeployPair.newPair(_pairBeacon, tradeToken, basePairAddr());
 		}
 
 		pairAddress = address(pair);
@@ -503,7 +539,7 @@ contract Router is IRouter, Ownable, UserModule, ERC1155Holder {
 		if (totalClaimed > 0) {
 			// Transfer the claimed rewards to the user
 			require(
-				ERC20(adexTokenAddress).transfer(user, totalClaimed),
+				IERC20(adexTokenAddress).transfer(user, totalClaimed),
 				"Reward transfer failed"
 			);
 		}
@@ -567,7 +603,7 @@ contract Router is IRouter, Ownable, UserModule, ERC1155Holder {
 		// Transfer rewards if any are claimable
 		if (claimable > 0) {
 			require(
-				ERC20(adexTokenAddress).transfer(msg.sender, claimable),
+				IERC20(adexTokenAddress).transfer(msg.sender, claimable),
 				"Reward transfer failed"
 			);
 		}

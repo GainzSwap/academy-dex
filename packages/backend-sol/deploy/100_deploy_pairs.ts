@@ -1,7 +1,7 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 import { ethers } from "hardhat";
-import { MintableERC20, Router } from "../typechain-types";
+import { ADEX, MintableERC20, Router } from "../typechain-types";
 import { parseEther, ZeroAddress } from "ethers";
 
 const deployPairs: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -13,7 +13,7 @@ const deployPairs: DeployFunction = async function (hre: HardhatRuntimeEnvironme
 
   // Get from chain data to stay in sync with multiple calls
   let pairsCount = +(await Router.pairsCount()).toString();
-  let tradeToken: MintableERC20 | undefined, tradeTokenAddr: string, pairAddress: string;
+  let tradeToken: MintableERC20 | ADEX | undefined, tradeTokenAddr: string, pairAddress: string;
 
   const testers = process.env.TESTERS?.split(",") ?? [];
 
@@ -39,7 +39,7 @@ const deployPairs: DeployFunction = async function (hre: HardhatRuntimeEnvironme
       const basePair = await ethers.getContractAt("BasePair", pairAddress);
 
       tradeTokenAddr = await basePair.tradeToken();
-      tradeToken = await ethers.getContractAt("MintableADEX", tradeTokenAddr);
+      tradeToken = await ethers.getContractAt("ADEX", tradeTokenAddr);
 
       name = await tradeToken.name();
       symbol = await tradeToken.symbol();
@@ -92,8 +92,10 @@ const deployPairs: DeployFunction = async function (hre: HardhatRuntimeEnvironme
             ),
           );
         }
-        // await tradeToken.approve(await Router.getAddress(), payment.amount);
-        // await Router.createPair(payment);
+
+        await tradeToken.mint(deployer, payment.amount);
+        await tradeToken.approve(await Router.getAddress(), payment.amount);
+        await Router.createPair(payment);
       }
 
       pairAddress = await Router.tokensPairAddress(tradeTokenAddr);
@@ -101,11 +103,6 @@ const deployPairs: DeployFunction = async function (hre: HardhatRuntimeEnvironme
     pairsCount++;
 
     console.log({ name, pairAddress, payment });
-
-    // if (tradeToken != undefined) {
-    //   await tradeToken.mint(tester1, payment.amount / 100_000n);
-    //   await tradeToken.mint(tester2, payment.amount / 100_00n);
-    // }
   }
   // Done to have the abi in front end
 

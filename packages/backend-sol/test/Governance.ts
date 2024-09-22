@@ -14,33 +14,39 @@ describe("Governance Contract", function () {
     // Deploy the LP Token contract
     const LpTokenFactory = await ethers.getContractFactory("LpToken");
     const lpToken = await LpTokenFactory.deploy();
+    await lpToken.initialize(owner);
     await lpToken.waitForDeployment();
 
     // Deploy the LP Token contract
-    const AdexTokenFactory = await ethers.getContractFactory("MintableADEX");
+    const AdexTokenFactory = await ethers.getContractFactory("ADEX");
     const adexToken = await AdexTokenFactory.deploy();
+    await adexToken.initialize(owner);
     await adexToken.waitForDeployment();
 
-    // Mint  tokens to the user
+    // Mint tokens to the user
     await lpToken.mint(0, 10_000, ZeroAddress, adexToken, user, 0);
 
     // Deploy the Governance contract
     const GovernanceFactory = await ethers.getContractFactory("Governance", {
       libraries: {
         NewGTokens: await (await ethers.deployContract("NewGTokens")).getAddress(),
+        GovernanceLib: await (await ethers.deployContract("GovernanceLib")).getAddress(),
         DeployLaunchPair: await (await ethers.deployContract("DeployLaunchPair")).getAddress(),
       },
     });
-    const governance = await GovernanceFactory.deploy(
-      await lpToken.getAddress(),
-      await adexToken.getAddress(),
+    const governance = await GovernanceFactory.deploy();
+    await governance.waitForDeployment();
+    await governance.initialize(
+      lpToken,
+      adexToken,
       {
         epochLength: 24 * 60 * 60,
         genesis: await time.latest(),
       },
       owner,
+      owner,
+      owner,
     );
-    await governance.waitForDeployment();
 
     // Approve the governance contract to spend LP tokens
     await lpToken.connect(user).setApprovalForAll(governance, true);
@@ -427,6 +433,7 @@ describe("Governance Contract", function () {
 
   async function proposeNewPairListingFixture() {
     const {
+      owner,
       governanceContract,
       gTokens,
       otherUsers: [pairOwner, ...otherUsers],
@@ -448,7 +455,7 @@ describe("Governance Contract", function () {
         nonce: 0,
       };
       // Approve the listing fee payment
-      await listingFeeToken.mint(pairOwner, listingFeePayment.amount);
+      await listingFeeToken.connect(owner).transfer(pairOwner, listingFeePayment.amount);
       await listingFeeToken.connect(pairOwner).approve(governanceContract, listingFeePayment.amount);
 
       const tradeTokenPayment = {

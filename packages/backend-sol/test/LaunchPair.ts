@@ -13,7 +13,8 @@ describe("LaunchPair", function () {
 
     // Deploy the LaunchPair contract
     const LaunchPairFactory = await ethers.getContractFactory("LaunchPair");
-    const launchPair = await LaunchPairFactory.deploy(lpToken);
+    const launchPair = await LaunchPairFactory.deploy();
+    await launchPair.initialize(lpToken);
     await launchPair.waitForDeployment();
 
     return { owner, creator, contributor1, contributor2, lpToken, launchPair, otherUsers };
@@ -32,8 +33,9 @@ describe("LaunchPair", function () {
     it("Should revert if a non-owner tries to create a campaign", async function () {
       const { launchPair, contributor1 } = await loadFixture(deployLaunchPairFixture);
 
-      await expect(launchPair.connect(contributor1).createCampaign(contributor1.address)).to.be.revertedWith(
-        "Ownable: caller is not the owner",
+      await expect(launchPair.connect(contributor1).createCampaign(contributor1.address)).to.be.revertedWithCustomError(
+        launchPair,
+        "OwnableUnauthorizedAccount",
       );
     });
   });

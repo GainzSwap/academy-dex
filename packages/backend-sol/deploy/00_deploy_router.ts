@@ -3,27 +3,32 @@ import { DeployFunction } from "hardhat-deploy/types";
 
 const deployRouterContract: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
-  const { deploy } = hre.deployments;
+  const { upgrades } = hre;
+  const { ethers } = hre;
 
   const DeployGovernanceFactory = await hre.ethers.getContractFactory("DeployGovernance", {
     libraries: {
-      NewGTokens: await (await hre.ethers.deployContract("NewGTokens")).getAddress(),
-      DeployLaunchPair: await (await hre.ethers.deployContract("DeployLaunchPair")).getAddress(),
+      NewGTokens: await (await ethers.deployContract("NewGTokens")).getAddress(),
+      DeployLaunchPair: await (await ethers.deployContract("DeployLaunchPair")).getAddress(),
+      GovernanceLib: await (await ethers.deployContract("GovernanceLib")).getAddress(),
     },
   });
   const deployGovernance = await DeployGovernanceFactory.deploy();
   await deployGovernance.waitForDeployment();
 
-  await deploy("Router", {
-    from: deployer,
-    autoMine: true,
+  const Router = await ethers.getContractFactory("Router", {
     libraries: {
-      DeployPair: await (await hre.ethers.deployContract("DeployPair")).getAddress(),
-      DeployBasePair: await (await hre.ethers.deployContract("DeployBasePair")).getAddress(),
-      DeployEduPair: await (await hre.ethers.deployContract("DeployEduPair")).getAddress(),
+      DeployLpToken: await (await ethers.deployContract("DeployLpToken")).getAddress(),
+      DeployPair: await (await ethers.deployContract("DeployPair")).getAddress(),
+      DeployBasePair: await (await ethers.deployContract("DeployBasePair")).getAddress(),
+      DeployEduPair: await (await ethers.deployContract("DeployEduPair")).getAddress(),
       DeployGovernance: await deployGovernance.getAddress(),
     },
   });
+  const router = await upgrades.deployProxy(Router, [deployer], { unsafeAllow: ["external-library-linking"] });
+
+  const { abi, metadata } = await hre.deployments.getExtendedArtifact("Router");
+  await hre.deployments.save("Router", { abi, metadata, address: await router.getAddress() });
 };
 
 export default deployRouterContract;

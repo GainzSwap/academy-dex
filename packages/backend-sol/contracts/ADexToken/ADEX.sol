@@ -1,24 +1,30 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.9;
+pragma solidity 0.8.20;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+import { ERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { ERC20BurnableUpgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20BurnableUpgradeable.sol";
 
 import { ADexInfo } from "./AdexInfo.sol";
 
 /**
  * @title ADEX
- * @dev ERC20 token representing the Academy-DEX base token. This token is mintable only upon deployment,
+ * @dev ERC20Upgradeable token representing the Academy-DEX base token. This token is mintable only upon deployment,
  * with the total supply set to the maximum defined in the `AdexInfo` library. The token is burnable
  * and is controlled by the owner of the contract.
  */
-contract ADEX is ERC20, Ownable, ERC20Burnable {
+contract ADEX is
+	ERC20Upgradeable,
+	OwnableUpgradeable,
+	ERC20BurnableUpgradeable
+{
 	/**
-	 * @dev Initializes the ERC20 token with the name "Academy-DEX-BaseToken" and symbol "ADEX".
+	 * @dev Initializes the ERC20Upgradeable token with the name "Academy-DEX-BaseToken" and symbol "ADEX".
 	 * Mints the maximum supply of tokens to the contract owner.
 	 */
-	constructor() ERC20("Academy-DEX-BaseToken", "ADEX") {
+	function initialize(address initialOwner) public initializer {
+		__ERC20_init("Academy-DEX-BaseToken", "ADEX");
+		__Ownable_init(initialOwner);
 		// Mint the maximum supply to the contract owner.
 		_mint(owner(), ADexInfo.MAX_SUPPLY);
 	}

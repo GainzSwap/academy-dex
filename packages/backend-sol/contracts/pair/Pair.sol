@@ -1,8 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.9;
-
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+pragma solidity 0.8.20;
 
 import "../common/libs/Fee.sol";
 import "../common/libs/Slippage.sol";
@@ -18,12 +15,36 @@ import "../common/utils.sol";
 
 uint256 constant RPS_DIVISION_CONSTANT = 1e36;
 
+import { UpgradeableBeacon } from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
+import { BeaconProxy } from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
+
 library DeployPair {
 	function newPair(
+		address pairbeacon,
 		address tradeToken,
 		address basePairAddr
 	) external returns (Pair) {
-		return new Pair(tradeToken, basePairAddr);
+		// Deploy the BeaconProxy and initialize it
+		BeaconProxy proxy = new BeaconProxy(
+			pairbeacon,
+			abi.encodeWithSelector(
+				Pair.initialize.selector,
+				tradeToken,
+				basePairAddr
+			)
+		);
+
+		return (Pair(address(proxy)));
+	}
+
+	function deployPairBeacon(address proxyAdmin) external returns (address) {
+		// Deploy the UpgradeableBeacon contract
+		UpgradeableBeacon beacon = new UpgradeableBeacon(
+			address(new Pair()),
+			proxyAdmin
+		);
+
+		return address(beacon);
 	}
 }
 
@@ -31,7 +52,7 @@ library DeployPair {
  * @title Pair
  * @dev This contract manages a trading pair in the DEX, handling liquidity, trading, and fee mechanisms.
  */
-contract Pair is Ownable, KnowablePair {
+contract Pair is KnowablePair {
 	using FeeUtil for FeeUtil.Values;
 	using TokenPayments for TokenPayment;
 
@@ -65,7 +86,11 @@ contract Pair is Ownable, KnowablePair {
 	 * @param tradeToken_ Address of the trade token.
 	 * @param basePairAddr Address of the base pair.
 	 */
-	constructor(address tradeToken_, address basePairAddr) {
+	function initialize(
+		address tradeToken_,
+		address basePairAddr
+	) public initializer {
+		__Ownable_init(msg.sender);
 		_setTradeToken(tradeToken_);
 		_setBasePair(basePairAddr);
 	}

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.9;
+pragma solidity 0.8.20;
 
 import { SFT } from "./SFT.sol";
 
@@ -17,7 +17,9 @@ contract LpToken is SFT {
 		LpAttributes attributes;
 	}
 
-	constructor() SFT("Academy-DEX LP Token", "LPADEX") {}
+	function initialize(address initialOwner) public initializer {
+		__SFT_init("Academy-DEX LP Token", "LPADEX", initialOwner);
+	}
 
 	/// @notice Returns the SFT balance of a user including detailed attributes.
 	/// @param user The address of the user to check.

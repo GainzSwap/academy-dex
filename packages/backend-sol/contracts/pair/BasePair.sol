@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.9;
+pragma solidity 0.8.20;
 
 import "./Pair.sol";
 import { ADEX } from "../ADexToken/ADEX.sol";
+import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 /// @title DeployBasePair
 /// @notice Library to deploy new instances of the `BasePair` contract.
@@ -10,20 +11,25 @@ library DeployBasePair {
 	/// @notice Deploys a new instance of the `BasePair` contract.
 	/// @dev Deploys a new `ADEX` token and passes its address to the `BasePair` contract.
 	/// @return A new instance of the `BasePair` contract.
-	function newBasePair() external returns (BasePair) {
-		ADEX adex = new ADEX();
-		return new BasePair(address(adex));
-	}
-}
+	function newBasePair(
+		address proxyAdmin,
+		address initialOwner
+	) external returns (BasePair) {
+		address adexImplementation = address(new ADEX());
+		address basePairImpl = address(new BasePair());
 
-/// @title MintableADEX
-/// @notice A version of the `ADEX` token contract with minting capabilities.
-contract MintableADEX is ADEX {
-	/// @notice Mints new `ADEX` tokens by transferring from the owner's balance.
-	/// @param to The address to receive the minted tokens.
-	/// @param amt The amount of tokens to mint.
-	function mint(address to, uint256 amt) external {
-		_transfer(owner(), to, amt);
+		TransparentUpgradeableProxy adexProxy = new TransparentUpgradeableProxy(
+			adexImplementation,
+			proxyAdmin,
+			abi.encodeWithSignature("initialize(address)", initialOwner)
+		);
+		TransparentUpgradeableProxy basePairProxy = new TransparentUpgradeableProxy(
+				basePairImpl,
+				proxyAdmin,
+				abi.encodeWithSignature("initialize(address)", adexProxy)
+			);
+
+		return BasePair(address(basePairProxy));
 	}
 }
 
@@ -35,7 +41,9 @@ contract MintableADEX is ADEX {
 contract BasePair is Pair {
 	/// @notice Initializes the `BasePair` contract with the address of the `ADEX` token.
 	/// @param adexAddress The address of the `ADEX` token contract.
-	constructor(address adexAddress) Pair(adexAddress, address(this)) {}
+	function initialize(address adexAddress) public {
+		initialize(adexAddress, address(this));
+	}
 
 	/// @notice Internal function to add liquidity to the base pair.
 	/// @dev Overrides the `_addLiq` function from the `Pair` contract.

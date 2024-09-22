@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.9;
+pragma solidity 0.8.20;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-abstract contract KnowablePair is Ownable {
+abstract contract KnowablePair is OwnableUpgradeable {
 	modifier isKnownPair() {
-		require(owner() == Ownable(msg.sender).owner(), "not allowed");
+		require(owner() == OwnableUpgradeable(msg.sender).owner(), "not allowed");
 		require(msg.sender != address(this), "self cannnot be known pair");
 		_;
 	}

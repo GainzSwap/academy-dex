@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.9;
+pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
+import { ERC1155Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract SFT is ERC1155, Ownable {
-	using Counters for Counters.Counter;
+abstract contract SFT is ERC1155Upgradeable, OwnableUpgradeable {
 	using EnumerableSet for EnumerableSet.UintSet;
 
 	struct SftBalance {
@@ -16,7 +14,7 @@ contract SFT is ERC1155, Ownable {
 		bytes attributes;
 	}
 
-	Counters.Counter private _nonceCounter;
+	uint256 private _nonceCounter;
 	string private _name;
 	string private _symbol;
 
@@ -26,7 +24,16 @@ contract SFT is ERC1155, Ownable {
 	// Mapping from address to list of owned token nonces
 	mapping(address => EnumerableSet.UintSet) private _addressToNonces;
 
-	constructor(string memory name_, string memory symbol_) ERC1155("") {
+	/// @dev Replaces constructor. Initialize the contract with name and symbol.
+	/// @param name_ The name of the SFT token.
+	/// @param symbol_ The symbol of the SFT token.
+	function __SFT_init(
+		string memory name_,
+		string memory symbol_,
+		address initialOwner
+	) internal onlyInitializing {
+		__ERC1155_init(""); // Initialize ERC1155
+		__Ownable_init(initialOwner); // Initialize Ownable
 		_name = name_;
 		_symbol = symbol_;
 	}
@@ -37,8 +44,7 @@ contract SFT is ERC1155, Ownable {
 		uint256 amount,
 		bytes memory attributes
 	) internal returns (uint256 nonce) {
-		_nonceCounter.increment();
-		nonce = _nonceCounter.current();
+		nonce = ++_nonceCounter;
 
 		// Store the attributes
 		_tokenAttributes[nonce] = attributes;
@@ -129,22 +135,18 @@ contract SFT is ERC1155, Ownable {
 		return balance;
 	}
 
-	/// @dev Override _beforeTokenTransfer to handle address-to-nonce mapping.
-	/// @param operator The address performing the transfer.
+	/// @dev Override _update to handle address-to-nonce mapping.
 	/// @param from The address sending tokens.
 	/// @param to The address receiving tokens.
 	/// @param ids The token IDs being transferred.
-	/// @param amounts The amounts of tokens being transferred.
-	/// @param data Additional data.
-	function _beforeTokenTransfer(
-		address operator,
+	/// @param values The values of tokens being transferred.
+	function _update(
 		address from,
 		address to,
 		uint256[] memory ids,
-		uint256[] memory amounts,
-		bytes memory data
+		uint256[] memory values
 	) internal virtual override {
-		super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
+		super._update(from, to, ids, values);
 
 		for (uint256 i = 0; i < ids.length; i++) {
 			uint256 id = ids[i];
