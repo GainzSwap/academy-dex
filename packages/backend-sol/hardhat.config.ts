@@ -9,8 +9,11 @@ import "solidity-coverage";
 import "@nomicfoundation/hardhat-verify";
 import "hardhat-deploy";
 import "hardhat-deploy-ethers";
+
 import "./scripts/deployERC20";
 import "./scripts/increaseTime";
+import "./scripts/upgradePairs";
+import "./scripts/upgradeRouter";
 
 import "hardhat-contract-sizer";
 import "@openzeppelin/hardhat-upgrades";

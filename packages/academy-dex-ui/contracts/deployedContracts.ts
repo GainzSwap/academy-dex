@@ -3545,7 +3545,7 @@ const deployedContracts = {
       },
     },
     Pair: {
-      address: "0x2c93cf64dffeb39054c15B8103F1D4C5aCc7C22C",
+      address: "0xc70292a68e8cA7ABA20a55a29F31A8878e99aB00",
       abi: [
         {
           inputs: [],
@@ -4470,6 +4470,19 @@ const deployedContracts = {
           type: "function",
         },
         {
+          inputs: [],
+          name: "eduPairAddr",
+          outputs: [
+            {
+              internalType: "address",
+              name: "",
+              type: "address",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
           inputs: [
             {
               internalType: "address",
@@ -4573,6 +4586,19 @@ const deployedContracts = {
               internalType: "uint256",
               name: "totalClaimable",
               type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "getPairBeacon",
+          outputs: [
+            {
+              internalType: "address",
+              name: "",
+              type: "address",
             },
           ],
           stateMutability: "view",

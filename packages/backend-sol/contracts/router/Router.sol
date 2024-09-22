@@ -967,4 +967,13 @@ contract Router is
 			totalClaimable += claimable;
 		}
 	}
+
+	function getPairBeacon() public view returns (address) {
+		return _getRouterStorage().pairBeacon;
+	}
+
+	function eduPairAddr() public view returns (address) {
+		RouterStorage storage $ = _getRouterStorage();
+		return $.pairs.at(1);
+	}
 }
