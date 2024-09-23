@@ -894,6 +894,10 @@ contract Governance is ERC1155HolderUpgradeable, OwnableUpgradeable {
 		return _getMainStorage().epochs;
 	}
 
+	function userVote(address user) public view returns (address) {
+		return _getMainStorage().userVote[user];
+	}
+
 	function listing_fees() public pure returns (uint256) {
 		return LISTING_FEE;
 	}

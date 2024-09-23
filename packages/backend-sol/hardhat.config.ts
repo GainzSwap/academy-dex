@@ -14,6 +14,8 @@ import "./scripts/deployERC20";
 import "./scripts/increaseTime";
 import "./scripts/upgradePairs";
 import "./scripts/upgradeRouter";
+import "./scripts/upgradeLaunchpair";
+import "./scripts/upgradeGovernance";
 
 import "hardhat-contract-sizer";
 import "@openzeppelin/hardhat-upgrades";

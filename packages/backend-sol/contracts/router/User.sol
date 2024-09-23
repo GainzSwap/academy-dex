@@ -126,4 +126,8 @@ abstract contract UserModule {
 		emit UserRegistered(us.userCount, userAddr, referrerId);
 		return us.userCount;
 	}
+
+	function userIdToAddress(uint256 id) public view returns (address) {
+		return _getUserStorage().userIdToAddress[id];
+	}
 }

@@ -457,4 +457,8 @@ contract LaunchPair is OwnableUpgradeable, ERC1155HolderUpgradeable {
 	) public view returns (uint256) {
 		return _getMainStorage().contributions[campaignId][contributor];
 	}
+
+	function campaignCount() public view returns (uint256) {
+		return _getMainStorage().campaignCount;
+	}
 }

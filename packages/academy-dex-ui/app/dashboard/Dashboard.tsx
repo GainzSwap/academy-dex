@@ -16,43 +16,7 @@ import { useAccount, useBlock } from "wagmi";
 import ReferralCard from "~~/components/ReferralCard";
 import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 import { useContentPanel } from "~~/hooks/useContentPanel";
-import { TokenListing } from "~~/types/utils";
 import { isZeroAddress } from "~~/utils/scaffold-eth/common";
-
-const reduceToTokenListing = (
-  list: readonly [
-    bigint,
-    bigint,
-    bigint,
-    bigint,
-    string,
-    {
-      token: string;
-      amount: bigint;
-      nonce: bigint;
-    },
-    {
-      token: string;
-      amount: bigint;
-      nonce: bigint;
-    },
-    bigint,
-  ],
-): TokenListing => {
-  return list as unknown as TokenListing;
-  // const [yesVote, noVote, totalLpAmount, endEpoch, owner, securityLpPayment, tradeTokenPayment, campaignId] = list;
-
-  // return {
-  //   yesVote,
-  //   noVote,
-  //   totalLpAmount,
-  //   campaignId,
-  //   endEpoch,
-  //   owner,
-  //   securityLpPayment,
-  //   tradeTokenPayment,
-  // };
-};
 
 export default function Dashboard() {
   const { data: block } = useBlock({ watch: true });
@@ -74,18 +38,16 @@ export default function Dashboard() {
   });
   const { toggleContentPanel } = useContentPanel();
 
-  const { data: _activeListing } = useScaffoldReadContract({
+  const { data: activeListing } = useScaffoldReadContract({
     contractName: "Governance",
     functionName: "activeListing",
   });
-  const activeListing = _activeListing && reduceToTokenListing(_activeListing);
 
-  const { data: _userListing } = useScaffoldReadContract({
+  const { data: userListing } = useScaffoldReadContract({
     contractName: "Governance",
     functionName: "pairOwnerListing",
     args: [userAddress],
   });
-  const userListing = _userListing && reduceToTokenListing(_userListing);
 
   const hasListing =
     activeListing?.owner == userAddress || !isZeroAddress(userListing?.tradeTokenPayment.token || zeroAddress);
