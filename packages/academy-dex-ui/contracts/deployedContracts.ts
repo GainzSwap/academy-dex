@@ -8724,7 +8724,7 @@ const deployedContracts = {
       },
     },
     Pair: {
-      address: "0xB65A2140FaAb9793d758818f5f0bfb13d71bA5fe",
+      address: "0x5394FB805FbED8bf8bB7263bED2CB950F1CCFA7f",
       abi: [
         {
           inputs: [],

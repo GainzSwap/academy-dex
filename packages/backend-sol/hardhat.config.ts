@@ -16,6 +16,7 @@ import "./scripts/upgradePairs";
 import "./scripts/upgradeRouter";
 import "./scripts/upgradeLaunchpair";
 import "./scripts/upgradeGovernance";
+import "./scripts/createPair";
 
 import "hardhat-contract-sizer";
 import "@openzeppelin/hardhat-upgrades";
