@@ -7,7 +7,11 @@
       "kind": "transparent"
     },
     {
-      "address": "0x41b0eCCea5A023d6655d59Ba569f6a60b8Ca091b",
+      "address": "0x5394FB805FbED8bf8bB7263bED2CB950F1CCFA7f",
+      "kind": "transparent"
+    },
+    {
+      "address": "0xB65A2140FaAb9793d758818f5f0bfb13d71bA5fe",
       "kind": "transparent"
     },
     {
@@ -15,11 +19,7 @@
       "kind": "transparent"
     },
     {
-      "address": "0x5394FB805FbED8bf8bB7263bED2CB950F1CCFA7f",
-      "kind": "transparent"
-    },
-    {
-      "address": "0xB65A2140FaAb9793d758818f5f0bfb13d71bA5fe",
+      "address": "0x41b0eCCea5A023d6655d59Ba569f6a60b8Ca091b",
       "kind": "transparent"
     }
   ],
@@ -560,11 +560,11 @@
             "label": "bytes32",
             "numberOfBytes": "32"
           },
-          "t_contract(LpToken)3772": {
+          "t_contract(LpToken)3970": {
             "label": "contract LpToken",
             "numberOfBytes": "20"
           },
-          "t_enum(CampaignStatus)3496": {
+          "t_enum(CampaignStatus)3694": {
             "label": "enum LaunchPair.CampaignStatus",
             "members": [
               "Pending",
@@ -574,7 +574,7 @@
             ],
             "numberOfBytes": "1"
           },
-          "t_mapping(t_address,t_struct(UintSet)2139_storage)": {
+          "t_mapping(t_address,t_struct(UintSet)2337_storage)": {
             "label": "mapping(address => struct EnumerableSet.UintSet)",
             "numberOfBytes": "32"
           },
@@ -590,11 +590,11 @@
             "label": "mapping(uint256 => mapping(address => uint256))",
             "numberOfBytes": "32"
           },
-          "t_mapping(t_uint256,t_struct(Campaign)3512_storage)": {
+          "t_mapping(t_uint256,t_struct(Campaign)3710_storage)": {
             "label": "mapping(uint256 => struct LaunchPair.Campaign)",
             "numberOfBytes": "32"
           },
-          "t_struct(Campaign)3512_storage": {
+          "t_struct(Campaign)3710_storage": {
             "label": "struct LaunchPair.Campaign",
             "members": [
               {
@@ -635,7 +635,7 @@
               },
               {
                 "label": "status",
-                "type": "t_enum(CampaignStatus)3496",
+                "type": "t_enum(CampaignStatus)3694",
                 "offset": 1,
                 "slot": "5"
               }
@@ -660,12 +660,12 @@
             ],
             "numberOfBytes": "32"
           },
-          "t_struct(MainStorage)3538_storage": {
+          "t_struct(MainStorage)3736_storage": {
             "label": "struct LaunchPair.MainStorage",
             "members": [
               {
                 "label": "campaigns",
-                "type": "t_mapping(t_uint256,t_struct(Campaign)3512_storage)",
+                "type": "t_mapping(t_uint256,t_struct(Campaign)3710_storage)",
                 "offset": 0,
                 "slot": "0"
               },
@@ -677,13 +677,13 @@
               },
               {
                 "label": "userCampaigns",
-                "type": "t_mapping(t_address,t_struct(UintSet)2139_storage)",
+                "type": "t_mapping(t_address,t_struct(UintSet)2337_storage)",
                 "offset": 0,
                 "slot": "2"
               },
               {
                 "label": "activeCampaigns",
-                "type": "t_struct(UintSet)2139_storage",
+                "type": "t_struct(UintSet)2337_storage",
                 "offset": 0,
                 "slot": "3"
               },
@@ -695,7 +695,7 @@
               },
               {
                 "label": "lpToken",
-                "type": "t_contract(LpToken)3772",
+                "type": "t_contract(LpToken)3970",
                 "offset": 0,
                 "slot": "6"
               }
@@ -714,7 +714,7 @@
             ],
             "numberOfBytes": "32"
           },
-          "t_struct(Set)1941_storage": {
+          "t_struct(Set)2139_storage": {
             "label": "struct EnumerableSet.Set",
             "members": [
               {
@@ -732,12 +732,12 @@
             ],
             "numberOfBytes": "64"
           },
-          "t_struct(UintSet)2139_storage": {
+          "t_struct(UintSet)2337_storage": {
             "label": "struct EnumerableSet.UintSet",
             "members": [
               {
                 "label": "_inner",
-                "type": "t_struct(Set)1941_storage",
+                "type": "t_struct(Set)2139_storage",
                 "offset": 0,
                 "slot": "0"
               }
@@ -758,7 +758,7 @@
             {
               "contract": "LaunchPair",
               "label": "campaigns",
-              "type": "t_mapping(t_uint256,t_struct(Campaign)3512_storage)",
+              "type": "t_mapping(t_uint256,t_struct(Campaign)3710_storage)",
               "src": "contracts/governance/LaunchPair.sol:39",
               "offset": 0,
               "slot": "0"
@@ -774,7 +774,7 @@
             {
               "contract": "LaunchPair",
               "label": "userCampaigns",
-              "type": "t_mapping(t_address,t_struct(UintSet)2139_storage)",
+              "type": "t_mapping(t_address,t_struct(UintSet)2337_storage)",
               "src": "contracts/governance/LaunchPair.sol:43",
               "offset": 0,
               "slot": "2"
@@ -782,7 +782,7 @@
             {
               "contract": "LaunchPair",
               "label": "activeCampaigns",
-              "type": "t_struct(UintSet)2139_storage",
+              "type": "t_struct(UintSet)2337_storage",
               "src": "contracts/governance/LaunchPair.sol:45",
               "offset": 0,
               "slot": "3"
@@ -798,7 +798,7 @@
             {
               "contract": "LaunchPair",
               "label": "lpToken",
-              "type": "t_contract(LpToken)3772",
+              "type": "t_contract(LpToken)3970",
               "src": "contracts/governance/LaunchPair.sol:48",
               "offset": 0,
               "slot": "6"
@@ -833,7 +833,10 @@
             }
           ]
         }
-      }
+      },
+      "allAddresses": [
+        "0xa547A24324D245dcbF1c9524d1501d86918dABC9"
+      ]
     },
     "a9e99b271b0abd4d7342c25731afd4a506ac2d28da1723ba19cc1596de7cb1c3": {
       "address": "0xD2B0703A4f42c74481667fbfc4abD0567915C2d1",
@@ -3328,6 +3331,961 @@
               "src": "contracts/pair/Pair.sol:65",
               "offset": 0,
               "slot": "5"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "b95ed053037547d0101147b03ee5f70ed373eb28b602f994461822c0643bca3d": {
+      "address": "0x0D1062234174E2a130AaC2C66E5d555652E2a9dd",
+      "layout": {
+        "solcVersion": "0.8.20",
+        "storage": [],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_bytes32)dyn_storage": {
+            "label": "bytes32[]",
+            "numberOfBytes": "32"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_contract(GTokens)2887": {
+            "label": "contract GTokens",
+            "numberOfBytes": "20"
+          },
+          "t_contract(IRouter)4359": {
+            "label": "contract IRouter",
+            "numberOfBytes": "20"
+          },
+          "t_contract(LaunchPair)3692": {
+            "label": "contract LaunchPair",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_address)": {
+            "label": "mapping(address => address)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_struct(TokenListing)3157_storage)": {
+            "label": "mapping(address => struct Governance.TokenListing)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_struct(UintSet)2139_storage)": {
+            "label": "mapping(address => struct EnumerableSet.UintSet)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_uint256)": {
+            "label": "mapping(bytes32 => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(AddressSet)2073_storage": {
+            "label": "struct EnumerableSet.AddressSet",
+            "members": [
+              {
+                "label": "_inner",
+                "type": "t_struct(Set)1941_storage",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(InitializableStorage)80_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(MainStorage)3203_storage": {
+            "label": "struct Governance.MainStorage",
+            "members": [
+              {
+                "label": "rewardPerShare",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "rewardsReserve",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "protocolFees",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "protocolFeesCollector",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "gtokens",
+                "type": "t_contract(GTokens)2887",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "lpTokenAddress",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "5"
+              },
+              {
+                "label": "adexTokenAddress",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "6"
+              },
+              {
+                "label": "router",
+                "type": "t_contract(IRouter)4359",
+                "offset": 0,
+                "slot": "7"
+              },
+              {
+                "label": "epochs",
+                "type": "t_struct(Storage)2375_storage",
+                "offset": 0,
+                "slot": "8"
+              },
+              {
+                "label": "userVotes",
+                "type": "t_mapping(t_address,t_struct(UintSet)2139_storage)",
+                "offset": 0,
+                "slot": "10"
+              },
+              {
+                "label": "userVote",
+                "type": "t_mapping(t_address,t_address)",
+                "offset": 0,
+                "slot": "11"
+              },
+              {
+                "label": "activeListing",
+                "type": "t_struct(TokenListing)3157_storage",
+                "offset": 0,
+                "slot": "12"
+              },
+              {
+                "label": "pendingOrListedTokens",
+                "type": "t_struct(AddressSet)2073_storage",
+                "offset": 0,
+                "slot": "24"
+              },
+              {
+                "label": "pairOwnerListing",
+                "type": "t_mapping(t_address,t_struct(TokenListing)3157_storage)",
+                "offset": 0,
+                "slot": "26"
+              },
+              {
+                "label": "launchPair",
+                "type": "t_contract(LaunchPair)3692",
+                "offset": 0,
+                "slot": "27"
+              }
+            ],
+            "numberOfBytes": "896"
+          },
+          "t_struct(OwnableStorage)13_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(Set)1941_storage": {
+            "label": "struct EnumerableSet.Set",
+            "members": [
+              {
+                "label": "_values",
+                "type": "t_array(t_bytes32)dyn_storage",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_positions",
+                "type": "t_mapping(t_bytes32,t_uint256)",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(Storage)2375_storage": {
+            "label": "struct Epochs.Storage",
+            "members": [
+              {
+                "label": "genesis",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "epochLength",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(TokenListing)3157_storage": {
+            "label": "struct Governance.TokenListing",
+            "members": [
+              {
+                "label": "yesVote",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "noVote",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "totalLpAmount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "endEpoch",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "securityLpPayment",
+                "type": "t_struct(TokenPayment)2614_storage",
+                "offset": 0,
+                "slot": "5"
+              },
+              {
+                "label": "tradeTokenPayment",
+                "type": "t_struct(TokenPayment)2614_storage",
+                "offset": 0,
+                "slot": "8"
+              },
+              {
+                "label": "campaignId",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "11"
+              }
+            ],
+            "numberOfBytes": "384"
+          },
+          "t_struct(TokenPayment)2614_storage": {
+            "label": "struct TokenPayment",
+            "members": [
+              {
+                "label": "token",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "amount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "nonce",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              }
+            ],
+            "numberOfBytes": "96"
+          },
+          "t_struct(UintSet)2139_storage": {
+            "label": "struct EnumerableSet.UintSet",
+            "members": [
+              {
+                "label": "_inner",
+                "type": "t_struct(Set)1941_storage",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          }
+        },
+        "namespaces": {
+          "erc7201:adex.governance.main": [
+            {
+              "contract": "Governance",
+              "label": "rewardPerShare",
+              "type": "t_uint256",
+              "src": "contracts/governance/Governance.sol:256",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Governance",
+              "label": "rewardsReserve",
+              "type": "t_uint256",
+              "src": "contracts/governance/Governance.sol:257",
+              "offset": 0,
+              "slot": "1"
+            },
+            {
+              "contract": "Governance",
+              "label": "protocolFees",
+              "type": "t_uint256",
+              "src": "contracts/governance/Governance.sol:258",
+              "offset": 0,
+              "slot": "2"
+            },
+            {
+              "contract": "Governance",
+              "label": "protocolFeesCollector",
+              "type": "t_address",
+              "src": "contracts/governance/Governance.sol:259",
+              "offset": 0,
+              "slot": "3"
+            },
+            {
+              "contract": "Governance",
+              "label": "gtokens",
+              "type": "t_contract(GTokens)2887",
+              "src": "contracts/governance/Governance.sol:260",
+              "offset": 0,
+              "slot": "4"
+            },
+            {
+              "contract": "Governance",
+              "label": "lpTokenAddress",
+              "type": "t_address",
+              "src": "contracts/governance/Governance.sol:261",
+              "offset": 0,
+              "slot": "5"
+            },
+            {
+              "contract": "Governance",
+              "label": "adexTokenAddress",
+              "type": "t_address",
+              "src": "contracts/governance/Governance.sol:262",
+              "offset": 0,
+              "slot": "6"
+            },
+            {
+              "contract": "Governance",
+              "label": "router",
+              "type": "t_contract(IRouter)4359",
+              "src": "contracts/governance/Governance.sol:263",
+              "offset": 0,
+              "slot": "7"
+            },
+            {
+              "contract": "Governance",
+              "label": "epochs",
+              "type": "t_struct(Storage)2375_storage",
+              "src": "contracts/governance/Governance.sol:264",
+              "offset": 0,
+              "slot": "8"
+            },
+            {
+              "contract": "Governance",
+              "label": "userVotes",
+              "type": "t_mapping(t_address,t_struct(UintSet)2139_storage)",
+              "src": "contracts/governance/Governance.sol:265",
+              "offset": 0,
+              "slot": "10"
+            },
+            {
+              "contract": "Governance",
+              "label": "userVote",
+              "type": "t_mapping(t_address,t_address)",
+              "src": "contracts/governance/Governance.sol:266",
+              "offset": 0,
+              "slot": "11"
+            },
+            {
+              "contract": "Governance",
+              "label": "activeListing",
+              "type": "t_struct(TokenListing)3157_storage",
+              "src": "contracts/governance/Governance.sol:267",
+              "offset": 0,
+              "slot": "12"
+            },
+            {
+              "contract": "Governance",
+              "label": "pendingOrListedTokens",
+              "type": "t_struct(AddressSet)2073_storage",
+              "src": "contracts/governance/Governance.sol:268",
+              "offset": 0,
+              "slot": "24"
+            },
+            {
+              "contract": "Governance",
+              "label": "pairOwnerListing",
+              "type": "t_mapping(t_address,t_struct(TokenListing)3157_storage)",
+              "src": "contracts/governance/Governance.sol:269",
+              "offset": 0,
+              "slot": "26"
+            },
+            {
+              "contract": "Governance",
+              "label": "launchPair",
+              "type": "t_contract(LaunchPair)3692",
+              "src": "contracts/governance/Governance.sol:270",
+              "offset": 0,
+              "slot": "27"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "85db9c7bd9ef5f09b76acf275a288a639d5d6b7c06f0fe4bc5e19ac0501e8fc7": {
+      "address": "0xbEc2a7A01E87498f398Cd3c02dC8074086B0f7B5",
+      "txHash": "0xae8483873e07600e25a69b4a23270797e2e5d4b0f19c8dcf9fbdfb31f50709aa",
+      "layout": {
+        "solcVersion": "0.8.20",
+        "storage": [],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_bytes32)dyn_storage": {
+            "label": "bytes32[]",
+            "numberOfBytes": "32"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_contract(GTokens)2887": {
+            "label": "contract GTokens",
+            "numberOfBytes": "20"
+          },
+          "t_contract(IRouter)4359": {
+            "label": "contract IRouter",
+            "numberOfBytes": "20"
+          },
+          "t_contract(LaunchPair)3692": {
+            "label": "contract LaunchPair",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_address)": {
+            "label": "mapping(address => address)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_struct(TokenListing)3157_storage)": {
+            "label": "mapping(address => struct Governance.TokenListing)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_struct(UintSet)2139_storage)": {
+            "label": "mapping(address => struct EnumerableSet.UintSet)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_uint256)": {
+            "label": "mapping(bytes32 => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(AddressSet)2073_storage": {
+            "label": "struct EnumerableSet.AddressSet",
+            "members": [
+              {
+                "label": "_inner",
+                "type": "t_struct(Set)1941_storage",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(InitializableStorage)80_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(MainStorage)3203_storage": {
+            "label": "struct Governance.MainStorage",
+            "members": [
+              {
+                "label": "rewardPerShare",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "rewardsReserve",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "protocolFees",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "protocolFeesCollector",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "gtokens",
+                "type": "t_contract(GTokens)2887",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "lpTokenAddress",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "5"
+              },
+              {
+                "label": "adexTokenAddress",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "6"
+              },
+              {
+                "label": "router",
+                "type": "t_contract(IRouter)4359",
+                "offset": 0,
+                "slot": "7"
+              },
+              {
+                "label": "epochs",
+                "type": "t_struct(Storage)2375_storage",
+                "offset": 0,
+                "slot": "8"
+              },
+              {
+                "label": "userVotes",
+                "type": "t_mapping(t_address,t_struct(UintSet)2139_storage)",
+                "offset": 0,
+                "slot": "10"
+              },
+              {
+                "label": "userVote",
+                "type": "t_mapping(t_address,t_address)",
+                "offset": 0,
+                "slot": "11"
+              },
+              {
+                "label": "activeListing",
+                "type": "t_struct(TokenListing)3157_storage",
+                "offset": 0,
+                "slot": "12"
+              },
+              {
+                "label": "pendingOrListedTokens",
+                "type": "t_struct(AddressSet)2073_storage",
+                "offset": 0,
+                "slot": "24"
+              },
+              {
+                "label": "pairOwnerListing",
+                "type": "t_mapping(t_address,t_struct(TokenListing)3157_storage)",
+                "offset": 0,
+                "slot": "26"
+              },
+              {
+                "label": "launchPair",
+                "type": "t_contract(LaunchPair)3692",
+                "offset": 0,
+                "slot": "27"
+              }
+            ],
+            "numberOfBytes": "896"
+          },
+          "t_struct(OwnableStorage)13_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(Set)1941_storage": {
+            "label": "struct EnumerableSet.Set",
+            "members": [
+              {
+                "label": "_values",
+                "type": "t_array(t_bytes32)dyn_storage",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_positions",
+                "type": "t_mapping(t_bytes32,t_uint256)",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(Storage)2375_storage": {
+            "label": "struct Epochs.Storage",
+            "members": [
+              {
+                "label": "genesis",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "epochLength",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(TokenListing)3157_storage": {
+            "label": "struct Governance.TokenListing",
+            "members": [
+              {
+                "label": "yesVote",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "noVote",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "totalLpAmount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "endEpoch",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "securityLpPayment",
+                "type": "t_struct(TokenPayment)2614_storage",
+                "offset": 0,
+                "slot": "5"
+              },
+              {
+                "label": "tradeTokenPayment",
+                "type": "t_struct(TokenPayment)2614_storage",
+                "offset": 0,
+                "slot": "8"
+              },
+              {
+                "label": "campaignId",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "11"
+              }
+            ],
+            "numberOfBytes": "384"
+          },
+          "t_struct(TokenPayment)2614_storage": {
+            "label": "struct TokenPayment",
+            "members": [
+              {
+                "label": "token",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "amount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "nonce",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              }
+            ],
+            "numberOfBytes": "96"
+          },
+          "t_struct(UintSet)2139_storage": {
+            "label": "struct EnumerableSet.UintSet",
+            "members": [
+              {
+                "label": "_inner",
+                "type": "t_struct(Set)1941_storage",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          }
+        },
+        "namespaces": {
+          "erc7201:adex.governance.main": [
+            {
+              "contract": "Governance",
+              "label": "rewardPerShare",
+              "type": "t_uint256",
+              "src": "contracts/governance/Governance.sol:256",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Governance",
+              "label": "rewardsReserve",
+              "type": "t_uint256",
+              "src": "contracts/governance/Governance.sol:257",
+              "offset": 0,
+              "slot": "1"
+            },
+            {
+              "contract": "Governance",
+              "label": "protocolFees",
+              "type": "t_uint256",
+              "src": "contracts/governance/Governance.sol:258",
+              "offset": 0,
+              "slot": "2"
+            },
+            {
+              "contract": "Governance",
+              "label": "protocolFeesCollector",
+              "type": "t_address",
+              "src": "contracts/governance/Governance.sol:259",
+              "offset": 0,
+              "slot": "3"
+            },
+            {
+              "contract": "Governance",
+              "label": "gtokens",
+              "type": "t_contract(GTokens)2887",
+              "src": "contracts/governance/Governance.sol:260",
+              "offset": 0,
+              "slot": "4"
+            },
+            {
+              "contract": "Governance",
+              "label": "lpTokenAddress",
+              "type": "t_address",
+              "src": "contracts/governance/Governance.sol:261",
+              "offset": 0,
+              "slot": "5"
+            },
+            {
+              "contract": "Governance",
+              "label": "adexTokenAddress",
+              "type": "t_address",
+              "src": "contracts/governance/Governance.sol:262",
+              "offset": 0,
+              "slot": "6"
+            },
+            {
+              "contract": "Governance",
+              "label": "router",
+              "type": "t_contract(IRouter)4359",
+              "src": "contracts/governance/Governance.sol:263",
+              "offset": 0,
+              "slot": "7"
+            },
+            {
+              "contract": "Governance",
+              "label": "epochs",
+              "type": "t_struct(Storage)2375_storage",
+              "src": "contracts/governance/Governance.sol:264",
+              "offset": 0,
+              "slot": "8"
+            },
+            {
+              "contract": "Governance",
+              "label": "userVotes",
+              "type": "t_mapping(t_address,t_struct(UintSet)2139_storage)",
+              "src": "contracts/governance/Governance.sol:265",
+              "offset": 0,
+              "slot": "10"
+            },
+            {
+              "contract": "Governance",
+              "label": "userVote",
+              "type": "t_mapping(t_address,t_address)",
+              "src": "contracts/governance/Governance.sol:266",
+              "offset": 0,
+              "slot": "11"
+            },
+            {
+              "contract": "Governance",
+              "label": "activeListing",
+              "type": "t_struct(TokenListing)3157_storage",
+              "src": "contracts/governance/Governance.sol:267",
+              "offset": 0,
+              "slot": "12"
+            },
+            {
+              "contract": "Governance",
+              "label": "pendingOrListedTokens",
+              "type": "t_struct(AddressSet)2073_storage",
+              "src": "contracts/governance/Governance.sol:268",
+              "offset": 0,
+              "slot": "24"
+            },
+            {
+              "contract": "Governance",
+              "label": "pairOwnerListing",
+              "type": "t_mapping(t_address,t_struct(TokenListing)3157_storage)",
+              "src": "contracts/governance/Governance.sol:269",
+              "offset": 0,
+              "slot": "26"
+            },
+            {
+              "contract": "Governance",
+              "label": "launchPair",
+              "type": "t_contract(LaunchPair)3692",
+              "src": "contracts/governance/Governance.sol:270",
+              "offset": 0,
+              "slot": "27"
             }
           ],
           "erc7201:openzeppelin.storage.Ownable": [
