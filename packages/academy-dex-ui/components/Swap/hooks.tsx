@@ -56,7 +56,7 @@ const defaultTokensInfo: {
   tokenMap: new Map(),
 };
 export const useSwapableTokens = ({ address: userAddress }: { address?: string }) => {
-  const { data: eduBalance } = useBalance({ address: userAddress });
+  const { data: nativeBalance } = useBalance({ address: userAddress });
   const { client, router } = useRawCallsInfo();
   const { data: wEDUaddress } = useScaffoldReadContract({ contractName: "Router", functionName: "getWEDU" });
 
@@ -70,13 +70,17 @@ export const useSwapableTokens = ({ address: userAddress }: { address?: string }
       throw new Error("Router data not loaded");
     }
 
+    if (tokenAddress == wEDUaddress && !nativeBalance) {
+      throw new Error("Native token balance not loaded");
+    }
+
     // FIXME improve this call
     const [identifier, balance, decimals, pairAddr] =
-      tokenAddress == wEDUaddress && eduBalance
+      tokenAddress == wEDUaddress && nativeBalance
         ? [
-            eduBalance.symbol,
-            eduBalance.value,
-            eduBalance.decimals,
+            nativeBalance.symbol,
+            nativeBalance.value,
+            nativeBalance.decimals,
             await client.readContract({
               address: router.address,
               abi: router.abi,

@@ -26,6 +26,17 @@ const scaffoldConfig = {
       },
       testnet: true,
     },
+    {
+      id: 12227332,
+      name: "NeoX T4",
+      nativeCurrency: { decimals: 18, name: "NeoX Coin", symbol: "GAS" },
+      rpcUrls: {
+        default: { http: ["https://neoxt4seed1.ngd.network"], webSocket: ["wss://neoxt4wss1.ngd.network"] },
+        public: { http: ["https://neoxt4seed1.ngd.network"], webSocket: ["wss://neoxt4wss1.ngd.network"] },
+      },
+      blockExplorers: { default: { url: "https://xt4scan.ngd.network/", name: "NEOX Chain explorer" } },
+      testnet: true,
+    },
   ],
 
   defaultTargetNetwork: Number(process.env.NEXT_PUBLIC_DEFAULT_TARGET_NETWORK ?? 1),

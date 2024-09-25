@@ -1,7 +1,7 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 import { ethers } from "hardhat";
-import { ADEX, MintableERC20, Router } from "../typechain-types";
+import { ADEX, MintableERC20, MintableERC20__factory, Router } from "../typechain-types";
 import { parseEther } from "ethers";
 
 const deployPairs: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -9,13 +9,15 @@ const deployPairs: DeployFunction = async function (hre: HardhatRuntimeEnvironme
 
   const Router = await ethers.getContract<Router>("Router", deployer);
 
-  const erc20Token = await ethers.getContractFactory("MintableERC20");
+  let erc20Token: MintableERC20__factory | undefined;
 
   // Get from chain data to stay in sync with multiple calls
   let pairsCount = +(await Router.pairsCount()).toString();
   let tradeToken: MintableERC20 | ADEX | undefined, tradeTokenAddr: string, pairAddress: string;
 
   const testers = process.env.TESTERS?.split(",") ?? [];
+  const isLocalHost = hre.network.name == "localhost";
+  const txWaitTime = hre.network.name == "neox" ? 5 : 1;
 
   for (let [name, symbol] of [
     ["", ""], // Base Pair
@@ -25,7 +27,7 @@ const deployPairs: DeployFunction = async function (hre: HardhatRuntimeEnvironme
     ["HouseX", "AKU"],
     ["ExistenceToken", "HTH"],
   ]) {
-    if (hre.network.name != "localhost" && name.length > 0) {
+    if (!isLocalHost && name.length > 0) {
       // Skip dummy pairs in public networks
       continue;
     }
@@ -33,7 +35,9 @@ const deployPairs: DeployFunction = async function (hre: HardhatRuntimeEnvironme
     const payment = { token: ethers.ZeroAddress, amount: 0n, nonce: 0 };
 
     if (pairsCount === 0) {
-      await Router.createPair(payment);
+      const createBasePairTx = await Router.createPair(payment);
+      await createBasePairTx.wait(txWaitTime);
+
       pairAddress = await Router.basePairAddr();
 
       const basePair = await ethers.getContractAt("BasePair", pairAddress);
@@ -46,7 +50,11 @@ const deployPairs: DeployFunction = async function (hre: HardhatRuntimeEnvironme
     } else {
       if (!name) {
         // Deploy EDU
-        await Router.createPair(payment, { value: (await hre.ethers.provider.getBalance(deployer)) / 100_000n });
+        const createNativePairTx = await Router.createPair(payment, {
+          value: (await hre.ethers.provider.getBalance(deployer)) / 100_000n,
+        });
+        await createNativePairTx.wait(txWaitTime);
+
         tradeTokenAddr = await Router.getWEDU();
 
         const wEduToken = await ethers.getContractAt("WEDU", tradeTokenAddr);
@@ -54,6 +62,9 @@ const deployPairs: DeployFunction = async function (hre: HardhatRuntimeEnvironme
         name = await wEduToken.name();
         symbol = await wEduToken.symbol();
       } else {
+        if (!erc20Token) {
+          erc20Token = await ethers.getContractFactory("MintableERC20");
+        }
         const token = await erc20Token.deploy(name, symbol);
         tradeToken = await token.waitForDeployment();
 

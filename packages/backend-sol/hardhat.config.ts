@@ -55,13 +55,18 @@ const config: HardhatUserConfig = {
       mining: { auto: true, interval: 6_000 },
     },
     opencampus: {
-      url: `https://rpc.open-campus-codex.gelato.digital`,
+      url: "https://rpc.open-campus-codex.gelato.digital",
       accounts: [deployerPrivateKey],
+    },
+    neox: {
+      url: "https://neoxt4seed1.ngd.network",
+      accounts: [deployerPrivateKey],
+      gasPrice: 40000000000,
     },
   },
   // configuration for harhdat-verify plugin
   etherscan: {
-    apiKey: { opencampus: "NOT NEEDED" },
+    apiKey: { opencampus: "NOT NEEDED", neox: "NOT NEEDED" },
     customChains: [
       {
         network: "opencampus",
@@ -69,6 +74,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://opencampus-codex.blockscout.com/api",
           browserURL: "https://opencampus-codex.blockscout.com",
+        },
+      },
+      {
+        network: "neox",
+        chainId: 12227332,
+        urls: {
+          apiURL: "https://xt4scan.ngd.network/api",
+          browserURL: "https://xt4scan.ngd.network",
         },
       },
     ],

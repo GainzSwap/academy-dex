@@ -26,6 +26,7 @@ const deployRouterContract: DeployFunction = async function (hre: HardhatRuntime
     },
   });
   const router = await upgrades.deployProxy(Router, [deployer], { unsafeAllow: ["external-library-linking"] });
+  await router.waitForDeployment();
 
   const { abi, metadata } = await hre.deployments.getExtendedArtifact("Router");
   await hre.deployments.save("Router", { abi, metadata, address: await router.getAddress() });
