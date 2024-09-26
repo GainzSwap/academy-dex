@@ -85,7 +85,7 @@ export default function Dashboard() {
               <PortfolioDistribution />
             </div>
 
-            <div className="col-sm-4 d-none d-lg-block">
+            <div className="col-sm-6 col-md-4 col-12">
               <StakingAndGovernace />
               <ReferralCard />
             </div>
