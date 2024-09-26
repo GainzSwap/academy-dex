@@ -22,10 +22,10 @@ const deployPairs: DeployFunction = async function (hre: HardhatRuntimeEnvironme
   for (let [name, symbol] of [
     ["", ""], // Base Pair
     ["", ""], // EDU pair
-    ["GainsNetwork", "CPTR"],
-    ["SocialFi", "TRND"],
-    ["HouseX", "AKU"],
-    ["ExistenceToken", "HTH"],
+    // ["GainsNetwork", "CPTR"],
+    // ["SocialFi", "TRND"],
+    // ["HouseX", "AKU"],
+    // ["ExistenceToken", "HTH"],
   ]) {
     if (!isLocalHost && name.length > 0) {
       // Skip dummy pairs in public networks

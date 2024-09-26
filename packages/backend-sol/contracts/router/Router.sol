@@ -303,7 +303,7 @@ contract Router is
 				uint256 computedReward = ((globalData_.rewardsPerShare -
 					newPairData.tradeRewardsPershare) * newPairData.buyVolume) /
 					REWARDS_DIVISION_CONSTANT;
-
+				// FIXME computedReward gets higher than globalData_.rewardsReserve when new pair is added after a long time
 				// Transfer rewards
 				globalData_.rewardsReserve -= computedReward;
 				newPairData.rewardsReserve += computedReward;

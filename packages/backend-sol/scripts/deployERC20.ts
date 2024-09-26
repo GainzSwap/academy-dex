@@ -7,15 +7,19 @@ dotenv.config();
 task("deployERC20", "")
   .addParam("name", "name")
   .addParam("symbol", "The ticker symbol")
-  .setAction(async ({ name, symbol }, hre) => {
+  .addParam("ownermint", "")
+  .setAction(async ({ name, symbol, ownermint }, hre) => {
+    const { deployer } = await hre.getNamedAccounts();
     const factory = await hre.ethers.getContractFactory("MintableERC20");
 
     const token = await factory.deploy(name, symbol);
     await token.waitForDeployment();
 
+    await token.mint(deployer, hre.ethers.parseEther(ownermint));
+
     console.log("new token addr: ", await token.getAddress(), await token.symbol(), await token.name());
     const testers = process.env.TESTERS?.split(",") ?? [];
-    console.log({ testers });
+
     for (const tester of testers) {
       await token.mint(
         tester,
