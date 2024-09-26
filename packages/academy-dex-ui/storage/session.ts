@@ -1,6 +1,6 @@
 import { getUnixTimestamp, getUnixTimestampWithAddedSeconds } from "~~/utils";
 
-export type SessionKeyData = { key: "userRefBy"; data: string };
+export type SessionKeyData = { key: "userRefBy"; data: string } | { key: "SLIPPAGE_ADJUSTMENT"; data: number };
 
 export const setItem = ({ key, data }: SessionKeyData, secondsToExipre: number = 3600) => {
   const expires = getUnixTimestampWithAddedSeconds(secondsToExipre);

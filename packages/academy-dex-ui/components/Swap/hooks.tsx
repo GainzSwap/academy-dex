@@ -10,14 +10,20 @@ import { useAccount, useBalance } from "wagmi";
 import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import useRawCallsInfo from "~~/hooks/useRawCallsInfo";
 import { useSpendERC20 } from "~~/hooks/useSpendERC20";
-import { getItem } from "~~/storage/session";
+import { getItem, setItem } from "~~/storage/session";
 import { RefIdData } from "~~/utils";
 import { formatAmount } from "~~/utils/formatAmount";
 
 export const SLIPPAGE_DIVISOR = 10_000;
+const slippageKey = "SLIPPAGE_ADJUSTMENT";
 
 export const useSlippageAdjuster = () => {
   const [slippage, setSlippage] = useState(0.01);
+
+  useEffect(() => {
+    setSlippage(getItem(slippageKey) || slippage);
+  }, []);
+
   const applySlippage = useCallback(
     (value: BigNumber.Value) => new BigNumber(value).multipliedBy(1 - slippage).integerValue(BigNumber.ROUND_FLOOR),
     [slippage],
@@ -33,7 +39,9 @@ export const useSlippageAdjuster = () => {
           min={10}
           max={1000}
           onChange={value => {
-            setSlippage((value as number) / SLIPPAGE_DIVISOR);
+            const slippage = (value as number) / SLIPPAGE_DIVISOR;
+            setItem({ key: slippageKey, data: slippage });
+            setSlippage(slippage);
           }}
         />
       </div>
@@ -210,7 +218,7 @@ export const useSwapTokensForm = ({
         !value && (await checkApproval(payment.amount));
 
         if (refIdData.getUserID() === null) {
-          const referrerLink = getItem("userRefBy");
+          const referrerLink = getItem<string>("userRefBy");
           const referrerId = referrerLink ? BigInt(RefIdData.getID(referrerLink)) : 0n;
           await writeRouter({
             functionName: "registerAndSwap",
