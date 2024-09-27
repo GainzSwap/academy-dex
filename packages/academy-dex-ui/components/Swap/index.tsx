@@ -193,6 +193,9 @@ export function SwapTokensBody() {
       <div className="d-grid gap-2">
         <SwapButton onSwapComplete={onSwapComplete} />
       </div>
+      <div className="d-grid gap-2">
+        <a className="btn btn-success w-100 btn-lg" href="https://t.me/AcademyDEX">Join our Telegram Community</a>
+      </div>
     </form>
   );
 }
