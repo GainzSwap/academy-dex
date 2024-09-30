@@ -7,6 +7,7 @@ import CreateNewListing from "./NewPair/CreateNewListing";
 import { FundCampaign } from "./NewPair/ProcessPairListing/FundCampaign";
 import PortfolioDistribution from "./PortfolioDistribution";
 import Referrals from "./Referrals";
+import RemoveLiquidityButton from "./RemoveLiquidity";
 import Sidebar from "./Sidebar";
 import StakingAndGovernace from "./StakingAndGovernace";
 import Swap from "./Swap";
@@ -71,10 +72,7 @@ export default function Dashboard() {
               <div className="element-wrapper pb-4 mb-4 border-bottom">
                 <div className="element-box-tp">
                   <AddLiquidity />
-                  <a className="btn btn-grey" href="#">
-                    <i className="os-icon os-icon-log-out"></i>
-                    <span>Remove Liquidity</span>
-                  </a>
+                  <RemoveLiquidityButton />
                   <ClaimLpRewards />
                 </div>
               </div>
