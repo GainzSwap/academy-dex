@@ -1,0 +1,152 @@
+{
+  "id": "b2f2970b-ee99-4125-a82b-4ed6b9a6ca8d",
+  "prevId": "4a50315b-7df0-4cd3-9440-e6e6c172b007",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.comm_chats": {
+      "name": "comm_chats",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "type": "byDefault",
+            "name": "comm_chats_id_seq",
+            "schema": "public",
+            "increment": "1",
+            "startWith": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "cache": "1",
+            "cycle": false
+          }
+        },
+        "tgId": {
+          "name": "tgId",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "username": {
+          "name": "username",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.tgUsers": {
+      "name": "tgUsers",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "type": "byDefault",
+            "name": "tgUsers_id_seq",
+            "schema": "public",
+            "increment": "1",
+            "startWith": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "cache": "1",
+            "cycle": false
+          }
+        },
+        "tgID": {
+          "name": "tgID",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "refID": {
+          "name": "refID",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "referrerID": {
+          "name": "referrerID",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "isBot": {
+          "name": "isBot",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": true
+        },
+        "firstName": {
+          "name": "firstName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lastName": {
+          "name": "lastName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "username": {
+          "name": "username",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "languageCode": {
+          "name": "languageCode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "groupChatStatus": {
+          "name": "groupChatStatus",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "joinReqSent": {
+          "name": "joinReqSent",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "tgUsers_refID_unique": {
+          "name": "tgUsers_refID_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "refID"
+          ]
+        }
+      }
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
