@@ -134,9 +134,7 @@
         "tgUsers_refID_unique": {
           "name": "tgUsers_refID_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "refID"
-          ]
+          "columns": ["refID"]
         }
       }
     }

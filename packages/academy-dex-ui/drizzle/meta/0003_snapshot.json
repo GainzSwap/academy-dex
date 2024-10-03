@@ -1,6 +1,6 @@
 {
-  "id": "4a50315b-7df0-4cd3-9440-e6e6c172b007",
-  "prevId": "f9c45963-1893-4507-b273-929cf910bdc7",
+  "id": "a7941767-3ebd-4067-b472-6b98113807c1",
+  "prevId": "b2f2970b-ee99-4125-a82b-4ed6b9a6ca8d",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -25,8 +25,8 @@
             "cycle": false
           }
         },
-        "tgId": {
-          "name": "tgId",
+        "tgID": {
+          "name": "tgID",
           "type": "bigint",
           "primaryKey": false,
           "notNull": true
@@ -66,9 +66,9 @@
         },
         "tgID": {
           "name": "tgID",
-          "type": "integer",
+          "type": "bigint",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "refID": {
           "name": "refID",
@@ -131,11 +131,6 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "tgUsers_tgID_unique": {
-          "name": "tgUsers_tgID_unique",
-          "nullsNotDistinct": false,
-          "columns": ["tgID"]
-        },
         "tgUsers_refID_unique": {
           "name": "tgUsers_refID_unique",
           "nullsNotDistinct": false,

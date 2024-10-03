@@ -1,0 +1,1 @@
+ALTER TABLE "comm_chats" RENAME COLUMN "tgId" TO "tgID";

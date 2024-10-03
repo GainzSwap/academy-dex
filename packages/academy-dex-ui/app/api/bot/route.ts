@@ -1,17 +1,16 @@
+import { NextRequest } from "next/server";
+import { bot } from "./bot";
 import { init } from "./commands/init";
-import { Bot, webhookCallback } from "grammy";
+import { start } from "./commands/start";
+import { webhookCallback } from "grammy";
 
-const token = process.env.BOT_TOKEN;
-if (!token) throw new Error("BOT_TOKEN is unset");
-const bot = new Bot(token);
+bot.use(init, start);
+const handler = webhookCallback(bot, "std/http");
 
-export async function GET() {
-  bot.use(init);
+export async function GET(req: NextRequest) {
+  return await handler(req);
+}
 
-  if (!bot.isInited()) {
-    await bot.start({ allowed_updates: ["message", "chat_join_request", "chat_member"] });
-  }
-
-  //   return webhookCallback(bot, "std/http");
-  return Response.json({});
+export async function POST(req: NextRequest) {
+  return await handler(req);
 }
