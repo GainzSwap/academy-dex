@@ -48,7 +48,7 @@ export async function getOrCreateCommChat(groupID: number | null = null, groupUs
       .then(reseult => reseult.at(0));
   }
   try {
-    const botInfo = await bot.api.getMe();
+    const botInfo = bot.botInfo;
     await db.insert(tgUsers).values({
       refID: "1",
       firstName: botInfo.first_name,
@@ -134,6 +134,14 @@ export async function addTgUser({
   )
     .returning()
     .then(r => new TgUser(r[0]));
+}
+
+export async function getTgRefLink(tgUser: TgUser) {
+  return `${await getBotLink()}/?start=${tgUser.refID}`;
+}
+
+export async function getBotLink() {
+  return `https://t.me/${bot.botInfo.username}`;
 }
 
 export async function trySwapFirstTime(tgUser: TgUser) {

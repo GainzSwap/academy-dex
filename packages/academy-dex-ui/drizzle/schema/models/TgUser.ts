@@ -67,7 +67,7 @@ export class TgUser implements TgUserType {
     db.query.tgUsers
       .findFirst({
         where: and(...(Object.keys(params) as (keyof TgUserType)[]).map(key => eq(tgUsers[key], params[key]!))),
-        with: { referrals: true, referrer: true, user: true }, // TODO optimise
+        with: { referrals: true, referrer: true, user: true }, // TODO optimise,
       })
       .then(
         data =>
@@ -77,7 +77,7 @@ export class TgUser implements TgUserType {
 
             return new TgUser({
               ...otherData,
-              user: new User(user),
+              user: user && new User(user),
               referrals: referrals.map(r => new TgUser(r)),
               referrer: referrer && new TgUser(referrer),
             });

@@ -1,10 +1,8 @@
 import { JOIN_GROUP_CHAT, REFERRALS } from "../constants";
 import { addTgUser, getOrCreateCommChat, trySwapFirstTime } from "../service";
-import { Composer } from "grammy";
+import { CommandContext, Composer, Context } from "grammy";
 
-export const start = new Composer();
-
-start.command("start", async ctx => {
+export const startCommandHandler = async (ctx: Context) => {
   if (ctx.from?.is_bot) {
     return;
   }
@@ -17,7 +15,7 @@ start.command("start", async ctx => {
   });
 
   const tgUser = await addTgUser({
-    referrerID: ctx.match,
+    referrerID: ctx.match?.toString(),
     from: ctx.from,
   });
 
@@ -32,4 +30,7 @@ start.command("start", async ctx => {
   } else {
     await trySwapFirstTime(tgUser);
   }
-});
+};
+
+export const start = new Composer();
+start.command("start", startCommandHandler);

@@ -9,7 +9,9 @@ export const chats = pgTable("comm_chats", {
 
 export const tgUsers = pgTable("tgUsers", {
   id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
-  tgID: bigint("tgID", { mode: "number" }).notNull(),
+  tgID: bigint("tgID", { mode: "number" })
+    .notNull()
+    .references(() => users.tgID),
   refID: text("refID").unique(),
   referrerID: text("referrerID"),
   isBot: boolean("isBot").default(true),
@@ -21,9 +23,13 @@ export const tgUsers = pgTable("tgUsers", {
   joinReqSent: boolean("joinReqSent").default(false),
 });
 export const tgUsersRelations = relations(tgUsers, ({ one, many }) => ({
-  user: one(users, { fields: [tgUsers.tgID], references: [users.tgID] }),
-  referrals: many(tgUsers),
-  referrer: one(tgUsers, { fields: [tgUsers.referrerID], references: [tgUsers.refID] }),
+  user: one(users),
+  referrals: many(tgUsers, { relationName: "tgUser_referral" }),
+  referrer: one(tgUsers, {
+    fields: [tgUsers.referrerID],
+    references: [tgUsers.refID],
+    relationName: "tgUser_referral",
+  }),
 }));
 
 export const users = pgTable("users", {
@@ -35,6 +41,6 @@ export const users = pgTable("users", {
 });
 export const usersRelations = relations(users, ({ one, many }) => ({
   tgUser: one(tgUsers, { fields: [users.tgID], references: [tgUsers.tgID] }),
-  referrals: many(users),
-  referrer: one(users, { fields: [users.referrerID], references: [users.refID] }),
+  referrals: many(users, { relationName: "user_referral" }),
+  referrer: one(users, { fields: [users.referrerID], references: [users.refID], relationName: "user_referral" }),
 }));
