@@ -6,7 +6,7 @@ const getValue = (name: string, v: string | undefined) => {
   return v;
 };
 
-export const JOIN_GROUP_CHAT = "Join CryptGain Chat ↗️";
+export const JOIN_GROUP_CHAT = "Join Academy-DEX Chat ↗️";
 export const REFERRALS = "Referrals 👥";
 
 export const adminUserName = getValue("TgAdmin", process.env.ADMIN_TG_USERANME);

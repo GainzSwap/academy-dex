@@ -20,7 +20,7 @@ export class TgUser implements TgUserType {
   firstName!: string;
   lastName: string | null;
   languageCode: string | null;
-  groupChatStatus: string | null;
+  groupChatStatus: GroupChatStatusType;
   joinReqSent: boolean | null;
 
   user: User | null;
@@ -46,7 +46,7 @@ export class TgUser implements TgUserType {
     this.referrerID = data.referrerID ?? null;
     this.lastName = data.lastName ?? null;
     this.languageCode = data.languageCode ?? null;
-    this.groupChatStatus = data.groupChatStatus ?? null;
+    this.groupChatStatus = (data.groupChatStatus as GroupChatStatusType) ?? null;
     this.joinReqSent = data.joinReqSent ?? null;
 
     // Relations
@@ -56,12 +56,23 @@ export class TgUser implements TgUserType {
   }
 
   get isCommChatMember() {
-    return status.includes(this.groupChatStatus as GroupChatStatusType);
+    return status.includes(this.groupChatStatus);
   }
 
   get shouldJoinCommChat() {
     return !this.isCommChatMember;
   }
+
+  static save = async (tgUser: TgUser) =>
+    (tgUser.id !== undefined
+      ? (() => {
+          const { id, user, referrals, referrer, ...updatedData } = tgUser;
+          return db.update(tgUsers).set(updatedData).where(eq(tgUsers.id, id));
+        })()
+      : db.insert(tgUsers).values(tgUser)
+    )
+      .returning()
+      .then(r => new TgUser(r[0]));
 
   static findOneBy = async (params: Partial<TgUser>) =>
     db.query.tgUsers

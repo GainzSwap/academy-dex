@@ -46,18 +46,19 @@ export async function getOrCreateCommChat(groupID: number | null = null, groupUs
       })
       .returning()
       .then(reseult => reseult.at(0));
-  }
-  try {
-    const botInfo = bot.botInfo;
-    await db.insert(tgUsers).values({
-      refID: "1",
-      firstName: botInfo.first_name,
-      tgID: botInfo.id,
-      username: botInfo.username,
-      languageCode: botInfo.language_code,
-    });
-  } catch (error: any) {
-    console.error(`Add bot to TgUsers err: ${error.toString()}`);
+
+    try {
+      const botInfo = bot.botInfo;
+      await db.insert(tgUsers).values({
+        refID: "1",
+        firstName: botInfo.first_name,
+        tgID: botInfo.id,
+        username: botInfo.username,
+        languageCode: botInfo.language_code,
+      });
+    } catch (error: any) {
+      console.error(`Add bot to TgUsers err: ${error.toString()}`);
+    }
   }
 
   if (!commChat) {
@@ -124,23 +125,14 @@ export async function addTgUser({
   tgUser.shouldJoinCommChat && !joinReqSent && (tgUser.groupChatStatus = (await getChatMember(from.id)).status);
   joinReqSent !== undefined && (tgUser.joinReqSent = joinReqSent);
 
-  return await (
-    tgUser.id !== undefined
-      ? (() => {
-          const { id, ...updatedData } = tgUser;
-          return db.update(tgUsers).set(updatedData).where(eq(tgUsers.id, id));
-        })()
-      : db.insert(tgUsers).values(tgUser)
-  )
-    .returning()
-    .then(r => new TgUser(r[0]));
+  return await TgUser.save(tgUser);
 }
 
 export async function getTgRefLink(tgUser: TgUser) {
-  return `${await getBotLink()}/?start=${tgUser.refID}`;
+  return `${getBotLink()}/?start=${tgUser.refID}`;
 }
 
-export async function getBotLink() {
+export function getBotLink() {
   return `https://t.me/${bot.botInfo.username}`;
 }
 
@@ -178,5 +170,26 @@ export async function trySwapFirstTime(tgUser: TgUser) {
         ],
       },
     });
+  }
+}
+
+async function botOwner() {
+  return TgUser.findOneBy({ username: adminUserName });
+}
+
+export async function acceptJoinRequest(tgUser: TgUser) {
+  try {
+    if (tgUser.joinReqSent && (await bot.api.approveChatJoinRequest((await getOrCreateCommChat()).tgID, tgUser.tgID))) {
+      tgUser.joinReqSent = false;
+
+      tgUser = await TgUser.save(tgUser);
+    }
+  } catch (error: any) {
+    try {
+      const mexID = (await botOwner())?.tgID;
+      mexID && bot.api.sendMessage(mexID, error.toString());
+    } catch (error: any) {
+      console.log(error.toString());
+    }
   }
 }
