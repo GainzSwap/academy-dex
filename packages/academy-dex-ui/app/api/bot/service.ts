@@ -2,12 +2,20 @@ import { bot } from "./bot";
 import { adminUserName, dappUrl_ } from "./constants";
 import { randomString } from "./helpers";
 import Encryption from "./utils/Encryption";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import type { User as TgUserType } from "grammy/types";
+import { createClient, http } from "viem";
+import { createConfig } from "wagmi";
+import { readContract } from "wagmi/actions";
+import deployedContracts from "~~/contracts/deployedContracts";
 import { db } from "~~/drizzle/db";
 import { chats, tgUsers } from "~~/drizzle/schema/index";
 import { TgUser } from "~~/drizzle/schema/models/TgUser";
+import { User } from "~~/drizzle/schema/models/User";
 import { Chat } from "~~/drizzle/schema/types";
+import scaffoldConfig from "~~/scaffold.config";
+import { RefIdData } from "~~/utils";
+import { getAlchemyHttpUrl } from "~~/utils/scaffold-eth";
 
 let commChat: Chat | undefined;
 
@@ -192,4 +200,67 @@ export async function acceptJoinRequest(tgUser: TgUser) {
       console.log(error.toString());
     }
   }
+}
+
+export async function alertReferralFirstSwap(user: TgUser, referral: User) {
+  const referral_firstName =
+    referral.tgUser?.firstName || (await TgUser.findOneBy({ tgID: referral.tgID || undefined }))?.firstName;
+
+  const message = `🥳 Your referral ${
+    referral_firstName ? referral_firstName : referral.address
+  } just did their first Swap!`;
+
+  return await bot.api.sendMessage(user.tgID, message);
+}
+
+export type ChainID = (typeof scaffoldConfig)["targetNetworks"][number]["id"];
+
+export const wagmiConfigServer = createConfig({
+  chains: scaffoldConfig.targetNetworks,
+  ssr: true,
+  client({ chain }) {
+    return createClient({
+      chain,
+      transport: http(getAlchemyHttpUrl(chain.id)),
+    });
+  },
+});
+
+export async function getAffiliateDetails(address: string, chainId: ChainID) {
+  const Router = deployedContracts[chainId].Router;
+
+  const [[_referrerID, referrerAddress], _userID] = await Promise.all([
+    readContract(wagmiConfigServer, {
+      abi: Router.abi,
+      address: Router.address,
+      functionName: "getReferrer",
+      args: [address],
+    }),
+    readContract(wagmiConfigServer, {
+      abi: Router.abi,
+      address: Router.address,
+      functionName: "getUserId",
+      args: [address],
+    }),
+  ]);
+
+  const userID = +_userID.toString();
+  const referrerID = +_referrerID.toString();
+
+  return {
+    userID: userID > 0 ? userID : undefined,
+    referrerData: referrerID <= 0 ? undefined : { id: referrerID, address: referrerAddress },
+  };
+}
+
+export async function getRefData(address: string, chainId: ChainID) {
+  // get user details from blockchain
+  const { referrerData, userID } = await getAffiliateDetails(address, chainId);
+
+  return !userID
+    ? undefined
+    : {
+        refIdData: new RefIdData(address, userID),
+        referrerData: referrerData && new RefIdData(referrerData.address, referrerData.id),
+      };
 }
