@@ -2,7 +2,7 @@
   "installCommand": "yarn install",
 
   "functions": {
-    "api/bot/bot.ts": {
+    "api/bot/route.ts": {
       "memory": 1024,
       "maxDuration": 10
     }
