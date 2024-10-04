@@ -4,7 +4,7 @@ import { ChainID, getBotLink, getUserForUI } from "../../bot/service";
 export async function GET(req: NextRequest, { params: { address } }: { params: { address: string } }) {
   const searchParams = req.nextUrl.searchParams;
 
-  const chainId: ChainID | null = searchParams.get("chainId") as any;
+  const chainId: ChainID | null = 656476; // searchParams.get("chainId") as any;
 
   if (!address || !chainId) {
     throw new Error("Invalid Request data");
