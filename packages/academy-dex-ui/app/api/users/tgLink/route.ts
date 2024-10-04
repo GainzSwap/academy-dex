@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
 
   const tgLinkage = searchParams.get("tgLinkage");
   const address = searchParams.get("address");
-  const chainId: ChainID | null = 656476; // searchParams.get("chainId") as any;
+  const chainId: ChainID | null = searchParams.get("chainId") as any;
 
   if (!address || !tgLinkage || !chainId) {
     return NextResponse.error();
