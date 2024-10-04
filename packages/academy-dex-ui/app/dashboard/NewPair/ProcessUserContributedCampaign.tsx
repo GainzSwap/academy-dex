@@ -33,7 +33,7 @@ export default function ProcessUserContributedCampaign({ campaignId }: { campaig
   return (
     <TxButton
       className={`btn btn-${isSuccess ? "success" : "primary"}`}
-    btnName={!isSuccess ? "Get Campaign Refund" : "Get Campaign LP Tokens"}
+      btnName={!isSuccess ? "Get Campaign Refund" : "Get Campaign LP Tokens"}
       onClick={() => runCall()}
     />
   );

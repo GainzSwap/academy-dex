@@ -46,7 +46,7 @@ export const AddLiquidityModal = ({ selectedToken_ }: { selectedToken_?: TokenDa
     onSubmit: async ({ sendAmt }, { setFieldError, resetForm }) => {
       try {
         if (!selectedToken || spendAllowance == undefined) {
-          throw new Error("Missing necessary data for the swap");
+          throw new Error("Missing necessary data for add liquidity");
         }
 
         const payment = {
