@@ -22,5 +22,5 @@ export async function GET(req: NextRequest) {
   const referrerID = (await TgUser.findOneBy({ refID: referrerID_tg }))?.user?.refID;
 
   // Return referrer ID on contract if any
-  return Response.json(referrerID);
+  return Response.json(referrerID || "");
 }

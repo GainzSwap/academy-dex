@@ -12,7 +12,7 @@ import { db } from "~~/drizzle/db";
 import { chats, tgUsers } from "~~/drizzle/schema/index";
 import { TgUser } from "~~/drizzle/schema/models/TgUser";
 import { User } from "~~/drizzle/schema/models/User";
-import { Chat } from "~~/drizzle/schema/types";
+import { Chat, IUser } from "~~/drizzle/schema/types";
 import scaffoldConfig from "~~/scaffold.config";
 import { RefIdData } from "~~/utils";
 import { getAlchemyHttpUrl } from "~~/utils/scaffold-eth";
@@ -113,7 +113,7 @@ export async function addTgUser({
   joinReqSent?: boolean;
 }) {
   // Make user with thier refID and tgID attached
-  let tgUser = await makeOrFindTgUser(from.id);
+  const tgUser = await makeOrFindTgUser(from.id);
 
   // Ensure referrerID is valid
   !tgUser.referrerID &&
@@ -136,7 +136,7 @@ export async function addTgUser({
   return await TgUser.save(tgUser);
 }
 
-export async function getTgRefLink(tgUser: TgUser) {
+export function getTgRefLink(tgUser: TgUser) {
   return `${getBotLink()}/?start=${tgUser.refID}`;
 }
 
@@ -158,7 +158,7 @@ export async function trySwapFirstTime(tgUser: TgUser) {
 
     let dappUrl = dappUrl_;
 
-    let linkage = new TgDappLinkage(tgUser.tgID, tgUser.referrerID || undefined).toString();
+    const linkage = new TgDappLinkage(tgUser.tgID, tgUser.referrerID || undefined).toString();
     if (linkage) {
       dappUrl += `?tgLinkage=${linkage}`;
     }
@@ -263,4 +263,15 @@ export async function getRefData(address: string, chainId: ChainID) {
         refIdData: new RefIdData(address, userID),
         referrerData: referrerData && new RefIdData(referrerData.address, referrerData.id),
       };
+}
+
+export async function getUserForUI(address: string, chainId: ChainID): Promise<IUser> {
+  // try creating user
+  const user = await User.create(address, chainId);
+  const tgUser = (await TgUser.findOneBy({ tgID: user.tgID || undefined })) || null;
+
+  tgUser && (tgUser.refID = getTgRefLink(tgUser));
+  user.tgUser = tgUser;
+
+  return user;
 }

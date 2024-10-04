@@ -1,5 +1,5 @@
 {
-  "id": "f9c45963-1893-4507-b273-929cf910bdc7",
+  "id": "d016fc18-1d72-47d7-9559-4118ed868ad2",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -25,9 +25,9 @@
             "cycle": false
           }
         },
-        "tgId": {
-          "name": "tgId",
-          "type": "integer",
+        "tgID": {
+          "name": "tgID",
+          "type": "bigint",
           "primaryKey": false,
           "notNull": true
         },
@@ -66,9 +66,9 @@
         },
         "tgID": {
           "name": "tgID",
-          "type": "integer",
+          "type": "bigint",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "refID": {
           "name": "refID",
@@ -131,15 +131,81 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "tgUsers_tgID_unique": {
-          "name": "tgUsers_tgID_unique",
-          "nullsNotDistinct": false,
-          "columns": ["tgID"]
-        },
         "tgUsers_refID_unique": {
           "name": "tgUsers_refID_unique",
           "nullsNotDistinct": false,
-          "columns": ["refID"]
+          "columns": [
+            "refID"
+          ]
+        }
+      }
+    },
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "address": {
+          "name": "address",
+          "type": "varchar",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "idInContract": {
+          "name": "idInContract",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refID": {
+          "name": "refID",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tgID": {
+          "name": "tgID",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "referrerID": {
+          "name": "referrerID",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "users_address_unique": {
+          "name": "users_address_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "address"
+          ]
+        },
+        "users_idInContract_unique": {
+          "name": "users_idInContract_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "idInContract"
+          ]
+        },
+        "users_refID_unique": {
+          "name": "users_refID_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "refID"
+          ]
+        },
+        "users_tgID_unique": {
+          "name": "users_tgID_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "tgID"
+          ]
         }
       }
     }

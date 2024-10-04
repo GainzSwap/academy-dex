@@ -9,9 +9,7 @@ export const chats = pgTable("comm_chats", {
 
 export const tgUsers = pgTable("tgUsers", {
   id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
-  tgID: bigint("tgID", { mode: "number" })
-    .notNull()
-    .references(() => users.tgID),
+  tgID: bigint("tgID", { mode: "number" }).notNull(),
   refID: text("refID").unique(),
   referrerID: text("referrerID"),
   isBot: boolean("isBot").default(true),

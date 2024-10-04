@@ -1,6 +1,6 @@
 import { JOIN_GROUP_CHAT, REFERRALS } from "../constants";
 import { addTgUser, getOrCreateCommChat, trySwapFirstTime } from "../service";
-import { CommandContext, Composer, Context } from "grammy";
+import { Composer, Context } from "grammy";
 
 export const startCommandHandler = async (ctx: Context) => {
   if (ctx.from?.is_bot) {

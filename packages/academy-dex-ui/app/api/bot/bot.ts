@@ -9,4 +9,6 @@ const token = process.env.BOT_TOKEN;
 if (!token) throw new Error("BOT_TOKEN is unset");
 
 export const bot = new Bot(token);
+
 bot.use(init, start, hearsReferrals, chatMemberUpdate, chatJoinRequest);
+await bot.init();

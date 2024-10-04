@@ -1,21 +1,21 @@
-import useSWR from "swr";
+import { useMemo } from "react";
 import { useAccount } from "wagmi";
-import useRawCallsInfo from "~~/hooks/useRawCallsInfo";
+import { useGetUser } from "~~/hooks";
 import { RefIdData } from "~~/utils";
 
 export const useReferralInfo = () => {
   const { address } = useAccount();
-  const { router, client } = useRawCallsInfo();
 
-  const { data, mutate } = useSWR(
-    address && client && router ? { key: "refdata-getAffiliateDetails", address, client, router } : null,
-    ({ address, client, router }) =>
-      Promise.all([
-        client
-          .readContract({ abi: router.abi, address: router.address, functionName: "getUserId", args: [address] })
-          .then(id => new RefIdData(address, +id.toString())),
-      ]),
+  const { data, mutate } = useGetUser(address);
+  const refIdData = useMemo(
+    () => (!data || !address ? undefined : new RefIdData(address, data.user.idInContract || 0)),
+    [data, address],
   );
 
-  return { refIdData: data?.at(0), refresh: () => mutate() };
+  return {
+    user: data?.user,
+    botStart: data?.botStart,
+    refIdData,
+    refresh: () => mutate(),
+  };
 };

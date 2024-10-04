@@ -4,7 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { ChainID, acceptJoinRequest, alertReferralFirstSwap, getRefData } from "~~/app/api/bot/service";
 import { db } from "~~/drizzle/db";
 
-type UserType = typeof users.$inferSelect;
+export type UserType = typeof users.$inferSelect;
 
 export class User implements UserType {
   address!: string;
@@ -54,8 +54,8 @@ export class User implements UserType {
           })(),
       );
 
-  static save = async (user: User) =>
-    (!!user.address
+  static save = async (user: User, isNew: boolean) =>
+    (!isNew
       ? (() => {
           const { address, tgUser, referrals, referrer, ...updatedData } = user;
           return db.update(users).set(updatedData).where(eq(users.address, address));
@@ -67,6 +67,7 @@ export class User implements UserType {
 
   static async create(sender: string, chainId: ChainID, tgID?: number) {
     let user = await User.findOneBy({ address: sender });
+    const isNew = !user;
 
     if (!user?.refID || !user.tgID) {
       // Create new user if was not created before
@@ -86,7 +87,7 @@ export class User implements UserType {
       tgID && (user.tgID ??= tgID);
 
       try {
-        user = await User.save(user);
+        user = await User.save(user, isNew);
       } catch (error) {
         console.log("Create User Err: \n\n", { user, error });
       }

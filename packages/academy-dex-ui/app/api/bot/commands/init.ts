@@ -13,8 +13,8 @@ init.hears("init", async ctx => {
   const chat = ctx.chat;
 
   if (Boolean(await getOrCreateCommChat(chat.id, chat.username))) {
-    return "Group Initialized";
+    await ctx.reply("Group Initialized");
   } else {
-    return "Could not Initialize Group";
+    await ctx.reply("Could not Initialize Group");
   }
 });

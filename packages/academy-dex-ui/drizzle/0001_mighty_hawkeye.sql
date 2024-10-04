@@ -1,1 +1,0 @@
-ALTER TABLE "comm_chats" ALTER COLUMN "tgId" SET DATA TYPE bigint;

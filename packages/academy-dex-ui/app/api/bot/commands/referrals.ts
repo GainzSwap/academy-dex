@@ -19,10 +19,10 @@ hearsReferrals.hears(REFERRALS, async ctx => {
     return;
   }
 
-  const refLink = await getTgRefLink(tgUser);
+  const refLink = getTgRefLink(tgUser);
   let message = `Your referral link is\n\n<code>${refLink}</code>`;
   // Telegram has limit to messages, so we need to break the message into multiple places
-  let extraMsgs: string[] = [];
+  const extraMsgs: string[] = [];
 
   if (tgUser.referrals?.length) {
     message += `\n\nThese are your Telegram referrals:\n`;

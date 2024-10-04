@@ -1,20 +1,13 @@
+"use client";
+
 import { useEffect, useState } from "react";
 import { RefIdData } from "../utils";
 import { useTargetNetwork } from "./scaffold-eth";
 import useRawCallsInfo from "./useRawCallsInfo";
-import axios from "axios";
 import useSWR from "swr";
 import { useAccount } from "wagmi";
+import axiosProvider from "~~/services/axiosProvider";
 import { getItem, setItem } from "~~/storage/session";
-
-const axiosInstance = axios.create({
-  headers: {
-    "X-Requested-With": "XMLHttpRequest",
-    Accept: "application/json",
-    "Content-Type": "application/json",
-  },
-  baseURL: "/api",
-});
 
 export default function useInitGlobalData() {
   const { client, router } = useRawCallsInfo();
@@ -60,10 +53,9 @@ export default function useInitGlobalData() {
 
   useEffect(() => {
     if (tgLinkage && address) {
-      axiosInstance
+      axiosProvider
         .get(`/users/tgLink?tgLinkage=${tgLinkage}&address=${address}&chainId=${targetNetwork.id}`)
         .then(({ data: referrerID }) => {
-          console.log({ referrerID });
           referrerID && typeof referrerID == "string" && setRefID(referrerID);
         })
         .catch((e: any) => {

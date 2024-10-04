@@ -5,36 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1727946278728,
-      "tag": "0000_wakeful_green_goblin",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1727946697479,
-      "tag": "0001_mighty_hawkeye",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1727947510446,
-      "tag": "0002_mature_psylocke",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1727960008571,
-      "tag": "0003_small_wild_pack",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1727983084408,
-      "tag": "0004_clean_warhawk",
+      "when": 1728003491191,
+      "tag": "0000_last_ronan",
       "breakpoints": true
     }
   ]
