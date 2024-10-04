@@ -216,7 +216,7 @@ export async function alertReferralFirstSwap(user: TgUser, referral: User) {
 export type ChainID = (typeof scaffoldConfig)["targetNetworks"][number]["id"];
 
 export const wagmiConfigServer = createConfig({
-  chains: scaffoldConfig.targetNetworks,
+  chains: [scaffoldConfig.targetNetworks[1]],
   ssr: true,
   client({ chain }) {
     return createClient({
