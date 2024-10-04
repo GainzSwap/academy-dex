@@ -52,6 +52,8 @@ library TokenPayments {
 		}
 	}
 
+	event Token(address indexed token, bool indexed moved);
+
 	function sendToken(TokenPayment memory payment, address to) internal {
 		if (payment.nonce == 0) {
 			uint256 beforeNativeBal = address(this).balance;
@@ -60,6 +62,8 @@ library TokenPayments {
 			(bool shouldMoveEthBalance, ) = payment.token.call(
 				abi.encodeWithSignature("withdraw(uint256)", payment.amount)
 			);
+
+			emit Token(payment.token, shouldMoveEthBalance);
 
 			// Checks to ensure balance movements
 			if (shouldMoveEthBalance) {
