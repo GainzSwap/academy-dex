@@ -20,7 +20,9 @@ task("upgradeGovernance", "Upgrades governance").setAction(async (_, hre) => {
   const governanceProxy = await hre.upgrades.forceImport(governanceAddress, await governanceFactory());
 
   await hre.run("compile");
-  await hre.upgrades.upgradeProxy(governanceProxy, await governanceFactory(),{unsafeAllow:['external-library-linking']});
+  await hre.upgrades.upgradeProxy(governanceProxy, await governanceFactory(), {
+    unsafeAllow: ["external-library-linking"],
+  });
 
   const { abi, metadata } = await hre.deployments.getExtendedArtifact("Governance");
   await hre.deployments.save("Governance", { abi, metadata, address: governanceAddress });

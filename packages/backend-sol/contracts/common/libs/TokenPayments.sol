@@ -54,22 +54,19 @@ library TokenPayments {
 
 	function sendToken(TokenPayment memory payment, address to) internal {
 		if (payment.nonce == 0) {
-			bool shouldMoveEthBalance = false;
-			if (to.code.length > 0) {
-				uint256 beforeBal = address(this).balance;
+			uint256 beforeNativeBal = address(this).balance;
 
-				// Try to withdraw ETH assuming payment.token is WEDU
-				(shouldMoveEthBalance, ) = payment.token.call(
-					abi.encodeWithSignature("withdraw(uint256)", payment.amount)
+			// Try to withdraw ETH assuming payment.token is WEDU
+			(bool shouldMoveEthBalance, ) = payment.token.call(
+				abi.encodeWithSignature("withdraw(uint256)", payment.amount)
+			);
+
+			// Checks to ensure balance movements
+			if (shouldMoveEthBalance) {
+				require(
+					(beforeNativeBal + payment.amount) == address(this).balance,
+					"Failed to withdraw WEDU"
 				);
-
-				// Checks to ensure balance movements
-				if (shouldMoveEthBalance) {
-					require(
-						(beforeBal + payment.amount) == address(this).balance,
-						"Failed to withdraw WEDU"
-					);
-				}
 			}
 
 			if (shouldMoveEthBalance) {
@@ -77,9 +74,6 @@ library TokenPayments {
 			} else {
 				IERC20(payment.token).transfer(to, payment.amount);
 			}
-		} else if (payment.nonce == 0) {
-			// ERC20 payment
-			IERC20(payment.token).transfer(to, payment.amount);
 		} else {
 			// SFT payment
 			SFT(payment.token).safeTransferFrom(

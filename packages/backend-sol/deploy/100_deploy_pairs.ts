@@ -22,10 +22,10 @@ const deployPairs: DeployFunction = async function (hre: HardhatRuntimeEnvironme
   for (let [name, symbol] of [
     ["", ""], // Base Pair
     ["", ""], // EDU pair
-    // ["GainsNetwork", "CPTR"],
-    // ["SocialFi", "TRND"],
-    // ["HouseX", "AKU"],
-    // ["ExistenceToken", "HTH"],
+    ["GainsNetwork", "CPTR"],
+    ["SocialFi", "TRND"],
+    ["HouseX", "AKU"],
+    ["ExistenceToken", "HTH"],
   ]) {
     if (!isLocalHost && name.length > 0) {
       // Skip dummy pairs in public networks
@@ -70,7 +70,7 @@ const deployPairs: DeployFunction = async function (hre: HardhatRuntimeEnvironme
 
         payment.token = tradeTokenAddr = await tradeToken.getAddress();
         payment.amount = ethers.parseEther(
-          (Math.random() * 30_000)
+          (Math.random() * 10)
             .toString()
             .split(".")
             .reduce((acc, cur, index) => {
@@ -114,27 +114,6 @@ const deployPairs: DeployFunction = async function (hre: HardhatRuntimeEnvironme
     pairsCount++;
 
     console.log({ name, pairAddress, payment });
-  }
-  // Done to have the abi in front end
-
-  const { save, getExtendedArtifact } = hre.deployments;
-
-  const governanceAdr = await Router.governance();
-  const governance = await hre.ethers.getContractAt("Governance", governanceAdr);
-  const launchPairAddr = await governance.launchPair();
-  const gTokensAddr = await governance.gtokens();
-
-  const artifactsToSave = [
-    ["Pair", pairAddress!],
-    ["Governance", governanceAdr],
-    ["GTokens", gTokensAddr],
-    ["LpToken", await Router.lpToken()],
-    ["LaunchPair", launchPairAddr],
-  ];
-
-  for (const [contract, address] of artifactsToSave) {
-    const { abi, metadata } = await getExtendedArtifact(contract);
-    await save(contract, { abi, metadata, address });
   }
 
   if (hre.network.name == "localhost") {

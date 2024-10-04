@@ -69,7 +69,7 @@ export const useSwapableTokens = ({ address: userAddress }: { address?: string }
   const { data: wEDUaddress } = useScaffoldReadContract({ contractName: "Router", functionName: "getWEDU" });
 
   // Function to fetch token data
-  const fetchTokenData = async (tokenAddress: string): Promise<TokenData> => {
+  const fetchTokenData = async (tokenAddress: string, getERC = false): Promise<TokenData> => {
     if (!client) {
       throw new Error("Client not set");
     }
@@ -84,7 +84,7 @@ export const useSwapableTokens = ({ address: userAddress }: { address?: string }
 
     // FIXME improve this call
     const [identifier, balance, decimals, pairAddr] =
-      tokenAddress == wEDUaddress && nativeBalance
+      !getERC && tokenAddress == wEDUaddress && nativeBalance
         ? [
             nativeBalance.symbol,
             nativeBalance.value,
@@ -146,7 +146,7 @@ export const useSwapableTokens = ({ address: userAddress }: { address?: string }
   } = useSWR(
     tokenAddresses || null,
     tokenAddresses =>
-      Promise.all(tokenAddresses.map(fetchTokenData)).then(tokens => {
+      Promise.all(tokenAddresses.map(token => fetchTokenData(token))).then(tokens => {
         const structure = tokens.reduce((structure, token) => {
           structure.tokenMap.set(token.pairAddr, token);
           structure.tokenMap.set(token.tradeTokenAddr, token);

@@ -1,4 +1,5 @@
 import { useContentPanel } from "~~/hooks/useContentPanel";
+import UnwrapWEDU from "./UnwrapWEDU";
 
 export default function Sidebar() {
   const { hideContentPanel } = useContentPanel();
@@ -8,6 +9,8 @@ export default function Sidebar() {
       <div onClick={hideContentPanel} className="content-panel-close">
         <i className="os-icon os-icon-close"></i>
       </div>
+
+      <UnwrapWEDU />
     </div>
   );
 }
