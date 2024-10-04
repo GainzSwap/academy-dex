@@ -9128,7 +9128,7 @@ const deployedContracts = {
       },
     },
     Pair: {
-      address: "0x0000000000000000000000000000000000000000",
+      address: "0x5394FB805FbED8bf8bB7263bED2CB950F1CCFA7f",
       abi: [
         {
           inputs: [],
@@ -9273,6 +9273,25 @@ const deployedContracts = {
             },
           ],
           name: "SellExecuted",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "address",
+              name: "token",
+              type: "address",
+            },
+            {
+              indexed: true,
+              internalType: "bool",
+              name: "moved",
+              type: "bool",
+            },
+          ],
+          name: "Token",
           type: "event",
         },
         {
