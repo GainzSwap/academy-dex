@@ -2,8 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import FormErrorMessage from "../FormErrorMessage";
 import LoadingState from "../LoadingState";
 import TokenIcon from "../TokenIcon";
+import TxButton from "../TxButton";
 import InputIcon from "./InputIcon";
-import SwapButton from "./SwapButton";
 import TokensSelect from "./TokensSelect";
 import { useSlippageAdjuster, useSwapTokensForm, useSwapableTokens } from "./hooks";
 import { TokenData } from "./types";
@@ -19,7 +19,7 @@ export function SwapTokensBody() {
   const [toToken, setToToken] = useState<TokenData>();
   const { slippage, slippageSlider } = useSlippageAdjuster();
 
-  const { tokens, isTokensLoaded, updateSwapableTokens } = useSwapableTokens({
+  const { tokens, isTokensLoaded } = useSwapableTokens({
     address,
   });
 
@@ -36,20 +36,24 @@ export function SwapTokensBody() {
     resetForm();
   }, [toToken?.identifier, fromToken?.identifier]);
 
-  const onSwapComplete = () => {
-    updateSwapableTokens();
-    resetForm();
-  };
-
   const { tokenBalance, tokenBalanceDisplay } = useSpendERC20({ token: fromToken });
 
-  const { handleChange, handleSubmit, onMax, values, errors, isCalculatingReceiveAmt, sendAmountHaserror, resetForm } =
-    useSwapTokensForm({
-      fromToken,
-      toToken,
-      sendBalance: tokenBalance,
-      slippage,
-    });
+  const {
+    handleChange,
+    onSwap,
+    onSwapComplete,
+    onMax,
+    values,
+    errors,
+    isCalculatingReceiveAmt,
+    sendAmountHaserror,
+    resetForm,
+  } = useSwapTokensForm({
+    fromToken,
+    toToken,
+    sendBalance: tokenBalance,
+    slippage,
+  });
 
   // Keep selected tokens fresh
   useEffect(() => {
@@ -94,7 +98,7 @@ export function SwapTokensBody() {
   return !isTokensLoaded && !(toToken || fromToken) ? (
     <LoadingState text="Getting tokens" />
   ) : (
-    <form data-testid="swap-tokens-form" onSubmit={handleSubmit}>
+    <form>
       <div className="d-flex justify-content-between">
         <div style={{ width: tokensSwapWidth }}>
           <TokensSelect
@@ -191,7 +195,13 @@ export function SwapTokensBody() {
         )}
       </div>
       <div className="d-grid gap-2">
-        <SwapButton onSwapComplete={onSwapComplete} />
+        <TxButton
+          btnName="Swap Now"
+          onClick={() => onSwap()}
+          icon={<i className="os-icon os-icon-refresh-ccw"></i>}
+          className="btn btn-primary w-100 btn-lg"
+          onComplete={onSwapComplete}
+        />
       </div>
       <div className="d-grid gap-2">
         <a className="btn btn-success w-100 btn-lg" href="https://t.me/AcademyDEX">

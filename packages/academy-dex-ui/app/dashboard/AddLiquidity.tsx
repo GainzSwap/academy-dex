@@ -5,13 +5,14 @@ import BigNumber from "bignumber.js";
 import { useFormik } from "formik";
 import useSWR from "swr";
 import { erc20Abi, parseUnits } from "viem";
-import { useAccount } from "wagmi";
+import { useAccount, useWriteContract } from "wagmi";
 import FormErrorMessage from "~~/components/FormErrorMessage";
 import { useModalToShow } from "~~/components/Modals";
 import TokensSelect from "~~/components/Swap/TokensSelect";
 import { useSwapableTokens } from "~~/components/Swap/hooks";
 import { TokenData } from "~~/components/Swap/types";
-import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import TxButton from "~~/components/TxButton";
+import { useDeployedContractInfo } from "~~/hooks/scaffold-eth";
 import useRawCallsInfo from "~~/hooks/useRawCallsInfo";
 import { useSpendERC20 } from "~~/hooks/useSpendERC20";
 
@@ -23,7 +24,9 @@ export const AddLiquidityModal = ({ selectedToken_ }: { selectedToken_?: TokenDa
 
   const { client } = useRawCallsInfo();
 
-  const { writeContractAsync: writeRouter } = useScaffoldWriteContract("Router");
+  const { data: Router } = useDeployedContractInfo("Router");
+  const { writeContractAsync } = useWriteContract();
+
   const { data: spendAllowance } = useSWR(
     selectedToken && address
       ? { spender: selectedToken.pairAddr, owner: address, token: selectedToken.tradeTokenAddr }
@@ -39,39 +42,37 @@ export const AddLiquidityModal = ({ selectedToken_ }: { selectedToken_?: TokenDa
 
   const { checkApproval, tokenBalance, tokenBalanceDisplay } = useSpendERC20({ token: selectedToken });
 
-  const { handleSubmit, handleChange, values, setFieldValue, errors } = useFormik({
+  const { handleChange, values, setFieldValue, errors, resetForm } = useFormik({
     initialValues: {
       sendAmt: "",
     },
-    onSubmit: async ({ sendAmt }, { setFieldError, resetForm }) => {
-      try {
-        if (!selectedToken || spendAllowance == undefined) {
-          throw new Error("Missing necessary data for add liquidity");
-        }
-
-        const payment = {
-          token: selectedToken.tradeTokenAddr,
-          amount: parseUnits(BigNumber(sendAmt).toFixed(selectedToken.decimals), selectedToken.decimals),
-          nonce: 0n,
-        };
-        // Prepare for when swaping native coins
-        const value = payment.token == wEDUaddress ? payment.amount : undefined;
-        !value && (await checkApproval(payment.amount));
-
-        await writeRouter({
-          functionName: "addLiquidity",
-          args: [payment],
-          value,
-        });
-
-        updateSwapableTokens();
-        resetForm();
-        closeModal();
-      } catch (error: any) {
-        setFieldError("sendAmt", error.toString());
-      }
+    onSubmit: async () => {
+      console.log("liq");
     },
   });
+
+  const onAddLiq = async () => {
+    if (!selectedToken || spendAllowance == undefined || !Router) {
+      throw new Error("Missing necessary data for add liquidity");
+    }
+
+    const payment = {
+      token: selectedToken.tradeTokenAddr,
+      amount: parseUnits(BigNumber(values.sendAmt).toFixed(selectedToken.decimals), selectedToken.decimals),
+      nonce: 0n,
+    };
+    // Prepare for when swaping native coins
+    const value = payment.token == wEDUaddress ? payment.amount : undefined;
+    !value && (await checkApproval(payment.amount));
+
+    return writeContractAsync({
+      abi: Router.abi,
+      address: Router.address,
+      functionName: "addLiquidity",
+      args: [payment],
+      value,
+    });
+  };
 
   const sendAmountHaserror = !!errors.sendAmt;
 
@@ -91,7 +92,7 @@ export const AddLiquidityModal = ({ selectedToken_ }: { selectedToken_?: TokenDa
         <div className="onboarding-content with-gradient">
           <h4 className="onboarding-title">Add Liquidity, Earn Rewards and Trading Fees</h4>
           <div className="onboarding-text">Set the token and amount you wish to add liquidity with</div>
-          <form onSubmit={handleSubmit}>
+          <form>
             <div className="row">
               <div className="col-sm-6">
                 <TokensSelect
@@ -133,10 +134,17 @@ export const AddLiquidityModal = ({ selectedToken_ }: { selectedToken_?: TokenDa
                 )}
               </div>
               {!!values.sendAmt && (
-                <button className="btn btn-primary text-white">
-                  <i className="os-icon os-icon-log-in"></i>
-                  <span>Add Liquidity</span>
-                </button>
+                <TxButton
+                  onClick={() => onAddLiq()}
+                  className="btn btn-primary text-white"
+                  btnName="Add Liquidity"
+                  icon={<i className="os-icon os-icon-log-in"></i>}
+                  onComplete={async () => {
+                    updateSwapableTokens();
+                    resetForm();
+                    closeModal();
+                  }}
+                />
               )}
             </div>
           </form>
@@ -148,6 +156,11 @@ export const AddLiquidityModal = ({ selectedToken_ }: { selectedToken_?: TokenDa
 
 export default function AddLiquidity({ selectedToken_ }: { selectedToken_?: TokenData }) {
   const { openModal } = useModalToShow();
+  const { address } = useAccount();
+
+  if (!address) {
+    return null;
+  }
 
   return (
     <a

@@ -6,7 +6,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   31337: {
     GTokens: {
-      address: "0xE4B99e535d334be939A83cEA77902Cc281acDd56",
+      address: "0x436E1EB4dECf0eBd8B8C51d5cF91fF106dEB709e",
       abi: [
         {
           inputs: [
@@ -1044,7 +1044,7 @@ const deployedContracts = {
       inheritedFunctions: {},
     },
     Governance: {
-      address: "0x1E417DC190f5522439A4000904Dd63358A23a8E0",
+      address: "0xf9e94137dB29f260b14817D9a3093CAAb1B2a845",
       abi: [
         {
           inputs: [],
@@ -1108,6 +1108,25 @@ const deployedContracts = {
             },
           ],
           name: "OwnershipTransferred",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "address",
+              name: "token",
+              type: "address",
+            },
+            {
+              indexed: true,
+              internalType: "bool",
+              name: "moved",
+              type: "bool",
+            },
+          ],
+          name: "Token",
           type: "event",
         },
         {
@@ -2041,7 +2060,7 @@ const deployedContracts = {
       },
     },
     LaunchPair: {
-      address: "0x76A718833Ace1cBF99f841e2c70bD35B1A5C274b",
+      address: "0x7446d906EdA720832Ebc32BdED1B6862C004f346",
       abi: [
         {
           inputs: [],
@@ -2714,7 +2733,7 @@ const deployedContracts = {
       },
     },
     LpToken: {
-      address: "0xc9A9DCE750f11c2c04a29CFbB7eD83576050a3F5",
+      address: "0xe082b26cEf079a095147F35c9647eC97c2401B83",
       abi: [
         {
           inputs: [
@@ -3725,6 +3744,25 @@ const deployedContracts = {
           type: "event",
         },
         {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "address",
+              name: "token",
+              type: "address",
+            },
+            {
+              indexed: true,
+              internalType: "bool",
+              name: "moved",
+              type: "bool",
+            },
+          ],
+          name: "Token",
+          type: "event",
+        },
+        {
           inputs: [
             {
               components: [
@@ -4128,7 +4166,7 @@ const deployedContracts = {
       inheritedFunctions: {},
     },
     Router: {
-      address: "0x8f86403A4DE0BB5791fa46B8e795C547942fE4Cf",
+      address: "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
       abi: [
         {
           inputs: [],
@@ -4319,6 +4357,25 @@ const deployedContracts = {
             },
           ],
           name: "ReferralAdded",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "address",
+              name: "token",
+              type: "address",
+            },
+            {
+              indexed: true,
+              internalType: "bool",
+              name: "moved",
+              type: "bool",
+            },
+          ],
+          name: "Token",
           type: "event",
         },
         {
@@ -5151,7 +5208,7 @@ const deployedContracts = {
       },
     },
     WEDU: {
-      address: "0x2b7560de0A6d46322E31Ce027BD2b1ec7574701d",
+      address: "0x127A4E2a1Bc39c34CeBbcAa88B1B2875dc8F5cB3",
       abi: [
         {
           inputs: [

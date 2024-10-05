@@ -1,7 +1,8 @@
 import React, { useCallback, useState } from "react";
 import { useModalToShow } from "./Modals";
 import TransactionWaitingIcon, { IconReqState, TxErrorModal } from "./TransactionWaitingIcon";
-import { useWriteContract } from "wagmi";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { useAccount, useWriteContract } from "wagmi";
 import { useTransactor } from "~~/hooks/scaffold-eth";
 
 export default function TxButton({
@@ -20,6 +21,7 @@ export default function TxButton({
   className?: string;
   disabled?: boolean;
 }) {
+  const { address } = useAccount();
   const [status, setStatus] = useState<IconReqState>();
   const [err, setErr] = useState<string>();
 
@@ -53,6 +55,10 @@ export default function TxButton({
       setErr(error.toString());
     }
   }, [onClick, err, onComplete, waitTx]);
+
+  if (!address) {
+    return <ConnectButton />;
+  }
 
   return (
     <button onClick={handleClick} disabled={disabled || status == "pending"} className={className} {...props}>

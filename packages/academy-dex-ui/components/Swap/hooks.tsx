@@ -6,8 +6,8 @@ import { useFormik } from "formik";
 import RcSlider from "rc-slider";
 import useSWR from "swr";
 import { erc20Abi, parseUnits } from "viem";
-import { useAccount, useBalance } from "wagmi";
-import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import { useAccount, useBalance, useWriteContract } from "wagmi";
+import { useDeployedContractInfo, useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 import useRawCallsInfo from "~~/hooks/useRawCallsInfo";
 import { useSpendERC20 } from "~~/hooks/useSpendERC20";
 import { getItem, setItem } from "~~/storage/session";
@@ -191,56 +191,67 @@ export const useSwapTokensForm = ({
   const slippage = parseUnits(slippage_.toString(), SLIPPAGE_DIVISOR.toString().length - 1);
 
   const { client, router } = useRawCallsInfo();
-  const { writeContractAsync: writeRouter } = useScaffoldWriteContract("Router");
+  const { data: Router } = useDeployedContractInfo("Router");
+  const { writeContractAsync } = useWriteContract();
+
   const { checkApproval } = useSpendERC20({ token: fromToken });
 
   const { refIdData, refresh: refreshUserRefInfo } = useReferralInfo();
 
-  const { handleSubmit, handleChange, values, setFieldValue, setFieldError, errors, touched, resetForm } = useFormik({
+  const { handleChange, values, setFieldValue, setFieldError, errors, touched, resetForm } = useFormik({
     initialValues: {
       sendAmt: "",
       receiveAmt: "",
       feePercent: "",
     },
-    onSubmit: async ({ sendAmt }, { setFieldError, resetForm }) => {
-      try {
-        if (!fromToken || !toToken || !router || !refIdData || !wEDUaddress) {
-          throw new Error("Missing necessary data for the swap");
-        }
-
-        const payment = {
-          token: fromToken.tradeTokenAddr,
-          amount: parseUnits(BigNumber(sendAmt).toFixed(fromToken.decimals), fromToken.decimals),
-          nonce: 0n,
-        };
-        // Prepare for when swaping native coins
-        const value = payment.token == wEDUaddress ? payment.amount : undefined;
-        !value && (await checkApproval(payment.amount));
-
-        if (refIdData.getUserID() === null) {
-          const referrerLink = getItem<string>("userRefBy");
-          const referrerId = referrerLink ? BigInt(RefIdData.getID(referrerLink)) : 0n;
-          await writeRouter({
-            functionName: "registerAndSwap",
-            args: [referrerId, payment, toToken.pairAddr, slippage],
-            value,
-          });
-          await refreshUserRefInfo();
-        } else {
-          await writeRouter({
-            functionName: "swap",
-            args: [payment, toToken.pairAddr, slippage],
-            value,
-          });
-        }
-
-        updateSwapableTokens();
-        resetForm();
-      } catch (error: any) {
-        setFieldError("sendAmt", error.toString());
-      }
+    onSubmit: async () => {
+      console.log("Swapping");
     },
   });
+
+  const onSwapComplete = async () => {
+    if (refIdData?.getUserID() === null) {
+      refreshUserRefInfo();
+    }
+
+    updateSwapableTokens();
+    resetForm();
+  };
+
+  const onSwap = async () => {
+    if (!fromToken || !toToken || !router || !refIdData || !wEDUaddress || !Router) {
+      throw new Error("Missing necessary data for the swap");
+    }
+
+    const payment = {
+      token: fromToken.tradeTokenAddr,
+      amount: parseUnits(BigNumber(values.sendAmt).toFixed(fromToken.decimals), fromToken.decimals),
+      nonce: 0n,
+    };
+    // Prepare for when swaping native coins
+    const value = payment.token == wEDUaddress ? payment.amount : undefined;
+    !value && (await checkApproval(payment.amount));
+
+    if (refIdData.getUserID() === null) {
+      const referrerLink = getItem<string>("userRefBy");
+      const referrerId = referrerLink ? BigInt(RefIdData.getID(referrerLink)) : 0n;
+      return writeContractAsync({
+        abi: Router?.abi,
+        address: Router?.address,
+        functionName: "registerAndSwap",
+        args: [referrerId, payment, toToken.pairAddr, slippage],
+        value,
+      });
+    } else {
+      return writeContractAsync({
+        abi: Router?.abi,
+        address: Router?.address,
+        functionName: "swap",
+        args: [payment, toToken.pairAddr, slippage],
+        value,
+      });
+    }
+  };
 
   const sendAmountHaserror = (errors.sendAmt || errors.receiveAmt) && touched.sendAmt;
 
@@ -304,7 +315,8 @@ export const useSwapTokensForm = ({
   }, [receiveAmtCalcErr]);
 
   return {
-    handleSubmit,
+    onSwap,
+    onSwapComplete,
     handleChange,
     onMax,
     resetForm,
