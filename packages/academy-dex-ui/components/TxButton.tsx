@@ -61,7 +61,16 @@ export default function TxButton({
   }
 
   return (
-    <button onClick={handleClick} disabled={disabled || status == "pending"} className={className} {...props}>
+    <button
+      onClick={async e => {
+        e.preventDefault();
+
+        await handleClick();
+      }}
+      disabled={disabled || status == "pending"}
+      className={className}
+      {...props}
+    >
       {icon}
       {typeof btnName == "string" ? <span>{btnName}</span> : btnName}
       {status && <TransactionWaitingIcon iconReqState={status} />}
