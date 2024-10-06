@@ -130,4 +130,8 @@ abstract contract UserModule {
 	function userIdToAddress(uint256 id) public view returns (address) {
 		return _getUserStorage().userIdToAddress[id];
 	}
+
+	function totalUsers() external view returns (uint256) {
+		return _getUserStorage().userCount;
+	}
 }
