@@ -8,6 +8,7 @@ import { useBasePairAddr } from "~~/hooks/routerHooks";
 import useGTokens from "~~/hooks/useGTokens";
 import useLpTokens, { LpBalancesWithId } from "~~/hooks/useLpTokens";
 import { prettyFormatAmount } from "~~/utils/formatAmount";
+import ExitGovernanceButton from "./ExitGovernance";
 
 export default function StakingAndGovernace() {
   const { gTokens } = useGTokens();
@@ -60,7 +61,7 @@ export default function StakingAndGovernace() {
         </div>
         <div className="element-wrapper pb-4 mb-4 border-bottom">
           <div className="element-box-tp row">
-            <div className="col-sm-5">
+            <div className="col-md-5">
               <a
                 className="btn btn-primary"
                 onClick={e => {
@@ -79,7 +80,11 @@ export default function StakingAndGovernace() {
               </a>
             </div>
 
-            <div className="col-sm-7">
+            <div className="col-md-4">
+              <ExitGovernanceButton />
+            </div>
+
+            <div className="col-md-7">
               <ClaimStakingRewards />
             </div>
           </div>

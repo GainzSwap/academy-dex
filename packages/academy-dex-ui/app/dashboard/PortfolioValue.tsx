@@ -98,7 +98,6 @@ export default function PortfolioValue() {
               <div className="fs-main-info">
                 <div className="fs-name">
                   <span>{token.identifier} Portfolio</span>
-                  {/* <strong>{lkXht.collection}</strong> */}
                 </div>
                 <div className="fs-sub">
                   <span>Balance:</span>
