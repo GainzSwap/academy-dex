@@ -6,6 +6,7 @@ import AppProvider from "./provider";
 import "@rainbow-me/rainbowkit/styles.css";
 import { Analytics } from "@vercel/analytics/react";
 import "rc-slider/assets/index.css";
+import HotJar from "~~/components/Hotjar";
 import MainMenu from "~~/components/MainMenu";
 import MobileMenu from "~~/components/MobileMenu";
 import Modals from "~~/components/Modals";
@@ -24,6 +25,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <html lang="en">
+      <head>
+        <HotJar />
+      </head>
       <body className="menu-position-side menu-side-left full-screen color-scheme-dark with-content-panel">
         <Suspense>
           <AppProvider>
