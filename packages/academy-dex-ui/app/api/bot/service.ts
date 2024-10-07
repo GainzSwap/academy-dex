@@ -215,28 +215,30 @@ export async function alertReferralFirstSwap(user: TgUser, referral: User) {
 
 export type ChainID = (typeof scaffoldConfig)["targetNetworks"][number]["id"];
 
-export const wagmiConfigServer = createConfig({
-  chains: [scaffoldConfig.targetNetworks[1]],
-  ssr: true,
-  client({ chain }) {
-    return createClient({
-      chain,
-      transport: http(getAlchemyHttpUrl(chain.id)),
-    });
-  },
-});
+export const wagmiConfigServer = (chainID: ChainID) =>
+  createConfig({
+    chains: [scaffoldConfig.targetNetworks.find(network => network.id == chainID)!],
+    ssr: true,
+    client({ chain }) {
+      return createClient({
+        chain,
+        transport: http(getAlchemyHttpUrl(chain.id)),
+      });
+    },
+  });
 
 export async function getAffiliateDetails(address: string, chainId: ChainID) {
   const Router = deployedContracts[chainId].Router;
+  const config = wagmiConfigServer(chainId);
 
   const [[_referrerID, referrerAddress], _userID] = await Promise.all([
-    readContract(wagmiConfigServer, {
+    readContract(config, {
       abi: Router.abi,
       address: Router.address,
       functionName: "getReferrer",
       args: [address],
     }),
-    readContract(wagmiConfigServer, {
+    readContract(config, {
       abi: Router.abi,
       address: Router.address,
       functionName: "getUserId",
