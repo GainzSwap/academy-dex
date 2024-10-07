@@ -461,17 +461,20 @@ contract Governance is ERC1155HolderUpgradeable, OwnableUpgradeable {
 	/// @return Updated staking attributes for the user after claiming the reward.
 	function claimRewards(uint256 nonce) external returns (uint256) {
 		MainStorage storage $ = _getMainStorage();
+
+		$.router.generateRewards();
+
 		address user = msg.sender;
 		(
 			uint256 claimableReward,
 			GToken.Attributes memory attributes
 		) = _calculateClaimableReward(user, nonce);
-		uint256[] memory nonces = _getLpNonces(attributes);
-		(uint256 lpRewardsClaimed, uint256[] memory newLpNonces) = $
-			.router
-			.claimRewards(nonces);
+		// uint256[] memory nonces = _getLpNonces(attributes);
+		// (uint256 lpRewardsClaimed, uint256[] memory newLpNonces) = $
+		// 	.router
+		// 	.claimRewards(nonces);
 
-		uint256 total = claimableReward + lpRewardsClaimed;
+		uint256 total = claimableReward; //+ lpRewardsClaimed;
 		require(total > 0, "Governance: No rewards to claim");
 
 		if (claimableReward > 0) {
@@ -480,11 +483,11 @@ contract Governance is ERC1155HolderUpgradeable, OwnableUpgradeable {
 			attributes.lastClaimEpoch = $.epochs.currentEpoch();
 		}
 
-		if (lpRewardsClaimed > 0) {
-			for (uint256 i = 0; i < newLpNonces.length; i++) {
-				attributes.lpPayments[i].nonce = newLpNonces[i];
-			}
-		}
+		// if (lpRewardsClaimed > 0) {
+		// 	for (uint256 i = 0; i < newLpNonces.length; i++) {
+		// 		attributes.lpPayments[i].nonce = newLpNonces[i];
+		// 	}
+		// }
 
 		IERC20($.adexTokenAddress).transfer(user, total);
 		return $.gtokens.update(user, nonce, GTOKEN_MINT_AMOUNT, attributes);

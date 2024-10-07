@@ -460,6 +460,14 @@ contract Router is
 		);
 	}
 
+	function generateRewards() external {
+		RouterStorage storage $ = _getRouterStorage();
+
+		require(msg.sender == address($.governance), "Router: Not allowed");
+
+		_updateGlobalData(_generateGlobalRewards());
+	}
+
 	/**
 	 * @notice Creates a new pair.
 	 * @dev The first pair becomes the base pair -- For now, called by only owner..when DAO is implemented, DAO can call this
@@ -575,62 +583,58 @@ contract Router is
 			);
 	}
 
-	/**
-	 * @notice Claims rewards for a user across all pairs in which they hold LP tokens.
-	 * @param nonces The desired SFTs to claim from.
-	 */
-	function claimRewards(
-		uint256[] memory nonces
-	) external returns (uint256 totalClaimed, uint256[] memory newNonces) {
-		RouterStorage storage $ = _getRouterStorage();
+	// function claimRewards(
+	// 	uint256[] memory nonces
+	// ) external returns (uint256 totalClaimed, uint256[] memory newNonces) {
+	// 	RouterStorage storage $ = _getRouterStorage();
 
-		address user = msg.sender;
-		newNonces = nonces;
+	// 	address user = msg.sender;
+	// 	newNonces = nonces;
 
-		_updateGlobalData(_generateGlobalRewards());
+	// 	_updateGlobalData(_generateGlobalRewards());
 
-		// Claim from max of 10 lp tokens at a time
-		uint256 totalToClaim = nonces.length < 10 ? nonces.length : 10;
-		for (uint256 i = 0; i < totalToClaim; i++) {
-			LpToken.LpBalance memory balance = $.lpToken.getBalanceAt(
-				user,
-				nonces[i]
-			);
+	// 	// Claim from max of 10 lp tokens at a time
+	// 	uint256 totalToClaim = nonces.length < 10 ? nonces.length : 10;
+	// 	for (uint256 i = 0; i < totalToClaim; i++) {
+	// 		LpToken.LpBalance memory balance = $.lpToken.getBalanceAt(
+	// 			user,
+	// 			nonces[i]
+	// 		);
 
-			PairData storage pairData = $.pairsData[balance.attributes.pair];
-			PairData memory newPairData = _generatePairReward(
-				pairData,
-				$.globalData
-			);
-			(
-				uint256 claimable,
-				LpToken.LpAttributes memory newAttr
-			) = _computeLpClaimable(newPairData, balance);
-			_updatePairData(pairData, newPairData);
+	// 		PairData storage pairData = $.pairsData[balance.attributes.pair];
+	// 		PairData memory newPairData = _generatePairReward(
+	// 			pairData,
+	// 			$.globalData
+	// 		);
+	// 		(
+	// 			uint256 claimable,
+	// 			LpToken.LpAttributes memory newAttr
+	// 		) = _computeLpClaimable(newPairData, balance);
+	// 		_updatePairData(pairData, newPairData);
 
-			// Claim the rewards if available
-			if (claimable > 0) {
-				totalClaimed += claimable;
+	// 		// Claim the rewards if available
+	// 		if (claimable > 0) {
+	// 			totalClaimed += claimable;
 
-				// Update LP attributes and data
-				uint256 newNonce = $.lpToken.update(
-					user,
-					balance.nonce,
-					balance.amount,
-					abi.encode(newAttr)
-				);
-				newNonces[i] = newNonce;
-			}
-		}
+	// 			// Update LP attributes and data
+	// 			uint256 newNonce = $.lpToken.update(
+	// 				user,
+	// 				balance.nonce,
+	// 				balance.amount,
+	// 				abi.encode(newAttr)
+	// 			);
+	// 			newNonces[i] = newNonce;
+	// 		}
+	// 	}
 
-		if (totalClaimed > 0) {
-			// Transfer the claimed rewards to the user
-			require(
-				IERC20($.adexTokenAddress).transfer(user, totalClaimed),
-				"Reward transfer failed"
-			);
-		}
-	}
+	// 	if (totalClaimed > 0) {
+	// 		// Transfer the claimed rewards to the user
+	// 		require(
+	// 			IERC20($.adexTokenAddress).transfer(user, totalClaimed),
+	// 			"Reward transfer failed"
+	// 		);
+	// 	}
+	// }
 
 	/**
 	 * @notice Removes liquidity from a pair and claims the corresponding rewards.

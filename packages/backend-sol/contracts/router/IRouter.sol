@@ -11,9 +11,11 @@ interface IRouter {
 		payable
 		returns (address pairAddress, TokenPayment memory lpPayment);
 
-	function claimRewards(
-		uint256[] memory nonces
-	) external returns (uint256 totalClaimed, uint256[] memory newNonces);
+	function generateRewards() external;
+
+	// function claimRewards(
+	// 	uint256[] memory nonces
+	// ) external returns (uint256 totalClaimed, uint256[] memory newNonces);
 
 	function getClaimableRewardsByNonces(
 		uint256[] memory nonces

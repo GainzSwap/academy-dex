@@ -1,7 +1,6 @@
 "use client";
 
 import AddLiquidity from "./AddLiquidity";
-import ClaimLpRewards from "./ClaimLpRewards";
 import NewPair from "./NewPair";
 import CreateNewListing from "./NewPair/CreateNewListing";
 import { FundCampaign } from "./NewPair/ProcessPairListing/FundCampaign";
@@ -73,7 +72,6 @@ export default function Dashboard() {
                 <div className="element-box-tp">
                   <AddLiquidity />
                   <RemoveLiquidityButton />
-                  <ClaimLpRewards />
                 </div>
               </div>
               <Referrals />

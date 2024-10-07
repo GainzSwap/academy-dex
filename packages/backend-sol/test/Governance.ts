@@ -268,7 +268,7 @@ describe("Governance Contract", function () {
   });
 
   describe("claimRewards", function () {
-    it("should claim rewards in GToken and lpToken", async function () {
+    it("should claim rewards in GToken", async function () {
       const {
         lpTokenContract,
         pairContract,
@@ -337,11 +337,11 @@ describe("Governance Contract", function () {
       const initialUserBalance = await adexToken.balanceOf(user);
 
       // This will claim only lpRewards
-      await governanceContract.connect(user).claimRewards(1);
+      // await governanceContract.connect(user).claimRewards(1);
       // Move forward in time to generate more  rewards
       await time.increase(30 * 24 * 3600);
       // This should claim both lpReewards and Governance rewards
-      await governanceContract.connect(user).claimRewards(2);
+      await governanceContract.connect(user).claimRewards(1);
 
       const finalUserBalance = await adexToken.balanceOf(user);
       const claimedRewards = finalUserBalance - initialUserBalance;

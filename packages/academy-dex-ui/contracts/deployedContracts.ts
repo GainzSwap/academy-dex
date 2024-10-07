@@ -4455,30 +4455,6 @@ const deployedContracts = {
         {
           inputs: [
             {
-              internalType: "uint256[]",
-              name: "nonces",
-              type: "uint256[]",
-            },
-          ],
-          name: "claimRewards",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "totalClaimed",
-              type: "uint256",
-            },
-            {
-              internalType: "uint256[]",
-              name: "newNonces",
-              type: "uint256[]",
-            },
-          ],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
               internalType: "address",
               name: "pairAddress",
               type: "address",
@@ -4603,6 +4579,13 @@ const deployedContracts = {
             },
           ],
           stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "generateRewards",
+          outputs: [],
+          stateMutability: "nonpayable",
           type: "function",
         },
         {
@@ -5202,8 +5185,8 @@ const deployedContracts = {
       ],
       inheritedFunctions: {
         addLiquidity: "contracts/router/IRouter.sol",
-        claimRewards: "contracts/router/IRouter.sol",
         createPair: "contracts/router/IRouter.sol",
+        generateRewards: "contracts/router/IRouter.sol",
         getClaimableRewardsByNonces: "contracts/router/IRouter.sol",
         tokenIsListed: "contracts/router/IRouter.sol",
         owner:
@@ -6729,6 +6712,25 @@ const deployedContracts = {
             },
           ],
           name: "OwnershipTransferred",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "address",
+              name: "token",
+              type: "address",
+            },
+            {
+              indexed: true,
+              internalType: "bool",
+              name: "moved",
+              type: "bool",
+            },
+          ],
+          name: "Token",
           type: "event",
         },
         {
@@ -10057,30 +10059,6 @@ const deployedContracts = {
         {
           inputs: [
             {
-              internalType: "uint256[]",
-              name: "nonces",
-              type: "uint256[]",
-            },
-          ],
-          name: "claimRewards",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "totalClaimed",
-              type: "uint256",
-            },
-            {
-              internalType: "uint256[]",
-              name: "newNonces",
-              type: "uint256[]",
-            },
-          ],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
               internalType: "address",
               name: "pairAddress",
               type: "address",
@@ -10205,6 +10183,13 @@ const deployedContracts = {
             },
           ],
           stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "generateRewards",
+          outputs: [],
+          stateMutability: "nonpayable",
           type: "function",
         },
         {
@@ -10804,8 +10789,8 @@ const deployedContracts = {
       ],
       inheritedFunctions: {
         addLiquidity: "contracts/router/IRouter.sol",
-        claimRewards: "contracts/router/IRouter.sol",
         createPair: "contracts/router/IRouter.sol",
+        generateRewards: "contracts/router/IRouter.sol",
         getClaimableRewardsByNonces: "contracts/router/IRouter.sol",
         tokenIsListed: "contracts/router/IRouter.sol",
         owner:
@@ -16355,8 +16340,8 @@ const deployedContracts = {
       ],
       inheritedFunctions: {
         addLiquidity: "contracts/router/IRouter.sol",
-        claimRewards: "contracts/router/IRouter.sol",
         createPair: "contracts/router/IRouter.sol",
+        generateRewards: "contracts/router/IRouter.sol",
         getClaimableRewardsByNonces: "contracts/router/IRouter.sol",
         tokenIsListed: "contracts/router/IRouter.sol",
         owner:
