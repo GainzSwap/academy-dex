@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from "react";
 import { useModalToShow } from "./Modals";
+import SocialsCalloutModal, { checkShouldShowSocialsCallout } from "./SocialsCallout";
 import TransactionWaitingIcon, { IconReqState, TxErrorModal } from "./TransactionWaitingIcon";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAccount, useWriteContract } from "wagmi";
@@ -41,6 +42,11 @@ export default function TxButton({
           }}
         />,
       );
+      return;
+    }
+
+    if (checkShouldShowSocialsCallout()) {
+      openModal(<SocialsCalloutModal />);
       return;
     }
 
