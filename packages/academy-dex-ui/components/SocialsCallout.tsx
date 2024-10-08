@@ -77,7 +77,7 @@ export default function SocialsCalloutModal() {
             <Link
               target="_blank"
               href={calloutLink}
-              className="btn btn-success w-100 btn-lg"
+              className={`btn btn-${lastSocialCallout == "x" ? "primary" : "success"} w-100 btn-lg`}
               style={{ color: "white" }}
             >
               {calloutText}
