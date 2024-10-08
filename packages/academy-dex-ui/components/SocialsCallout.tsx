@@ -3,7 +3,7 @@ import { useModalToShow } from "./Modals";
 import { useReferralInfo } from "./ReferralCard/hooks";
 import { SocialsTxButtonClickCountType, getItem, setItem } from "~~/storage/session";
 
-const initialCheckPoints = [2, 3, 5];
+const initialCheckPoints = [3, 5, 8];
 const getData = () =>
   getItem<SocialsTxButtonClickCountType>("socialsTxButtonClickCount") || {
     clickCount: 0,
@@ -25,7 +25,6 @@ export const checkShouldShowSocialsCallout = () => {
   }
   const [lastCheckPoint, nextCheckPoint, checkPointCache] = checkPoints;
   if (clickCount > lastCheckPoint) {
-    console.log({ clickCount, lastCheckPoint });
     shouldCallout = true;
 
     // Update checkpoints
@@ -39,7 +38,7 @@ export const checkShouldShowSocialsCallout = () => {
     }
 
     checkPoints.splice(0, 1);
-    if (clickCount >= 15) {
+    if (clickCount >= 55) {
       checkPoints = initialCheckPoints;
       clickCount = 1;
     } else {
