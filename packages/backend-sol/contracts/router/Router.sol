@@ -296,9 +296,8 @@ contract Router is
 		GlobalData memory globalData_
 	) private pure returns (PairData memory newPairData) {
 		newPairData = data;
-
 		if (newPairData.tradeRewardsPershare < globalData_.rewardsPerShare) {
-			if (newPairData.buyVolume > 0) {
+			if (newPairData.buyVolume > 0 && newPairData.totalLiq > 0) {
 				// compute reward
 				uint256 computedReward = ((globalData_.rewardsPerShare -
 					newPairData.tradeRewardsPershare) * newPairData.buyVolume) /
@@ -308,12 +307,9 @@ contract Router is
 				globalData_.rewardsReserve -= computedReward;
 				newPairData.rewardsReserve += computedReward;
 
-				if (newPairData.totalLiq > 0) {
-					uint256 rpsIncrease = (computedReward *
-						REWARDS_DIVISION_CONSTANT) / newPairData.totalLiq;
-
-					newPairData.lpRewardsPershare += rpsIncrease;
-				}
+				uint256 rpsIncrease = (computedReward *
+					REWARDS_DIVISION_CONSTANT) / newPairData.totalLiq;
+				newPairData.lpRewardsPershare += rpsIncrease;
 			}
 
 			newPairData.tradeRewardsPershare = globalData_.rewardsPerShare;
@@ -784,6 +780,12 @@ contract Router is
 
 		require($.pairs.contains(inPairAddr), "Router: Input pair not found");
 		require($.pairs.contains(outPairAddr), "Router: Output pair not found");
+
+		_updateGlobalData(_generateGlobalRewards());
+		_updatePairData(
+			$.pairsData[outPairAddr],
+			_generatePairReward($.pairsData[outPairAddr], $.globalData)
+		);
 
 		Pair outPair = Pair(outPairAddr);
 		Pair inPair = Pair(inPairAddr);

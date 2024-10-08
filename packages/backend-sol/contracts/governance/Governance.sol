@@ -462,7 +462,7 @@ contract Governance is ERC1155HolderUpgradeable, OwnableUpgradeable {
 	function claimRewards(uint256 nonce) external returns (uint256) {
 		MainStorage storage $ = _getMainStorage();
 
-		$.router.generateRewards();
+		// $.router.generateRewards();
 
 		address user = msg.sender;
 		(
@@ -536,13 +536,7 @@ contract Governance is ERC1155HolderUpgradeable, OwnableUpgradeable {
 		address user,
 		uint256 nonce
 	) external view returns (uint256 totalClaimable) {
-		MainStorage storage $ = _getMainStorage();
-		GToken.Attributes memory attributes;
-
-		(totalClaimable, attributes) = _calculateClaimableReward(user, nonce);
-
-		uint256[] memory nonces = _getLpNonces(attributes);
-		totalClaimable += $.router.getClaimableRewardsByNonces(nonces);
+		(totalClaimable, ) = _calculateClaimableReward(user, nonce);
 	}
 
 	/// @notice Exits governance by burning GTokens and unlocking the user's staked LP tokens.

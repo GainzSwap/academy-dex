@@ -328,7 +328,7 @@ describe("Governance Contract", function () {
         .lpBalanceOf(user)
         .then(balances => balances.map(({ amount, nonce }) => ({ amount, nonce, token: lpContractAddr })));
       await lpTokenContract.setApprovalForAll(governanceContract, true);
-      await governanceContract.connect(user).enterGovernance(lpPayments, 120);
+      await governanceContract.connect(user).enterGovernance(lpPayments, 1080);
 
       // Move forward in time to generate rewards
       await time.increase(30 * 24 * 3600);
