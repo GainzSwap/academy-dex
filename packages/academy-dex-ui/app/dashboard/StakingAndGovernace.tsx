@@ -1,14 +1,13 @@
 import { useMemo } from "react";
 import ClaimStakingRewards from "./ClaimStakingRewards";
+import ExitGovernanceButton from "./ExitGovernance";
 import StakingModal from "./StakingModal";
 import { useModalToShow } from "~~/components/Modals";
+import SocialsCalloutModal, { checkShouldShowSocialsCallout } from "~~/components/SocialsCallout";
 import TokenIcon from "~~/components/TokenIcon";
-import { TxErrorModal } from "~~/components/TransactionWaitingIcon";
-import { useBasePairAddr } from "~~/hooks/routerHooks";
 import useGTokens from "~~/hooks/useGTokens";
-import useLpTokens, { LpBalancesWithId } from "~~/hooks/useLpTokens";
+import useLpTokens from "~~/hooks/useLpTokens";
 import { prettyFormatAmount } from "~~/utils/formatAmount";
-import ExitGovernanceButton from "./ExitGovernance";
 
 export default function StakingAndGovernace() {
   const { gTokens } = useGTokens();
@@ -21,22 +20,22 @@ export default function StakingAndGovernace() {
   }, [gTokens]);
 
   const { lpBalances } = useLpTokens();
-  const { basePairAddr } = useBasePairAddr();
-  const [basePairLPs, otherPairsLPs] = useMemo(() => {
-    if (!basePairAddr || !lpBalances) {
-      return [[], []];
-    }
+  // const { basePairAddr } = useBasePairAddr();
+  // const [basePairLPs, otherPairsLPs] = useMemo(() => {
+  //   if (!basePairAddr || !lpBalances) {
+  //     return [[], []];
+  //   }
 
-    return lpBalances.reduce<[LpBalancesWithId, LpBalancesWithId]>(
-      (grouped, balance) => {
-        const groupIndex = balance.attributes.pair == basePairAddr ? 0 : 1;
-        grouped[groupIndex] = [...grouped[groupIndex], balance];
+  //   return lpBalances.reduce<[LpBalancesWithId, LpBalancesWithId]>(
+  //     (grouped, balance) => {
+  //       const groupIndex = balance.attributes.pair == basePairAddr ? 0 : 1;
+  //       grouped[groupIndex] = [...grouped[groupIndex], balance];
 
-        return grouped;
-      },
-      [[], []],
-    );
-  }, [basePairAddr, lpBalances]);
+  //       return grouped;
+  //     },
+  //     [[], []],
+  //   );
+  // }, [basePairAddr, lpBalances]);
 
   const { openModal } = useModalToShow();
 
@@ -66,13 +65,18 @@ export default function StakingAndGovernace() {
                 className="btn btn-primary"
                 onClick={e => {
                   e.preventDefault();
-                  openModal(
-                    basePairLPs.length < 1 ? (
-                      <TxErrorModal msg="You must add liquidity in ADEX Pair to participate in staking and farming" />
-                    ) : (
-                      <StakingModal basePairLPs={basePairLPs} otherPairsLPs={otherPairsLPs} />
-                    ),
-                  );
+                  if (checkShouldShowSocialsCallout()) {
+                    openModal(<SocialsCalloutModal />);
+                  } else {
+                    openModal(
+                      // basePairLPs.length < 1 ? (
+                      //   <TxErrorModal msg="You must add liquidity in ADEX Pair to participate in staking and farming" />
+                      // ) : (
+                      //   <StakingModal basePairLPs={basePairLPs} otherPairsLPs={otherPairsLPs} />
+                      // ),
+                      <StakingModal lpBalances={lpBalances || []} />,
+                    );
+                  }
                 }}
               >
                 <i className="os-icon os-icon-refresh-ccw"></i>

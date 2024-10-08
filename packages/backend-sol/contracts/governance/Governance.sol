@@ -376,7 +376,7 @@ contract Governance is ERC1155HolderUpgradeable, OwnableUpgradeable {
 		TokenPayment[] memory lpPayments = new TokenPayment[](paymentsCount);
 		uint256 lpIndex = 0;
 		uint256 lpAmount = 0;
-		uint256 adexAmount = 0;
+		// uint256 adexAmount = 0;
 		for (uint256 i = 0; i < receivedPayments.length; i++) {
 			TokenPayment memory payment = receivedPayments[i];
 			if (_isValidLpPayment(payment)) {
@@ -385,24 +385,24 @@ contract Governance is ERC1155HolderUpgradeable, OwnableUpgradeable {
 				lpAmount += payment.amount;
 				lpPayments[lpIndex] = payment;
 
-				LpToken.LpAttributes memory attr = LpToken($.lpTokenAddress)
-					.getBalanceAt(address(this), payment.nonce)
-					.attributes;
-				if (attr.tradeToken == $.adexTokenAddress) {
-					adexAmount += payment.amount;
-				}
+				// LpToken.LpAttributes memory attr = LpToken($.lpTokenAddress)
+				// 	.getBalanceAt(address(this), payment.nonce)
+				// 	.attributes;
+				// if (attr.tradeToken == $.adexTokenAddress) {
+				// 	adexAmount += payment.amount;
+				// }
 
 				lpIndex++;
 			}
 		}
 
-		if (msg.sender != address(this)) {
-			// ADEX is first class token in the DEX, so All GTokens holders must possess sufficient amount based on liq they provided
-			require(
-				((adexAmount * 100) / lpAmount) >= 10,
-				"Not enough ADEX liquidity used"
-			);
-		}
+		// if (msg.sender != address(this)) {
+		// 	// ADEX is first class token in the DEX, so All GTokens holders must possess sufficient amount based on liq they provided
+		// 	require(
+		// 		((adexAmount * 100) / lpAmount) >= 10,
+		// 		"Not enough ADEX liquidity used"
+		// 	);
+		// }
 
 		// Mint GTokens for the user
 		return

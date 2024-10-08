@@ -12,11 +12,13 @@ import { LpBalancesWithId, useGovernanceSpendsLp } from "~~/hooks/useLpTokens";
 import { prettyFormatAmount } from "~~/utils/formatAmount";
 
 export default function StakingModal({
-  basePairLPs,
-  otherPairsLPs,
+  lpBalances,
+  // basePairLPs,
+  // otherPairsLPs,
 }: {
-  basePairLPs: LpBalancesWithId;
-  otherPairsLPs: LpBalancesWithId;
+  lpBalances: LpBalancesWithId;
+  // basePairLPs: LpBalancesWithId;
+  // otherPairsLPs: LpBalancesWithId;
 }) {
   const { closeModal } = useModalToShow();
   const { writeContractAsync } = useWriteContract();
@@ -60,11 +62,11 @@ export default function StakingModal({
 
   const lpTokens = useMemo(
     () =>
-      [...basePairLPs, ...otherPairsLPs].map(({ amount, nonce, identifier }) => ({
+      lpBalances.map(({ amount, nonce, identifier }) => ({
         value: { amount, nonce, token: LpToken?.address },
         label: `${identifier} ${prettyFormatAmount(amount.toString())}`,
       })),
-    [basePairLPs, otherPairsLPs, LpToken?.address],
+    [lpBalances, LpToken?.address],
   );
 
   return (

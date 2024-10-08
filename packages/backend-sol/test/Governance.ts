@@ -293,6 +293,13 @@ describe("Governance Contract", function () {
         { token: adexToken, nonce: 0, amount: parseEther("874.9904") },
       );
 
+      // User enters governance
+      const lpContractAddr = await lpTokenContract.getAddress();
+      const lpPayments: TokenPaymentStruct[] = await lpTokenContract
+        .lpBalanceOf(user)
+        .then(balances => balances.map(({ amount, nonce }) => ({ amount, nonce, token: lpContractAddr })));
+      await lpTokenContract.setApprovalForAll(governanceContract, true);
+      await governanceContract.connect(user).enterGovernance(lpPayments, 1080);
       // Trader sells different tokens to initiate rewards generation
       for (let i = 0; i < 4; i++) {
         let mintForAdex = false;
@@ -321,15 +328,6 @@ describe("Governance Contract", function () {
           slippage: 100_00,
         });
       }
-
-      // User enters governance
-      const lpContractAddr = await lpTokenContract.getAddress();
-      const lpPayments: TokenPaymentStruct[] = await lpTokenContract
-        .lpBalanceOf(user)
-        .then(balances => balances.map(({ amount, nonce }) => ({ amount, nonce, token: lpContractAddr })));
-      await lpTokenContract.setApprovalForAll(governanceContract, true);
-      await governanceContract.connect(user).enterGovernance(lpPayments, 1080);
-
       // Move forward in time to generate rewards
       await time.increase(30 * 24 * 3600);
 
