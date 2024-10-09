@@ -1,5 +1,5 @@
 import { bot } from "./bot";
-import { adminUserName, dappUrl_ } from "./constants";
+import { adminUserName, dappUrl_ } from "../constants";
 import { randomString } from "./helpers";
 import Encryption from "./utils/Encryption";
 import { eq } from "drizzle-orm";

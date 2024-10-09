@@ -42,3 +42,8 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   referrals: many(users, { relationName: "user_referral" }),
   referrer: one(users, { fields: [users.referrerID], references: [users.refID], relationName: "user_referral" }),
 }));
+
+export const faucetEntry = pgTable("faucetEntry", {
+  address: varchar("address").primaryKey().unique(),
+  nextClaimTimestamp: integer("nextClaimTimestamp").default(0),
+});

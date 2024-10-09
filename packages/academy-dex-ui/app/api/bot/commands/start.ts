@@ -1,4 +1,4 @@
-import { JOIN_GROUP_CHAT, REFERRALS } from "../constants";
+import { JOIN_GROUP_CHAT, REFERRALS } from "../../constants";
 import { addTgUser, getOrCreateCommChat, trySwapFirstTime } from "../service";
 import { Composer, Context } from "grammy";
 

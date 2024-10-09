@@ -6,7 +6,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   31337: {
     GTokens: {
-      address: "0x436E1EB4dECf0eBd8B8C51d5cF91fF106dEB709e",
+      address: "0x533459CB074bBbb2e12fcC7410cb330705Aa5Ecd",
       abi: [
         {
           inputs: [
@@ -1044,7 +1044,7 @@ const deployedContracts = {
       inheritedFunctions: {},
     },
     Governance: {
-      address: "0xf9e94137dB29f260b14817D9a3093CAAb1B2a845",
+      address: "0x5BAE4dCDDc9388AAFad156c382D0b604716c7aE8",
       abi: [
         {
           inputs: [],
@@ -2060,7 +2060,7 @@ const deployedContracts = {
       },
     },
     LaunchPair: {
-      address: "0x7446d906EdA720832Ebc32BdED1B6862C004f346",
+      address: "0x798454fc343128c2a7cECEcE7AE305a39648F82a",
       abi: [
         {
           inputs: [],
@@ -2733,7 +2733,7 @@ const deployedContracts = {
       },
     },
     LpToken: {
-      address: "0xe082b26cEf079a095147F35c9647eC97c2401B83",
+      address: "0x2C477DFdB744E3BAf87bbdE078e21D382bc40700",
       abi: [
         {
           inputs: [
@@ -4166,7 +4166,7 @@ const deployedContracts = {
       inheritedFunctions: {},
     },
     Router: {
-      address: "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
+      address: "0x7a2088a1bFc9d81c55368AE168C2C02570cB814F",
       abi: [
         {
           inputs: [],
@@ -5204,7 +5204,7 @@ const deployedContracts = {
       },
     },
     WEDU: {
-      address: "0x127A4E2a1Bc39c34CeBbcAa88B1B2875dc8F5cB3",
+      address: "0xAD4644A999e18255458bFA32651DE6BC955Ca536",
       abi: [
         {
           inputs: [

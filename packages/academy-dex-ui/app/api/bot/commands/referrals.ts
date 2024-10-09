@@ -1,4 +1,4 @@
-import { REFERRALS } from "../constants";
+import { REFERRALS } from "../../constants";
 import { getTgRefLink } from "../service";
 import { startCommandHandler } from "./start";
 import { Composer } from "grammy";

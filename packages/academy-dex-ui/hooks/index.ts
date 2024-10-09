@@ -5,10 +5,12 @@ import axiosProvider from "~~/services/axiosProvider";
 
 type Data = { user: IUser; botStart: string };
 
+export const swrFetcher = <T>(url: string) => axiosProvider.get<T>(url).then(res => res.data);
+
 export const useGetUser = (address?: string) => {
   const { targetNetwork } = useTargetNetwork();
 
   return useSWR<Data>(address && targetNetwork ? `users/${address}?chainId=${targetNetwork.id}` : null, {
-    fetcher: url => axiosProvider.get<Data>(url).then(res => res.data),
+    fetcher: url => swrFetcher<Data>(url),
   });
 };

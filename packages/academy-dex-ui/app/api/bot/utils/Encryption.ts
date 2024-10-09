@@ -1,4 +1,4 @@
-import { encryption } from "../constants";
+import { encryption } from "../../constants";
 import { createCipheriv, createDecipheriv } from "crypto";
 
 export default class Encryption {

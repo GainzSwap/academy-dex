@@ -13,6 +13,7 @@ import Swap from "./Swap";
 import TopBar from "./TopBar";
 import { zeroAddress } from "viem";
 import { useAccount, useBlock } from "wagmi";
+import FaucetClaim from "~~/components/FaucetClaim";
 import ReferralCard from "~~/components/ReferralCard";
 import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 import { useContentPanel } from "~~/hooks/useContentPanel";
@@ -63,6 +64,9 @@ export default function Dashboard() {
       </div>
       <div className="content-i">
         <div className="content-box" style={{ minHeight: "95vh" }}>
+          <div className="row">
+            <FaucetClaim />
+          </div>
           <div className="row">
             <div className="col-sm-12 col-lg-6">
               <div className="justify-content-between mobile-full-width">

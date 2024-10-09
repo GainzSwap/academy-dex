@@ -1,4 +1,4 @@
-import { adminUserName } from "../constants";
+import { adminUserName } from "../../constants";
 import { getOrCreateCommChat } from "../service";
 import { Composer } from "grammy";
 import "~~/drizzle/envConfig";
