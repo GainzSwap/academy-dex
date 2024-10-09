@@ -55,7 +55,7 @@ async function sendTokens({ amount, chainId, toAddress }: { toAddress: string; a
   );
 
   // Send native coin
-  await sendTransaction(wagmiConfig, { account: faucetAccount, to: toAddress, value: amount });
+  // await sendTransaction(wagmiConfig, { account: faucetAccount, to: toAddress, value: amount });
   for (let index = 0; index++; index < dexTokens.length) {
     const token = dexTokens[index];
     const balance = dexTokensBalances[index];
