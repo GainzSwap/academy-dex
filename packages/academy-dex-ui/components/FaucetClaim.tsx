@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import ElementWrapper from "./ElementWrapper";
 import LoadingState from "./LoadingState";
-import { useSwapableTokens } from "./Swap/hooks";
 import { AxiosError } from "axios";
 import useSWR from "swr";
 import { useAccount } from "wagmi";
@@ -19,7 +18,6 @@ interface IFaucetData {
 
 export default function FaucetClaim() {
   const { targetNetwork } = useTargetNetwork();
-  const { tokens } = useSwapableTokens({});
   const { address: userAddress } = useAccount();
 
   const url = userAddress ? `faucet/${userAddress}?chainId=${targetNetwork.id}` : null;
@@ -98,7 +96,7 @@ export default function FaucetClaim() {
           {formatAmount({
             input: data.claimable,
           })}{" "}
-          {tokens.map(token => "$" + token.identifier).join(", ")}
+          worth of tokens
           {blockSecsLeft > 0 ? (
             <div className="legend-sub-value" style={{ fontSize: "0.75rem" }}>
               Claimable in {timeLeft}

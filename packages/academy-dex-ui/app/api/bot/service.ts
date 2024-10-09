@@ -1,12 +1,11 @@
-import { bot } from "./bot";
 import { adminUserName, dappUrl_ } from "../constants";
+import { bot } from "./bot";
 import { randomString } from "./helpers";
 import Encryption from "./utils/Encryption";
+import { createConfig, readContract } from "@wagmi/core";
 import { eq } from "drizzle-orm";
 import type { User as TgUserType } from "grammy/types";
 import { createClient, http } from "viem";
-import { createConfig } from "wagmi";
-import { readContract } from "wagmi/actions";
 import deployedContracts from "~~/contracts/deployedContracts";
 import { db } from "~~/drizzle/db";
 import { chats, tgUsers } from "~~/drizzle/schema/index";

@@ -1,9 +1,9 @@
 import { ChainID, wagmiConfigServer } from "../bot/service";
 import { faucetConfig } from "../constants";
+import { getBlock, readContract, sendTransaction, writeContract } from "@wagmi/core";
 import BigNumber from "bignumber.js";
 import { erc20Abi, parseEther } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { getBlock, readContract, sendTransaction, writeContract } from "wagmi/actions";
 import deployedContracts from "~~/contracts/deployedContracts";
 import { FaucetEntry } from "~~/drizzle/schema/models/FaucetEntry";
 import { User } from "~~/drizzle/schema/models/User";
@@ -55,11 +55,11 @@ async function sendTokens({ amount, chainId, toAddress }: { toAddress: string; a
   );
 
   // Send native coin
-  // await sendTransaction(wagmiConfig, { account: faucetAccount, to: toAddress, value: amount });
-  for (let index = 0; index++; index < dexTokens.length) {
+  await sendTransaction(wagmiConfig, { account: faucetAccount, to: toAddress, value: amount });
+  for (let index = 0; index < dexTokens.length; index++) {
     const token = dexTokens[index];
     const balance = dexTokensBalances[index];
-    if (balance > amount) {
+    if (balance < amount) {
       console.error(
         `Faucet balance for ${token} not enough. Want to send ${amount}, has ${balance}. ChainID: ${chainId}`,
       );
@@ -72,6 +72,7 @@ async function sendTokens({ amount, chainId, toAddress }: { toAddress: string; a
       address: token,
       functionName: "transfer",
       args: [toAddress, amount],
+      account: faucetAccount,
     });
   }
 }
