@@ -8,7 +8,7 @@ export async function GET(req: NextRequest, { params: { address } }: { params: {
   const claim = (searchParams.get("claim") ?? "false") === "true";
   const chainId: ChainID | null = searchParams.get("chainId") as any;
 
-  if (!chainId) {
+  if (!chainId || !address) {
     return NextResponse.error().json();
   }
 
