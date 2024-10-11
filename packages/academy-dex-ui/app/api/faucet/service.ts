@@ -1,6 +1,6 @@
 import { ChainID, wagmiConfigServer } from "../bot/service";
 import { faucetConfig } from "../constants";
-import { getBlock, readContract, sendTransaction, writeContract } from "@wagmi/core";
+import { getBlock, getTransactionCount, readContract, sendTransaction, writeContract } from "@wagmi/core";
 import BigNumber from "bignumber.js";
 import { erc20Abi, parseEther } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
@@ -54,8 +54,19 @@ async function sendTokens({ amount, chainId, toAddress }: { toAddress: string; a
     ),
   );
 
+  const getFaucetAccountNonce = async () => {
+    const nonce = await getTransactionCount(wagmiConfig, { address: faucetAccount.address });
+
+    return nonce + 1;
+  };
+
   // Send native coin
-  await sendTransaction(wagmiConfig, { account: faucetAccount, to: toAddress, value: amount });
+  await sendTransaction(wagmiConfig, {
+    account: faucetAccount,
+    to: toAddress,
+    value: amount,
+    nonce: await getFaucetAccountNonce(),
+  });
   for (let index = 0; index < dexTokens.length; index++) {
     const token = dexTokens[index];
     const balance = dexTokensBalances[index];
@@ -73,6 +84,7 @@ async function sendTokens({ amount, chainId, toAddress }: { toAddress: string; a
       functionName: "transfer",
       args: [toAddress, amount],
       account: faucetAccount,
+      nonce: await getFaucetAccountNonce(),
     });
   }
 }

@@ -4,12 +4,13 @@ import Select from "react-select";
 import { useAccount, useWriteContract } from "wagmi";
 import BlockiesImage from "~~/components/BlockiesImage";
 import LoadingState from "~~/components/LoadingState";
-import TransactionWaitingIcon, { IconReqState, errorMsg } from "~~/components/TransactionWaitingIcon";
+import TransactionWaitingIcon, { IconReqState } from "~~/components/TransactionWaitingIcon";
 import { useDeployedContractInfo, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import useGTokens from "~~/hooks/useGTokens";
 import { TokenListing, TokenPayment } from "~~/types/utils";
 import { prettyFormatAmount } from "~~/utils/formatAmount";
 import nonceToRandString from "~~/utils/nonceToRandom";
+import { errorMsg } from "~~/components/TransactionWaitingIcon/helpers";
 
 export default function VoteOnActiveListing({
   activeListing: {

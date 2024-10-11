@@ -70,6 +70,7 @@ export default function FaucetClaim() {
   }, [withdrawFaucetError]);
 
   useEffect(() => {
+    console.log({ error });
     error && setWithdrawFaucetError(error?.response?.data?.message || error.message);
   }, [error]);
 

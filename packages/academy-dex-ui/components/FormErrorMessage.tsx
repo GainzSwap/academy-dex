@@ -1,4 +1,4 @@
-import { errorMsg } from "./TransactionWaitingIcon";
+import { errorMsg } from "./TransactionWaitingIcon/helpers";
 
 export default function FormErrorMessage({ message }: { message?: string }) {
   return !message ? null : (

@@ -3,27 +3,10 @@ import { useModalToShow } from "../Modals";
 import SlideWrapper from "../SlideWrapper";
 import "./array.extensions";
 import { ICON_TRANSITION_DELAY } from "./constants";
+import { errorMsg, matchStrings } from "./helpers";
 import styles from "./style.module.scss";
 
 export type IconReqState = "idle" | "error" | "success" | "pending";
-
-const matchStrings = ["ContractFunctionExecutionError:", " Error: ", "TransactionExecutionError:"];
-const processedMatchString = matchStrings.reduce((acc, curr, index) => {
-  acc += curr;
-
-  if (index !== matchStrings.length - 1) {
-    acc += "|";
-  }
-
-  return acc;
-}, "");
-export const errorMsg = (msg: string) => {
-  const regEx = new RegExp("[" + processedMatchString + "](\n)?(.*)", "g");
-  const error =
-    msg.match("reason:\n.*")?.at(0)?.replace("reason:\n", "") ??
-    msg.match(regEx)?.at(0)?.replace(processedMatchString, "");
-  return error;
-};
 
 export function TxErrorModal({ msg, handleSeen }: { msg: string; handleSeen?: () => any }) {
   const { closeModal } = useModalToShow();
