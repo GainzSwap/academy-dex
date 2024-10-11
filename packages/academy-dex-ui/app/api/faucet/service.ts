@@ -6,7 +6,6 @@ import { erc20Abi, parseEther } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import deployedContracts from "~~/contracts/deployedContracts";
 import { FaucetEntry } from "~~/drizzle/schema/models/FaucetEntry";
-import { TgUser } from "~~/drizzle/schema/models/TgUser";
 import { User } from "~~/drizzle/schema/models/User";
 
 const config = faucetConfig;
