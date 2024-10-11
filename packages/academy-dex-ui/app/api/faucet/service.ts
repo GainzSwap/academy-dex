@@ -111,38 +111,40 @@ export async function valueFor({
     throw new Error("Faucet entry not created for " + address);
   }
 
+  let claimable = 0n;
+
   if (!(await User.findOneBy({ address: entry.address }))?.tgID) {
-    throw new Error("You must join telegram group at https://t.me/AcademyDEX");
-  }
+    // throw new Error("You must join telegram group at https://t.me/AcademyDEX");
+  } else {
+    const maxClaim = parseEther(BigNumber(config.maxClaim).toFixed());
 
-  const maxClaim = parseEther(BigNumber(config.maxClaim).toFixed());
+    // const Router = deployedContracts[chainId].Router;
 
-  // const Router = deployedContracts[chainId].Router;
+    const wagmiConfig = wagmiConfigServer(chainId);
+    const totalDirectReferred =
+      // await readContract(wagmiConfig, {
+      //   abi: Router.abi,
+      //   address: Router.address,
+      //   functionName: "getReferrals",
+      //   args: [address],
+      // }).length
+      (await User.findOneBy({ address }))?.referrals?.length || 0;
 
-  const wagmiConfig = wagmiConfigServer(chainId);
-  const totalDirectReferred =
-    // await readContract(wagmiConfig, {
-    //   abi: Router.abi,
-    //   address: Router.address,
-    //   functionName: "getReferrals",
-    //   args: [address],
-    // }).length
-    (await User.findOneBy({ address }))?.referrals?.length || 0;
+    claimable = minClaim + parseEther(BigNumber(totalDirectReferred * config.increasePerProfile).toFixed());
+    claimable > maxClaim && (claimable = maxClaim);
 
-  let claimable = minClaim + parseEther(BigNumber(totalDirectReferred * config.increasePerProfile).toFixed());
-  claimable > maxClaim && (claimable = maxClaim);
+    if (claim) {
+      const { timestamp } = await getBlock(wagmiConfig);
 
-  if (claim) {
-    const { timestamp } = await getBlock(wagmiConfig);
+      if (timestamp < entry.nextClaimTimestamp) {
+        throw new Error("Next Faucet claim not reached");
+      }
 
-    if (timestamp < entry.nextClaimTimestamp) {
-      throw new Error("Next Faucet claim not reached");
+      entry.nextClaimTimestamp = +timestamp.toString() + config.faucetInterval;
+      await FaucetEntry.save(entry);
+
+      await sendTokens({ toAddress: address, amount: claimable, chainId });
     }
-
-    entry.nextClaimTimestamp = +timestamp.toString() + config.faucetInterval;
-    await FaucetEntry.save(entry);
-
-    await sendTokens({ toAddress: address, amount: claimable, chainId });
   }
 
   return {
