@@ -12319,6 +12319,25 @@ const deployedContracts = {
           type: "event",
         },
         {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "address",
+              name: "token",
+              type: "address",
+            },
+            {
+              indexed: true,
+              internalType: "bool",
+              name: "moved",
+              type: "bool",
+            },
+          ],
+          name: "Token",
+          type: "event",
+        },
+        {
           inputs: [],
           name: "MAX_LP_TOKENS",
           outputs: [
@@ -15533,6 +15552,25 @@ const deployedContracts = {
           anonymous: false,
           inputs: [
             {
+              indexed: true,
+              internalType: "address",
+              name: "token",
+              type: "address",
+            },
+            {
+              indexed: true,
+              internalType: "bool",
+              name: "moved",
+              type: "bool",
+            },
+          ],
+          name: "Token",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
               indexed: false,
               internalType: "uint256",
               name: "userId",
@@ -15601,30 +15639,6 @@ const deployedContracts = {
             },
           ],
           stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "uint256[]",
-              name: "nonces",
-              type: "uint256[]",
-            },
-          ],
-          name: "claimRewards",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "totalClaimed",
-              type: "uint256",
-            },
-            {
-              internalType: "uint256[]",
-              name: "newNonces",
-              type: "uint256[]",
-            },
-          ],
-          stateMutability: "nonpayable",
           type: "function",
         },
         {
@@ -15754,6 +15768,13 @@ const deployedContracts = {
             },
           ],
           stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "generateRewards",
+          outputs: [],
+          stateMutability: "nonpayable",
           type: "function",
         },
         {
@@ -16287,6 +16308,19 @@ const deployedContracts = {
               internalType: "address",
               name: "",
               type: "address",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "totalUsers",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
             },
           ],
           stateMutability: "view",
