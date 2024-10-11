@@ -56,8 +56,7 @@ async function sendTokens({ amount, chainId, toAddress }: { toAddress: string; a
 
   const getFaucetAccountNonce = async () => {
     const nonce = await getTransactionCount(wagmiConfig, { address: faucetAccount.address });
-
-    return nonce + 1;
+    return nonce;
   };
 
   // Send native coin
