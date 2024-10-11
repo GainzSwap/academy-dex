@@ -135,11 +135,10 @@ export async function valueFor({
       throw new Error("Next Faucet claim not reached");
     }
 
-    await sendTokens({ toAddress: address, amount: claimable, chainId });
-
     entry.nextClaimTimestamp = +timestamp.toString() + config.faucetInterval;
-
     await FaucetEntry.save(entry);
+
+    await sendTokens({ toAddress: address, amount: claimable, chainId });
   }
 
   return {
