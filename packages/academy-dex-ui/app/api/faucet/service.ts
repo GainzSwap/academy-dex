@@ -6,6 +6,7 @@ import { erc20Abi, parseEther } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import deployedContracts from "~~/contracts/deployedContracts";
 import { FaucetEntry } from "~~/drizzle/schema/models/FaucetEntry";
+import { TgUser } from "~~/drizzle/schema/models/TgUser";
 import { User } from "~~/drizzle/schema/models/User";
 
 const config = faucetConfig;
@@ -109,6 +110,10 @@ export async function valueFor({
 
   if (!entry) {
     throw new Error("Faucet entry not created for " + address);
+  }
+
+  if (!(await User.findOneBy({ address: entry.address }))?.tgID) {
+    throw new Error("You must join telegram group at https://t.me/AcademyDEX");
   }
 
   const maxClaim = parseEther(BigNumber(config.maxClaim).toFixed());
