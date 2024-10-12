@@ -281,10 +281,6 @@ contract Router is
 				(generatedRewards * 7_5) / 100_0
 			);
 
-			// TODO remove the following after rewards exces bug fix
-			taxRewards /= 1_0000_000;
-			generatedRewards /= 1_0000_000;
-
 			uint256 rpsIncrease = (generatedRewards *
 				REWARDS_DIVISION_CONSTANT) / globalData.totalTradeVolume;
 
@@ -985,5 +981,9 @@ contract Router is
 	function eduPairAddr() public view returns (address) {
 		RouterStorage storage $ = _getRouterStorage();
 		return $.pairs.at(1);
+	}
+
+	function viewCurrentEpoch() external view returns (uint256) {
+		return _getEpochsStorage().currentEpoch();
 	}
 }

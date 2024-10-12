@@ -416,12 +416,11 @@ contract Pair is KnowablePair {
 		_checkAndReceivePayment(wholePayment, from);
 
 		uint256 initalLp = $.lpSupply;
-
-		rps = $.depValuePerShare;
 		_addLiq(wholePayment);
-
 		require($.lpSupply > initalLp, "Pair: invalid liquidity addition");
+
 		liqAdded = $.lpSupply - initalLp;
+		rps = $.depValuePerShare;
 
 		emit LiquidityAdded(from, wholePayment.amount, liqAdded);
 	}
@@ -459,6 +458,8 @@ contract Pair is KnowablePair {
 				(($.depValuePerShare - liquidity.attributes.depValuePerShare) *
 					liquidity.amount) /
 				RPS_DIVISION_CONSTANT;
+		} else {
+			totalDepositClaimed = (liquidity.amount * $.deposits) / $.lpSupply;
 		}
 
 		// Update the global deposits after claiming

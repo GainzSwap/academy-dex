@@ -15,27 +15,27 @@ task("upgradePairs", "Upgrades all pairs, remember to edit script with new facto
   const pairFactory = () => hre.ethers.getContractFactory("Pair");
 
   // Force import the BasePair and EDUPair proxies before upgrading
-  console.log("Force importing BasePair proxy...");
-  const basePairProxy = await hre.upgrades.forceImport(basePairAddr, await basePairFactory());
-  console.log("Force importing EDUPair proxy...");
-  const eduPairProxy = await hre.upgrades.forceImport(eduPairAddr, await eduPairFactory());
-  // Force import the Beacon contract before upgrading
-  console.log("Force importing Pair beacon...");
-  const pairBeacon = await hre.upgrades.forceImport(pairBeaconAddress, await pairFactory());
+  // console.log("Force importing BasePair proxy...");
+  // const basePairProxy = await hre.upgrades.forceImport(basePairAddr, await basePairFactory());
+  // console.log("Force importing EDUPair proxy...");
+  // const eduPairProxy = await hre.upgrades.forceImport(eduPairAddr, await eduPairFactory());
+  // // Force import the Beacon contract before upgrading
+  // console.log("Force importing Pair beacon...");
+  // const pairBeacon = await hre.upgrades.forceImport(pairBeaconAddress, await pairFactory());
 
   console.log("\nCompiling new Pair\n");
   await hre.run("compile");
 
   // Upgrade the BasePair and EDUPair proxies after importing
   console.log("Upgrading BasePair proxy...");
-  await hre.upgrades.upgradeProxy(basePairProxy, await basePairFactory());
+  await hre.upgrades.upgradeProxy(basePairAddr, await basePairFactory());
   console.log("BasePair upgraded successfully.");
   console.log("Upgrading EDUPair proxy...");
-  await hre.upgrades.upgradeProxy(eduPairProxy, await eduPairFactory());
+  await hre.upgrades.upgradeProxy(eduPairAddr, await eduPairFactory());
   console.log("EDUPair upgraded successfully.");
   // Upgrade the Beacon with the new implementation of Pair
   console.log("Upgrading Pair beacon...");
-  await hre.upgrades.upgradeBeacon(pairBeacon, await pairFactory());
+  await hre.upgrades.upgradeBeacon(pairBeaconAddress, await pairFactory());
   console.log("Pair beacon upgraded successfully.");
 
   console.log("\nSaving Pair artifacts");

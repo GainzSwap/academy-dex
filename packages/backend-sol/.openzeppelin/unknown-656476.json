@@ -11,15 +11,15 @@
       "kind": "transparent"
     },
     {
+      "address": "0xD797EF9819813cb41Be7606E027ab123Def5eCFD",
+      "kind": "transparent"
+    },
+    {
       "address": "0x5394FB805FbED8bf8bB7263bED2CB950F1CCFA7f",
       "kind": "transparent"
     },
     {
       "address": "0xB65A2140FaAb9793d758818f5f0bfb13d71bA5fe",
-      "kind": "transparent"
-    },
-    {
-      "address": "0xD797EF9819813cb41Be7606E027ab123Def5eCFD",
       "kind": "transparent"
     }
   ],
@@ -16584,6 +16584,2646 @@
               "src": "contracts/router/User.sol:9",
               "offset": 0,
               "slot": "2"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "872bbb64afc7c8ef284e7fcdff5442824e234d5fdfac2b5e897d7d1a299887c4": {
+      "address": "0xF1558a3e408f653Db483443c1F89D320A688E4Cc",
+      "txHash": "0x91fdac5d878d014e27f6d8c74b5c959b97fb68ac5817e7e2e3c2f5af29ae63c0",
+      "layout": {
+        "solcVersion": "0.8.20",
+        "storage": [],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_bytes32)dyn_storage": {
+            "label": "bytes32[]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_uint256)dyn_storage": {
+            "label": "uint256[]",
+            "numberOfBytes": "32"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_contract(Governance)3472": {
+            "label": "contract Governance",
+            "numberOfBytes": "20"
+          },
+          "t_contract(LpToken)3774": {
+            "label": "contract LpToken",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_address)": {
+            "label": "mapping(address => address)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_struct(PairData)4435_storage)": {
+            "label": "mapping(address => struct Router.PairData)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_struct(User)4903_storage)": {
+            "label": "mapping(address => struct UserModule.User)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_uint256)": {
+            "label": "mapping(bytes32 => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_address)": {
+            "label": "mapping(uint256 => address)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(AddressSet)2073_storage": {
+            "label": "struct EnumerableSet.AddressSet",
+            "members": [
+              {
+                "label": "_inner",
+                "type": "t_struct(Set)1941_storage",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(GlobalData)4448_storage": {
+            "label": "struct Router.GlobalData",
+            "members": [
+              {
+                "label": "rewardsReserve",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "taxRewards",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "rewardsPerShare",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "totalTradeVolume",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "lastTimestamp",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "totalLiq",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "5"
+              }
+            ],
+            "numberOfBytes": "192"
+          },
+          "t_struct(InitializableStorage)80_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)13_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(PairData)4435_storage": {
+            "label": "struct Router.PairData",
+            "members": [
+              {
+                "label": "sellVolume",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "buyVolume",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "lpRewardsPershare",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "tradeRewardsPershare",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "totalLiq",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "rewardsReserve",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "5"
+              }
+            ],
+            "numberOfBytes": "192"
+          },
+          "t_struct(RouterStorage)4485_storage": {
+            "label": "struct Router.RouterStorage",
+            "members": [
+              {
+                "label": "epochs",
+                "type": "t_struct(Storage)2375_storage",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "pairs",
+                "type": "t_struct(AddressSet)2073_storage",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "tradeTokens",
+                "type": "t_struct(AddressSet)2073_storage",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "_wEduAddress",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "6"
+              },
+              {
+                "label": "tokensPairAddress",
+                "type": "t_mapping(t_address,t_address)",
+                "offset": 0,
+                "slot": "7"
+              },
+              {
+                "label": "pairsData",
+                "type": "t_mapping(t_address,t_struct(PairData)4435_storage)",
+                "offset": 0,
+                "slot": "8"
+              },
+              {
+                "label": "globalData",
+                "type": "t_struct(GlobalData)4448_storage",
+                "offset": 0,
+                "slot": "9"
+              },
+              {
+                "label": "lpToken",
+                "type": "t_contract(LpToken)3774",
+                "offset": 0,
+                "slot": "15"
+              },
+              {
+                "label": "governance",
+                "type": "t_contract(Governance)3472",
+                "offset": 0,
+                "slot": "16"
+              },
+              {
+                "label": "adexTokenAddress",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "17"
+              },
+              {
+                "label": "proxyAdmin",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "18"
+              },
+              {
+                "label": "pairBeacon",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "19"
+              }
+            ],
+            "numberOfBytes": "640"
+          },
+          "t_struct(Set)1941_storage": {
+            "label": "struct EnumerableSet.Set",
+            "members": [
+              {
+                "label": "_values",
+                "type": "t_array(t_bytes32)dyn_storage",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_positions",
+                "type": "t_mapping(t_bytes32,t_uint256)",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(Storage)2375_storage": {
+            "label": "struct Epochs.Storage",
+            "members": [
+              {
+                "label": "genesis",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "epochLength",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(User)4903_storage": {
+            "label": "struct UserModule.User",
+            "members": [
+              {
+                "label": "id",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "addr",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "referrerId",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "referrals",
+                "type": "t_array(t_uint256)dyn_storage",
+                "offset": 0,
+                "slot": "3"
+              }
+            ],
+            "numberOfBytes": "128"
+          },
+          "t_struct(UserStorage)4885_storage": {
+            "label": "struct UserModule.UserStorage",
+            "members": [
+              {
+                "label": "userCount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "users",
+                "type": "t_mapping(t_address,t_struct(User)4903_storage)",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "userIdToAddress",
+                "type": "t_mapping(t_uint256,t_address)",
+                "offset": 0,
+                "slot": "2"
+              }
+            ],
+            "numberOfBytes": "96"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          }
+        },
+        "namespaces": {
+          "erc7201:router.storage": [
+            {
+              "contract": "Router",
+              "label": "epochs",
+              "type": "t_struct(Storage)2375_storage",
+              "src": "contracts/router/Router.sol:84",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Router",
+              "label": "pairs",
+              "type": "t_struct(AddressSet)2073_storage",
+              "src": "contracts/router/Router.sol:85",
+              "offset": 0,
+              "slot": "2"
+            },
+            {
+              "contract": "Router",
+              "label": "tradeTokens",
+              "type": "t_struct(AddressSet)2073_storage",
+              "src": "contracts/router/Router.sol:86",
+              "offset": 0,
+              "slot": "4"
+            },
+            {
+              "contract": "Router",
+              "label": "_wEduAddress",
+              "type": "t_address",
+              "src": "contracts/router/Router.sol:87",
+              "offset": 0,
+              "slot": "6"
+            },
+            {
+              "contract": "Router",
+              "label": "tokensPairAddress",
+              "type": "t_mapping(t_address,t_address)",
+              "src": "contracts/router/Router.sol:88",
+              "offset": 0,
+              "slot": "7"
+            },
+            {
+              "contract": "Router",
+              "label": "pairsData",
+              "type": "t_mapping(t_address,t_struct(PairData)4435_storage)",
+              "src": "contracts/router/Router.sol:89",
+              "offset": 0,
+              "slot": "8"
+            },
+            {
+              "contract": "Router",
+              "label": "globalData",
+              "type": "t_struct(GlobalData)4448_storage",
+              "src": "contracts/router/Router.sol:90",
+              "offset": 0,
+              "slot": "9"
+            },
+            {
+              "contract": "Router",
+              "label": "lpToken",
+              "type": "t_contract(LpToken)3774",
+              "src": "contracts/router/Router.sol:91",
+              "offset": 0,
+              "slot": "15"
+            },
+            {
+              "contract": "Router",
+              "label": "governance",
+              "type": "t_contract(Governance)3472",
+              "src": "contracts/router/Router.sol:92",
+              "offset": 0,
+              "slot": "16"
+            },
+            {
+              "contract": "Router",
+              "label": "adexTokenAddress",
+              "type": "t_address",
+              "src": "contracts/router/Router.sol:93",
+              "offset": 0,
+              "slot": "17"
+            },
+            {
+              "contract": "Router",
+              "label": "proxyAdmin",
+              "type": "t_address",
+              "src": "contracts/router/Router.sol:94",
+              "offset": 0,
+              "slot": "18"
+            },
+            {
+              "contract": "Router",
+              "label": "pairBeacon",
+              "type": "t_address",
+              "src": "contracts/router/Router.sol:95",
+              "offset": 0,
+              "slot": "19"
+            }
+          ],
+          "erc7201:userModule.storage": [
+            {
+              "contract": "UserModule",
+              "label": "userCount",
+              "type": "t_uint256",
+              "src": "contracts/router/User.sol:7",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "UserModule",
+              "label": "users",
+              "type": "t_mapping(t_address,t_struct(User)4903_storage)",
+              "src": "contracts/router/User.sol:8",
+              "offset": 0,
+              "slot": "1"
+            },
+            {
+              "contract": "UserModule",
+              "label": "userIdToAddress",
+              "type": "t_mapping(t_uint256,t_address)",
+              "src": "contracts/router/User.sol:9",
+              "offset": 0,
+              "slot": "2"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "086c0b9f65882f0cade314a6396185891aff6c8dad3607534cbcac386688f519": {
+      "address": "0xC759B7D0EfBc73d86D719e81C557F25e223AA159",
+      "txHash": "0x8350b320c6a45611a93141167fdbbb249b2805d7489a9cb03f9e7999ec484239",
+      "layout": {
+        "solcVersion": "0.8.20",
+        "storage": [],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_bytes32)dyn_storage": {
+            "label": "bytes32[]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_uint256)dyn_storage": {
+            "label": "uint256[]",
+            "numberOfBytes": "32"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_contract(Governance)3472": {
+            "label": "contract Governance",
+            "numberOfBytes": "20"
+          },
+          "t_contract(LpToken)3774": {
+            "label": "contract LpToken",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_address)": {
+            "label": "mapping(address => address)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_struct(PairData)4435_storage)": {
+            "label": "mapping(address => struct Router.PairData)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_struct(User)4909_storage)": {
+            "label": "mapping(address => struct UserModule.User)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_uint256)": {
+            "label": "mapping(bytes32 => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_address)": {
+            "label": "mapping(uint256 => address)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(AddressSet)2073_storage": {
+            "label": "struct EnumerableSet.AddressSet",
+            "members": [
+              {
+                "label": "_inner",
+                "type": "t_struct(Set)1941_storage",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(GlobalData)4448_storage": {
+            "label": "struct Router.GlobalData",
+            "members": [
+              {
+                "label": "rewardsReserve",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "taxRewards",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "rewardsPerShare",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "totalTradeVolume",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "lastTimestamp",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "totalLiq",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "5"
+              }
+            ],
+            "numberOfBytes": "192"
+          },
+          "t_struct(InitializableStorage)80_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)13_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(PairData)4435_storage": {
+            "label": "struct Router.PairData",
+            "members": [
+              {
+                "label": "sellVolume",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "buyVolume",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "lpRewardsPershare",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "tradeRewardsPershare",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "totalLiq",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "rewardsReserve",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "5"
+              }
+            ],
+            "numberOfBytes": "192"
+          },
+          "t_struct(RouterStorage)4485_storage": {
+            "label": "struct Router.RouterStorage",
+            "members": [
+              {
+                "label": "epochs",
+                "type": "t_struct(Storage)2375_storage",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "pairs",
+                "type": "t_struct(AddressSet)2073_storage",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "tradeTokens",
+                "type": "t_struct(AddressSet)2073_storage",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "_wEduAddress",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "6"
+              },
+              {
+                "label": "tokensPairAddress",
+                "type": "t_mapping(t_address,t_address)",
+                "offset": 0,
+                "slot": "7"
+              },
+              {
+                "label": "pairsData",
+                "type": "t_mapping(t_address,t_struct(PairData)4435_storage)",
+                "offset": 0,
+                "slot": "8"
+              },
+              {
+                "label": "globalData",
+                "type": "t_struct(GlobalData)4448_storage",
+                "offset": 0,
+                "slot": "9"
+              },
+              {
+                "label": "lpToken",
+                "type": "t_contract(LpToken)3774",
+                "offset": 0,
+                "slot": "15"
+              },
+              {
+                "label": "governance",
+                "type": "t_contract(Governance)3472",
+                "offset": 0,
+                "slot": "16"
+              },
+              {
+                "label": "adexTokenAddress",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "17"
+              },
+              {
+                "label": "proxyAdmin",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "18"
+              },
+              {
+                "label": "pairBeacon",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "19"
+              }
+            ],
+            "numberOfBytes": "640"
+          },
+          "t_struct(Set)1941_storage": {
+            "label": "struct EnumerableSet.Set",
+            "members": [
+              {
+                "label": "_values",
+                "type": "t_array(t_bytes32)dyn_storage",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_positions",
+                "type": "t_mapping(t_bytes32,t_uint256)",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(Storage)2375_storage": {
+            "label": "struct Epochs.Storage",
+            "members": [
+              {
+                "label": "genesis",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "epochLength",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(User)4909_storage": {
+            "label": "struct UserModule.User",
+            "members": [
+              {
+                "label": "id",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "addr",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "referrerId",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "referrals",
+                "type": "t_array(t_uint256)dyn_storage",
+                "offset": 0,
+                "slot": "3"
+              }
+            ],
+            "numberOfBytes": "128"
+          },
+          "t_struct(UserStorage)4891_storage": {
+            "label": "struct UserModule.UserStorage",
+            "members": [
+              {
+                "label": "userCount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "users",
+                "type": "t_mapping(t_address,t_struct(User)4909_storage)",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "userIdToAddress",
+                "type": "t_mapping(t_uint256,t_address)",
+                "offset": 0,
+                "slot": "2"
+              }
+            ],
+            "numberOfBytes": "96"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          }
+        },
+        "namespaces": {
+          "erc7201:router.storage": [
+            {
+              "contract": "Router",
+              "label": "epochs",
+              "type": "t_struct(Storage)2375_storage",
+              "src": "contracts/router/Router.sol:84",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Router",
+              "label": "pairs",
+              "type": "t_struct(AddressSet)2073_storage",
+              "src": "contracts/router/Router.sol:85",
+              "offset": 0,
+              "slot": "2"
+            },
+            {
+              "contract": "Router",
+              "label": "tradeTokens",
+              "type": "t_struct(AddressSet)2073_storage",
+              "src": "contracts/router/Router.sol:86",
+              "offset": 0,
+              "slot": "4"
+            },
+            {
+              "contract": "Router",
+              "label": "_wEduAddress",
+              "type": "t_address",
+              "src": "contracts/router/Router.sol:87",
+              "offset": 0,
+              "slot": "6"
+            },
+            {
+              "contract": "Router",
+              "label": "tokensPairAddress",
+              "type": "t_mapping(t_address,t_address)",
+              "src": "contracts/router/Router.sol:88",
+              "offset": 0,
+              "slot": "7"
+            },
+            {
+              "contract": "Router",
+              "label": "pairsData",
+              "type": "t_mapping(t_address,t_struct(PairData)4435_storage)",
+              "src": "contracts/router/Router.sol:89",
+              "offset": 0,
+              "slot": "8"
+            },
+            {
+              "contract": "Router",
+              "label": "globalData",
+              "type": "t_struct(GlobalData)4448_storage",
+              "src": "contracts/router/Router.sol:90",
+              "offset": 0,
+              "slot": "9"
+            },
+            {
+              "contract": "Router",
+              "label": "lpToken",
+              "type": "t_contract(LpToken)3774",
+              "src": "contracts/router/Router.sol:91",
+              "offset": 0,
+              "slot": "15"
+            },
+            {
+              "contract": "Router",
+              "label": "governance",
+              "type": "t_contract(Governance)3472",
+              "src": "contracts/router/Router.sol:92",
+              "offset": 0,
+              "slot": "16"
+            },
+            {
+              "contract": "Router",
+              "label": "adexTokenAddress",
+              "type": "t_address",
+              "src": "contracts/router/Router.sol:93",
+              "offset": 0,
+              "slot": "17"
+            },
+            {
+              "contract": "Router",
+              "label": "proxyAdmin",
+              "type": "t_address",
+              "src": "contracts/router/Router.sol:94",
+              "offset": 0,
+              "slot": "18"
+            },
+            {
+              "contract": "Router",
+              "label": "pairBeacon",
+              "type": "t_address",
+              "src": "contracts/router/Router.sol:95",
+              "offset": 0,
+              "slot": "19"
+            }
+          ],
+          "erc7201:userModule.storage": [
+            {
+              "contract": "UserModule",
+              "label": "userCount",
+              "type": "t_uint256",
+              "src": "contracts/router/User.sol:7",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "UserModule",
+              "label": "users",
+              "type": "t_mapping(t_address,t_struct(User)4909_storage)",
+              "src": "contracts/router/User.sol:8",
+              "offset": 0,
+              "slot": "1"
+            },
+            {
+              "contract": "UserModule",
+              "label": "userIdToAddress",
+              "type": "t_mapping(t_uint256,t_address)",
+              "src": "contracts/router/User.sol:9",
+              "offset": 0,
+              "slot": "2"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "487a975d20b3b0f29f90a1252b4a60c920cc0fb6f213c7f9942def08b9118c0c": {
+      "address": "0xE8B971AA81C056E8C862e7941f92636B4d5fe7cF",
+      "layout": {
+        "solcVersion": "0.8.20",
+        "storage": [],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_contract(Pair)4306": {
+            "label": "contract Pair",
+            "numberOfBytes": "20"
+          },
+          "t_struct(InitializableStorage)80_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(MainStorage)4066_storage": {
+            "label": "struct Pair.MainStorage",
+            "members": [
+              {
+                "label": "deposits",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "sales",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "depValuePerShare",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "lpSupply",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "tradeToken",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "basePair",
+                "type": "t_contract(Pair)4306",
+                "offset": 0,
+                "slot": "5"
+              }
+            ],
+            "numberOfBytes": "192"
+          },
+          "t_struct(OwnableStorage)13_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          }
+        },
+        "namespaces": {
+          "erc7201:pair.main": [
+            {
+              "contract": "Pair",
+              "label": "deposits",
+              "type": "t_uint256",
+              "src": "contracts/pair/Pair.sol:60",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Pair",
+              "label": "sales",
+              "type": "t_uint256",
+              "src": "contracts/pair/Pair.sol:61",
+              "offset": 0,
+              "slot": "1"
+            },
+            {
+              "contract": "Pair",
+              "label": "depValuePerShare",
+              "type": "t_uint256",
+              "src": "contracts/pair/Pair.sol:62",
+              "offset": 0,
+              "slot": "2"
+            },
+            {
+              "contract": "Pair",
+              "label": "lpSupply",
+              "type": "t_uint256",
+              "src": "contracts/pair/Pair.sol:63",
+              "offset": 0,
+              "slot": "3"
+            },
+            {
+              "contract": "Pair",
+              "label": "tradeToken",
+              "type": "t_address",
+              "src": "contracts/pair/Pair.sol:64",
+              "offset": 0,
+              "slot": "4"
+            },
+            {
+              "contract": "Pair",
+              "label": "basePair",
+              "type": "t_contract(Pair)4306",
+              "src": "contracts/pair/Pair.sol:65",
+              "offset": 0,
+              "slot": "5"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      },
+      "allAddresses": [
+        "0xE8B971AA81C056E8C862e7941f92636B4d5fe7cF"
+      ]
+    },
+    "6f7816e9173be7b9bd9014885753e9b879eadc3bd4284a5e058fbda38688be35": {
+      "address": "0x12D33965337cCAF792dCd1EaD744A947093a51d0",
+      "layout": {
+        "solcVersion": "0.8.20",
+        "storage": [],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_contract(Pair)4306": {
+            "label": "contract Pair",
+            "numberOfBytes": "20"
+          },
+          "t_struct(InitializableStorage)80_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(MainStorage)4066_storage": {
+            "label": "struct Pair.MainStorage",
+            "members": [
+              {
+                "label": "deposits",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "sales",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "depValuePerShare",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "lpSupply",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "tradeToken",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "basePair",
+                "type": "t_contract(Pair)4306",
+                "offset": 0,
+                "slot": "5"
+              }
+            ],
+            "numberOfBytes": "192"
+          },
+          "t_struct(OwnableStorage)13_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          }
+        },
+        "namespaces": {
+          "erc7201:pair.main": [
+            {
+              "contract": "Pair",
+              "label": "deposits",
+              "type": "t_uint256",
+              "src": "contracts/pair/Pair.sol:60",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Pair",
+              "label": "sales",
+              "type": "t_uint256",
+              "src": "contracts/pair/Pair.sol:61",
+              "offset": 0,
+              "slot": "1"
+            },
+            {
+              "contract": "Pair",
+              "label": "depValuePerShare",
+              "type": "t_uint256",
+              "src": "contracts/pair/Pair.sol:62",
+              "offset": 0,
+              "slot": "2"
+            },
+            {
+              "contract": "Pair",
+              "label": "lpSupply",
+              "type": "t_uint256",
+              "src": "contracts/pair/Pair.sol:63",
+              "offset": 0,
+              "slot": "3"
+            },
+            {
+              "contract": "Pair",
+              "label": "tradeToken",
+              "type": "t_address",
+              "src": "contracts/pair/Pair.sol:64",
+              "offset": 0,
+              "slot": "4"
+            },
+            {
+              "contract": "Pair",
+              "label": "basePair",
+              "type": "t_contract(Pair)4306",
+              "src": "contracts/pair/Pair.sol:65",
+              "offset": 0,
+              "slot": "5"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      },
+      "allAddresses": [
+        "0x12D33965337cCAF792dCd1EaD744A947093a51d0"
+      ]
+    },
+    "08c1ef7072927a534918d55ff4de1d4b3b379c086bd675ef6bc88d07f464c2c5": {
+      "address": "0xCe48F7C8eBf2a200a8Af58082E843139952b9677",
+      "layout": {
+        "solcVersion": "0.8.20",
+        "storage": [],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_contract(Pair)4306": {
+            "label": "contract Pair",
+            "numberOfBytes": "20"
+          },
+          "t_struct(InitializableStorage)80_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(MainStorage)4066_storage": {
+            "label": "struct Pair.MainStorage",
+            "members": [
+              {
+                "label": "deposits",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "sales",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "depValuePerShare",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "lpSupply",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "tradeToken",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "basePair",
+                "type": "t_contract(Pair)4306",
+                "offset": 0,
+                "slot": "5"
+              }
+            ],
+            "numberOfBytes": "192"
+          },
+          "t_struct(OwnableStorage)13_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          }
+        },
+        "namespaces": {
+          "erc7201:pair.main": [
+            {
+              "contract": "Pair",
+              "label": "deposits",
+              "type": "t_uint256",
+              "src": "contracts/pair/Pair.sol:60",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Pair",
+              "label": "sales",
+              "type": "t_uint256",
+              "src": "contracts/pair/Pair.sol:61",
+              "offset": 0,
+              "slot": "1"
+            },
+            {
+              "contract": "Pair",
+              "label": "depValuePerShare",
+              "type": "t_uint256",
+              "src": "contracts/pair/Pair.sol:62",
+              "offset": 0,
+              "slot": "2"
+            },
+            {
+              "contract": "Pair",
+              "label": "lpSupply",
+              "type": "t_uint256",
+              "src": "contracts/pair/Pair.sol:63",
+              "offset": 0,
+              "slot": "3"
+            },
+            {
+              "contract": "Pair",
+              "label": "tradeToken",
+              "type": "t_address",
+              "src": "contracts/pair/Pair.sol:64",
+              "offset": 0,
+              "slot": "4"
+            },
+            {
+              "contract": "Pair",
+              "label": "basePair",
+              "type": "t_contract(Pair)4306",
+              "src": "contracts/pair/Pair.sol:65",
+              "offset": 0,
+              "slot": "5"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      },
+      "allAddresses": [
+        "0xCe48F7C8eBf2a200a8Af58082E843139952b9677"
+      ]
+    },
+    "b22c5467d3f5c400376cdeeae1ff508804fbade2e51473ae42e5d13761c5d9de": {
+      "address": "0x2cAd54d7A750b8e49A38784df208f97Ddc87dDea",
+      "txHash": "0x1d8b3f7c0dc072daded4d7d8f15a74ad55489ce34e2190ea122d1ba735a1b678",
+      "layout": {
+        "solcVersion": "0.8.20",
+        "storage": [],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_bytes32)dyn_storage": {
+            "label": "bytes32[]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_uint256)dyn_storage": {
+            "label": "uint256[]",
+            "numberOfBytes": "32"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_contract(Governance)3472": {
+            "label": "contract Governance",
+            "numberOfBytes": "20"
+          },
+          "t_contract(LpToken)3774": {
+            "label": "contract LpToken",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_address)": {
+            "label": "mapping(address => address)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_struct(PairData)4435_storage)": {
+            "label": "mapping(address => struct Router.PairData)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_struct(User)4909_storage)": {
+            "label": "mapping(address => struct UserModule.User)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_uint256)": {
+            "label": "mapping(bytes32 => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_address)": {
+            "label": "mapping(uint256 => address)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(AddressSet)2073_storage": {
+            "label": "struct EnumerableSet.AddressSet",
+            "members": [
+              {
+                "label": "_inner",
+                "type": "t_struct(Set)1941_storage",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(GlobalData)4448_storage": {
+            "label": "struct Router.GlobalData",
+            "members": [
+              {
+                "label": "rewardsReserve",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "taxRewards",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "rewardsPerShare",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "totalTradeVolume",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "lastTimestamp",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "totalLiq",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "5"
+              }
+            ],
+            "numberOfBytes": "192"
+          },
+          "t_struct(InitializableStorage)80_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)13_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(PairData)4435_storage": {
+            "label": "struct Router.PairData",
+            "members": [
+              {
+                "label": "sellVolume",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "buyVolume",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "lpRewardsPershare",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "tradeRewardsPershare",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "totalLiq",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "rewardsReserve",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "5"
+              }
+            ],
+            "numberOfBytes": "192"
+          },
+          "t_struct(RouterStorage)4485_storage": {
+            "label": "struct Router.RouterStorage",
+            "members": [
+              {
+                "label": "epochs",
+                "type": "t_struct(Storage)2375_storage",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "pairs",
+                "type": "t_struct(AddressSet)2073_storage",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "tradeTokens",
+                "type": "t_struct(AddressSet)2073_storage",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "_wEduAddress",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "6"
+              },
+              {
+                "label": "tokensPairAddress",
+                "type": "t_mapping(t_address,t_address)",
+                "offset": 0,
+                "slot": "7"
+              },
+              {
+                "label": "pairsData",
+                "type": "t_mapping(t_address,t_struct(PairData)4435_storage)",
+                "offset": 0,
+                "slot": "8"
+              },
+              {
+                "label": "globalData",
+                "type": "t_struct(GlobalData)4448_storage",
+                "offset": 0,
+                "slot": "9"
+              },
+              {
+                "label": "lpToken",
+                "type": "t_contract(LpToken)3774",
+                "offset": 0,
+                "slot": "15"
+              },
+              {
+                "label": "governance",
+                "type": "t_contract(Governance)3472",
+                "offset": 0,
+                "slot": "16"
+              },
+              {
+                "label": "adexTokenAddress",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "17"
+              },
+              {
+                "label": "proxyAdmin",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "18"
+              },
+              {
+                "label": "pairBeacon",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "19"
+              }
+            ],
+            "numberOfBytes": "640"
+          },
+          "t_struct(Set)1941_storage": {
+            "label": "struct EnumerableSet.Set",
+            "members": [
+              {
+                "label": "_values",
+                "type": "t_array(t_bytes32)dyn_storage",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_positions",
+                "type": "t_mapping(t_bytes32,t_uint256)",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(Storage)2375_storage": {
+            "label": "struct Epochs.Storage",
+            "members": [
+              {
+                "label": "genesis",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "epochLength",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(User)4909_storage": {
+            "label": "struct UserModule.User",
+            "members": [
+              {
+                "label": "id",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "addr",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "referrerId",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "referrals",
+                "type": "t_array(t_uint256)dyn_storage",
+                "offset": 0,
+                "slot": "3"
+              }
+            ],
+            "numberOfBytes": "128"
+          },
+          "t_struct(UserStorage)4891_storage": {
+            "label": "struct UserModule.UserStorage",
+            "members": [
+              {
+                "label": "userCount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "users",
+                "type": "t_mapping(t_address,t_struct(User)4909_storage)",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "userIdToAddress",
+                "type": "t_mapping(t_uint256,t_address)",
+                "offset": 0,
+                "slot": "2"
+              }
+            ],
+            "numberOfBytes": "96"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          }
+        },
+        "namespaces": {
+          "erc7201:router.storage": [
+            {
+              "contract": "Router",
+              "label": "epochs",
+              "type": "t_struct(Storage)2375_storage",
+              "src": "contracts/router/Router.sol:84",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Router",
+              "label": "pairs",
+              "type": "t_struct(AddressSet)2073_storage",
+              "src": "contracts/router/Router.sol:85",
+              "offset": 0,
+              "slot": "2"
+            },
+            {
+              "contract": "Router",
+              "label": "tradeTokens",
+              "type": "t_struct(AddressSet)2073_storage",
+              "src": "contracts/router/Router.sol:86",
+              "offset": 0,
+              "slot": "4"
+            },
+            {
+              "contract": "Router",
+              "label": "_wEduAddress",
+              "type": "t_address",
+              "src": "contracts/router/Router.sol:87",
+              "offset": 0,
+              "slot": "6"
+            },
+            {
+              "contract": "Router",
+              "label": "tokensPairAddress",
+              "type": "t_mapping(t_address,t_address)",
+              "src": "contracts/router/Router.sol:88",
+              "offset": 0,
+              "slot": "7"
+            },
+            {
+              "contract": "Router",
+              "label": "pairsData",
+              "type": "t_mapping(t_address,t_struct(PairData)4435_storage)",
+              "src": "contracts/router/Router.sol:89",
+              "offset": 0,
+              "slot": "8"
+            },
+            {
+              "contract": "Router",
+              "label": "globalData",
+              "type": "t_struct(GlobalData)4448_storage",
+              "src": "contracts/router/Router.sol:90",
+              "offset": 0,
+              "slot": "9"
+            },
+            {
+              "contract": "Router",
+              "label": "lpToken",
+              "type": "t_contract(LpToken)3774",
+              "src": "contracts/router/Router.sol:91",
+              "offset": 0,
+              "slot": "15"
+            },
+            {
+              "contract": "Router",
+              "label": "governance",
+              "type": "t_contract(Governance)3472",
+              "src": "contracts/router/Router.sol:92",
+              "offset": 0,
+              "slot": "16"
+            },
+            {
+              "contract": "Router",
+              "label": "adexTokenAddress",
+              "type": "t_address",
+              "src": "contracts/router/Router.sol:93",
+              "offset": 0,
+              "slot": "17"
+            },
+            {
+              "contract": "Router",
+              "label": "proxyAdmin",
+              "type": "t_address",
+              "src": "contracts/router/Router.sol:94",
+              "offset": 0,
+              "slot": "18"
+            },
+            {
+              "contract": "Router",
+              "label": "pairBeacon",
+              "type": "t_address",
+              "src": "contracts/router/Router.sol:95",
+              "offset": 0,
+              "slot": "19"
+            }
+          ],
+          "erc7201:userModule.storage": [
+            {
+              "contract": "UserModule",
+              "label": "userCount",
+              "type": "t_uint256",
+              "src": "contracts/router/User.sol:7",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "UserModule",
+              "label": "users",
+              "type": "t_mapping(t_address,t_struct(User)4909_storage)",
+              "src": "contracts/router/User.sol:8",
+              "offset": 0,
+              "slot": "1"
+            },
+            {
+              "contract": "UserModule",
+              "label": "userIdToAddress",
+              "type": "t_mapping(t_uint256,t_address)",
+              "src": "contracts/router/User.sol:9",
+              "offset": 0,
+              "slot": "2"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "218618564d1f49b74ba33013b932e7be726e377da61f202829ef7e8c80c7ca41": {
+      "address": "0xd4292feeE0Dc45d35588Ec90ad9E64AF2592c713",
+      "txHash": "0x357599776c0333df3a3a957babf9e32d0d05582a7b852596993d3983ac55224d",
+      "layout": {
+        "solcVersion": "0.8.20",
+        "storage": [],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_contract(Pair)4508": {
+            "label": "contract Pair",
+            "numberOfBytes": "20"
+          },
+          "t_struct(InitializableStorage)80_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(MainStorage)4264_storage": {
+            "label": "struct Pair.MainStorage",
+            "members": [
+              {
+                "label": "deposits",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "sales",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "depValuePerShare",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "lpSupply",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "tradeToken",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "basePair",
+                "type": "t_contract(Pair)4508",
+                "offset": 0,
+                "slot": "5"
+              }
+            ],
+            "numberOfBytes": "192"
+          },
+          "t_struct(OwnableStorage)13_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          }
+        },
+        "namespaces": {
+          "erc7201:pair.main": [
+            {
+              "contract": "Pair",
+              "label": "deposits",
+              "type": "t_uint256",
+              "src": "contracts/pair/Pair.sol:60",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Pair",
+              "label": "sales",
+              "type": "t_uint256",
+              "src": "contracts/pair/Pair.sol:61",
+              "offset": 0,
+              "slot": "1"
+            },
+            {
+              "contract": "Pair",
+              "label": "depValuePerShare",
+              "type": "t_uint256",
+              "src": "contracts/pair/Pair.sol:62",
+              "offset": 0,
+              "slot": "2"
+            },
+            {
+              "contract": "Pair",
+              "label": "lpSupply",
+              "type": "t_uint256",
+              "src": "contracts/pair/Pair.sol:63",
+              "offset": 0,
+              "slot": "3"
+            },
+            {
+              "contract": "Pair",
+              "label": "tradeToken",
+              "type": "t_address",
+              "src": "contracts/pair/Pair.sol:64",
+              "offset": 0,
+              "slot": "4"
+            },
+            {
+              "contract": "Pair",
+              "label": "basePair",
+              "type": "t_contract(Pair)4508",
+              "src": "contracts/pair/Pair.sol:65",
+              "offset": 0,
+              "slot": "5"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "07cb0b7ba9733f91da4214ccc19dadbda71f623709adac7dbc8dce6304bb90cb": {
+      "address": "0xa72d3368A24Efc0B707b72256758C0Ff8006d767",
+      "txHash": "0x68e88c48bc1d6fab1439e1147f26b8bafd2d622561613a19b6165308547ca803",
+      "layout": {
+        "solcVersion": "0.8.20",
+        "storage": [],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_contract(Pair)4508": {
+            "label": "contract Pair",
+            "numberOfBytes": "20"
+          },
+          "t_struct(InitializableStorage)80_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(MainStorage)4264_storage": {
+            "label": "struct Pair.MainStorage",
+            "members": [
+              {
+                "label": "deposits",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "sales",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "depValuePerShare",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "lpSupply",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "tradeToken",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "basePair",
+                "type": "t_contract(Pair)4508",
+                "offset": 0,
+                "slot": "5"
+              }
+            ],
+            "numberOfBytes": "192"
+          },
+          "t_struct(OwnableStorage)13_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          }
+        },
+        "namespaces": {
+          "erc7201:pair.main": [
+            {
+              "contract": "Pair",
+              "label": "deposits",
+              "type": "t_uint256",
+              "src": "contracts/pair/Pair.sol:60",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Pair",
+              "label": "sales",
+              "type": "t_uint256",
+              "src": "contracts/pair/Pair.sol:61",
+              "offset": 0,
+              "slot": "1"
+            },
+            {
+              "contract": "Pair",
+              "label": "depValuePerShare",
+              "type": "t_uint256",
+              "src": "contracts/pair/Pair.sol:62",
+              "offset": 0,
+              "slot": "2"
+            },
+            {
+              "contract": "Pair",
+              "label": "lpSupply",
+              "type": "t_uint256",
+              "src": "contracts/pair/Pair.sol:63",
+              "offset": 0,
+              "slot": "3"
+            },
+            {
+              "contract": "Pair",
+              "label": "tradeToken",
+              "type": "t_address",
+              "src": "contracts/pair/Pair.sol:64",
+              "offset": 0,
+              "slot": "4"
+            },
+            {
+              "contract": "Pair",
+              "label": "basePair",
+              "type": "t_contract(Pair)4508",
+              "src": "contracts/pair/Pair.sol:65",
+              "offset": 0,
+              "slot": "5"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "8b99a1cc1cf67350baed643d5672bf739d2627f1078d4a1973b5e57e702b1085": {
+      "address": "0x7127856b13cb84f1EC477F6D6aC4721179Ced4F8",
+      "txHash": "0x29d5d9bee6dd1b30b6812b002c818ac59d10f82fc162748cf525d54e55558234",
+      "layout": {
+        "solcVersion": "0.8.20",
+        "storage": [],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_contract(Pair)4508": {
+            "label": "contract Pair",
+            "numberOfBytes": "20"
+          },
+          "t_struct(InitializableStorage)80_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(MainStorage)4264_storage": {
+            "label": "struct Pair.MainStorage",
+            "members": [
+              {
+                "label": "deposits",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "sales",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "depValuePerShare",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "lpSupply",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "tradeToken",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "basePair",
+                "type": "t_contract(Pair)4508",
+                "offset": 0,
+                "slot": "5"
+              }
+            ],
+            "numberOfBytes": "192"
+          },
+          "t_struct(OwnableStorage)13_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          }
+        },
+        "namespaces": {
+          "erc7201:pair.main": [
+            {
+              "contract": "Pair",
+              "label": "deposits",
+              "type": "t_uint256",
+              "src": "contracts/pair/Pair.sol:60",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Pair",
+              "label": "sales",
+              "type": "t_uint256",
+              "src": "contracts/pair/Pair.sol:61",
+              "offset": 0,
+              "slot": "1"
+            },
+            {
+              "contract": "Pair",
+              "label": "depValuePerShare",
+              "type": "t_uint256",
+              "src": "contracts/pair/Pair.sol:62",
+              "offset": 0,
+              "slot": "2"
+            },
+            {
+              "contract": "Pair",
+              "label": "lpSupply",
+              "type": "t_uint256",
+              "src": "contracts/pair/Pair.sol:63",
+              "offset": 0,
+              "slot": "3"
+            },
+            {
+              "contract": "Pair",
+              "label": "tradeToken",
+              "type": "t_address",
+              "src": "contracts/pair/Pair.sol:64",
+              "offset": 0,
+              "slot": "4"
+            },
+            {
+              "contract": "Pair",
+              "label": "basePair",
+              "type": "t_contract(Pair)4508",
+              "src": "contracts/pair/Pair.sol:65",
+              "offset": 0,
+              "slot": "5"
             }
           ],
           "erc7201:openzeppelin.storage.Ownable": [

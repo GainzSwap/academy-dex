@@ -156,6 +156,32 @@ describe("Router", function () {
     });
   });
 
+  describe("removeLiquidity", function () {
+    it("returns liquidity added", async () => {
+      const { user, addLiquidity, router, lpTokenContract, createPair } = await loadFixture(deployRouterFixture);
+
+      const { pairContract, pairTradeToken } = await createPair();
+      const payment = { amount: parseEther("0.0033"), nonce: 0, token: pairTradeToken };
+
+      await addLiquidity({ contract: pairContract, signer: user, tradeToken: pairTradeToken }, payment);
+      const [lpOne] = await lpTokenContract.lpBalanceOf(user);
+      expect(await pairTradeToken.balanceOf(user)).to.eq(0);
+      await router.connect(user).removeLiquidity(lpOne.nonce, lpOne.amount);
+      expect(await pairTradeToken.balanceOf(user)).to.eq(payment.amount);
+
+      // Again
+
+      await addLiquidity({ contract: pairContract, signer: user, tradeToken: pairTradeToken, mint: false }, payment);
+      await router.swap({ amount: 0n, nonce: 0, token: ZeroAddress }, pairContract, 10000, {
+        value: parseEther("0.0000000032"),
+      });
+
+      const [lp2] = await lpTokenContract.lpBalanceOf(user);
+      await router.connect(user).removeLiquidity(lp2.nonce, lp2.amount);
+      expect(await pairTradeToken.balanceOf(user)).to.lt(payment.amount);
+    });
+  });
+
   describe("Fee Calculation and Distribution", function () {
     it("should correctly calculate fees for Base LPs and Referrer", async function () {
       const {

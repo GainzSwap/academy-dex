@@ -85,14 +85,22 @@ export async function deployRouterFixture() {
       tradeToken,
       contract,
       signer = user,
-    }: { contract: Pair | BasePair | EDUPair; tradeToken?: MintableERC20 | ADEX | WEDU; signer?: HardhatEthersSigner },
+      mint = true,
+    }: {
+      contract: Pair | BasePair | EDUPair;
+      tradeToken?: MintableERC20 | ADEX | WEDU;
+      signer?: HardhatEthersSigner;
+      mint?: boolean;
+    },
     ...args: Parameters<Router["addLiquidity"]>
   ) => {
     const payment = args[0] as TokenPaymentStruct;
     if (tradeToken) {
-      "mint" in tradeToken
-        ? await tradeToken.connect(owner).mint(signer, payment.amount)
-        : await tradeToken.connect(owner).transfer(signer, payment.amount);
+      if (mint) {
+        "mint" in tradeToken
+          ? await tradeToken.connect(owner).mint(signer, payment.amount)
+          : await tradeToken.connect(owner).transfer(signer, payment.amount);
+      }
       await approveToken(signer, tradeToken, payment.amount, contract);
     }
     return router.connect(signer).addLiquidity(...args);
