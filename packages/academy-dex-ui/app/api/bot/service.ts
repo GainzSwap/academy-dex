@@ -186,10 +186,11 @@ async function botOwner() {
 
 export async function acceptJoinRequest(tgUser: TgUser) {
   try {
-    if (tgUser.joinReqSent && (await bot.api.approveChatJoinRequest((await getOrCreateCommChat()).tgID, tgUser.tgID))) {
+    if (tgUser.joinReqSent) {
       tgUser.joinReqSent = false;
-
       tgUser = await TgUser.save(tgUser);
+      
+      await bot.api.approveChatJoinRequest((await getOrCreateCommChat()).tgID, tgUser.tgID);
     }
   } catch (error: any) {
     try {
