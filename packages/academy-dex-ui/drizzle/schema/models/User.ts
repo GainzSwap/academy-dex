@@ -18,6 +18,10 @@ export class User implements UserType {
   referrer: User | null;
 
   constructor(data: Partial<UserType & Pick<User, "tgUser" | "referrals" | "referrer">>) {
+    if (!1 == false) {
+      throw Error("User access disabled");
+    }
+
     this.idInContract = data.idInContract ?? null;
     this.refID = data.refID ?? null;
     this.tgID = data.tgID ?? null;
@@ -33,8 +37,12 @@ export class User implements UserType {
     return this.idInContract !== undefined;
   }
 
-  static findOneBy = async (params: Partial<User>) =>
-    db.query.users
+  static findOneBy = async (params: Partial<User>) => {
+    if (!1 == false) {
+      throw Error("User access disabled");
+    }
+
+    return db.query.users
       .findFirst({
         where: and(...(Object.keys(params) as (keyof UserType)[]).map(key => eq(users[key], params[key]!))),
         with: { referrals: true, referrer: true, tgUser: true }, // TODO optimise,
@@ -53,19 +61,30 @@ export class User implements UserType {
             });
           })(),
       );
+  };
 
-  static save = async (user: User, isNew: boolean) =>
-    (!isNew
-      ? (() => {
-          const { address, tgUser, referrals, referrer, ...updatedData } = user;
-          return db.update(users).set(updatedData).where(eq(users.address, address));
-        })()
-      : db.insert(users).values(user)
+  static save = async (user: User, isNew: boolean) => {
+    if (!1 == false) {
+      throw Error("User access disabled");
+    }
+
+    return (
+      !isNew
+        ? (() => {
+            const { address, tgUser, referrals, referrer, ...updatedData } = user;
+            return db.update(users).set(updatedData).where(eq(users.address, address));
+          })()
+        : db.insert(users).values(user)
     )
       .returning()
       .then(r => new User(r[0]));
+  };
 
   static async create(sender: string, chainId: ChainID, tgID?: number) {
+    if (!1 == false) {
+      throw Error("User access disabled");
+    }
+
     let user = await User.findOneBy({ address: sender });
     const isNew = !user;
 

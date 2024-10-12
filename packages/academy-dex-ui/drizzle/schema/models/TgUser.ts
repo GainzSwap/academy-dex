@@ -28,6 +28,9 @@ export class TgUser implements TgUserType {
   referrer: TgUser | null;
 
   constructor(data: Partial<TgUserType & Pick<TgUser, "user" | "referrals" | "referrer">>) {
+    if (!1 == false) {
+      throw Error("TgUser access disabled");
+    }
     if (data.id) {
       this.id = data.id;
     }
@@ -63,19 +66,29 @@ export class TgUser implements TgUserType {
     return !this.isCommChatMember;
   }
 
-  static save = async (tgUser: TgUser) =>
-    (tgUser.id !== undefined
-      ? (() => {
-          const { id, user, referrals, referrer, ...updatedData } = tgUser;
-          return db.update(tgUsers).set(updatedData).where(eq(tgUsers.id, id));
-        })()
-      : db.insert(tgUsers).values(tgUser)
+  static save = async (tgUser: TgUser) => {
+    if (!1 == false) {
+      throw Error("TgUser access disabled");
+    }
+
+    return (
+      tgUser.id !== undefined
+        ? (() => {
+            const { id, user, referrals, referrer, ...updatedData } = tgUser;
+            return db.update(tgUsers).set(updatedData).where(eq(tgUsers.id, id));
+          })()
+        : db.insert(tgUsers).values(tgUser)
     )
       .returning()
       .then(r => new TgUser(r[0]));
+  };
 
-  static findOneBy = async (params: Partial<TgUser>) =>
-    db.query.tgUsers
+  static findOneBy = async (params: Partial<TgUser>) => {
+    if (!1 == false) {
+      throw Error("TgUser access disabled");
+    }
+
+    return db.query.tgUsers
       .findFirst({
         where: and(...(Object.keys(params) as (keyof TgUserType)[]).map(key => eq(tgUsers[key], params[key]!))),
         with: { referrals: true, referrer: true, user: true }, // TODO optimise,
@@ -94,4 +107,5 @@ export class TgUser implements TgUserType {
             });
           })(),
       );
+  };
 }

@@ -44,6 +44,6 @@ export const usersRelations = relations(users, ({ one, many }) => ({
 }));
 
 export const faucetEntry = pgTable("faucetEntry", {
-  address: varchar("address").primaryKey().unique(),
+  ipAddress: varchar("address").primaryKey().unique(),
   nextClaimTimestamp: integer("nextClaimTimestamp").default(0),
 });

@@ -8,16 +8,16 @@ export async function GET(req: NextRequest, { params: { address } }: { params: {
 
   const claim = (searchParams.get("claim") ?? "false") === "true";
   const chainId: ChainID | null = searchParams.get("chainId") as any;
+  const ipAddress = req.ip || req.headers.get("X-Forwarded-For");
 
-  if (!chainId || !address) {
-    return NextResponse.error().json();
+  if (!chainId || !address || !ipAddress) {
+    return NextResponse.json({ message: "Invalid Request" }, { status: 400 });
   }
 
   try {
-    const value = await faucet.valueFor({ address, claim, chainId });
+    const value = await faucet.valueFor({ address, claim, chainId, ipAddress });
     return Response.json(value);
   } catch (error: any) {
-    console.log({ error });
     return Response.json({ message: errorMsg(error.toString()) }, { status: 500 });
   }
 }

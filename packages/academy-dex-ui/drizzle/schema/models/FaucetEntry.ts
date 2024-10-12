@@ -5,11 +5,11 @@ import { db } from "~~/drizzle/db";
 export type FaucetEntryType = typeof faucetEntry.$inferSelect;
 
 export class FaucetEntry implements FaucetEntryType {
-  address!: string;
+  ipAddress!: string;
   nextClaimTimestamp!: number;
 
   constructor(data: Partial<FaucetEntryType>) {
-    this.address = data.address ?? "";
+    this.ipAddress = data.ipAddress ?? "";
     this.nextClaimTimestamp = data.nextClaimTimestamp ?? 0;
   }
 
@@ -25,8 +25,8 @@ export class FaucetEntry implements FaucetEntryType {
   static save = async (entry: FaucetEntry, isNew = false) =>
     (!isNew
       ? (() => {
-          const { address, ...updatedData } = entry;
-          return db.update(faucetEntry).set(updatedData).where(eq(faucetEntry.address, address));
+          const { ipAddress, ...updatedData } = entry;
+          return db.update(faucetEntry).set(updatedData).where(eq(faucetEntry.ipAddress, ipAddress));
         })()
       : db.insert(faucetEntry).values(entry)
     )

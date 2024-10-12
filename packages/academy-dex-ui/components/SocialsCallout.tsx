@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { useModalToShow } from "./Modals";
-import { useReferralInfo } from "./ReferralCard/hooks";
 import { SocialsTxButtonClickCountType, getItem, setItem } from "~~/storage/session";
 
 const initialCheckPoints = [3, 5, 8];
@@ -51,12 +50,13 @@ export const checkShouldShowSocialsCallout = () => {
 };
 
 export default function SocialsCalloutModal() {
-  const { botStart } = useReferralInfo();
   const { closeModal } = useModalToShow();
   const { lastSocialCallout } = getData();
 
   const [calloutText, calloutLink] =
-    lastSocialCallout == "x" ? ["follow us on X", "https://x.com/academy_dex_edu"] : ["join us on Telegram", botStart];
+    lastSocialCallout == "x"
+      ? ["follow us on X", "https://x.com/academy_dex_edu"]
+      : ["join us on Telegram", "https://t.me/AcademyDEX"];
 
   return (
     <div className="modal-content text-center">

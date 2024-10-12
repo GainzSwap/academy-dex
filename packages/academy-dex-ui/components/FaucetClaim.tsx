@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import ElementWrapper from "./ElementWrapper";
 import LoadingState from "./LoadingState";
-import { useReferralInfo } from "./ReferralCard/hooks";
 import { AxiosError } from "axios";
 import useSWR from "swr";
 import { useAccount } from "wagmi";
@@ -21,7 +19,6 @@ interface IFaucetData {
 export default function FaucetClaim() {
   const { targetNetwork } = useTargetNetwork();
   const { address: userAddress } = useAccount();
-  const { botStart } = useReferralInfo();
 
   const url = userAddress ? `faucet/${userAddress}?chainId=${targetNetwork.id}` : null;
 
@@ -78,7 +75,7 @@ export default function FaucetClaim() {
 
   const { blockSecsLeft, timeLeft } = useComputeTimeleft({ deadline: BigInt(data?.nextClaimTimestamp || 0) });
 
-  if (!data?.active || !botStart) {
+  if (!data?.active) {
     return null;
   }
 
@@ -100,15 +97,7 @@ export default function FaucetClaim() {
             input: data.claimable,
           })}{" "}
           worth of tokens
-          {data.claimable == "0" ? (
-            <>
-              <h5 className="cta-header">Interact with the telegram bot to activate faucet</h5>
-
-              <Link target="_blank" href={botStart} className="btn btn-success" style={{ color: "white" }}>
-                Open Bot
-              </Link>
-            </>
-          ) : blockSecsLeft > 0 ? (
+          {blockSecsLeft > 0 ? (
             <div className="legend-sub-value" style={{ fontSize: "0.75rem" }}>
               Claimable in {timeLeft}
             </div>
