@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import ElementWrapper from "./ElementWrapper";
 import LoadingState from "./LoadingState";
+import { useReferralInfo } from "./ReferralCard/hooks";
 import { AxiosError } from "axios";
 import useSWR from "swr";
 import { useAccount } from "wagmi";
@@ -19,6 +21,7 @@ interface IFaucetData {
 export default function FaucetClaim() {
   const { targetNetwork } = useTargetNetwork();
   const { address: userAddress } = useAccount();
+  const { botStart } = useReferralInfo();
 
   const url = userAddress ? `faucet/${userAddress}?chainId=${targetNetwork.id}` : null;
 
@@ -70,13 +73,12 @@ export default function FaucetClaim() {
   }, [withdrawFaucetError]);
 
   useEffect(() => {
-    console.log({ error });
     error && setWithdrawFaucetError(error?.response?.data?.message || error.message);
   }, [error]);
 
   const { blockSecsLeft, timeLeft } = useComputeTimeleft({ deadline: BigInt(data?.nextClaimTimestamp || 0) });
 
-  if (!data?.active) {
+  if (!data?.active || !botStart) {
     return null;
   }
 
@@ -106,6 +108,14 @@ export default function FaucetClaim() {
             <div className="legend-value">
               {withdrawFaucet ? (
                 <LoadingState text={"Please wait"} />
+              ) : data.claimable == "0" ? (
+                <>
+                  <h5 className="cta-header">Interact with the telegram bot to activate faucet</h5>
+
+                  <Link target="_blank" href={botStart} className="btn btn-success" style={{ color: "white" }}>
+                    Open Bot
+                  </Link>
+                </>
               ) : (
                 <button
                   className="btn btn-primary"
