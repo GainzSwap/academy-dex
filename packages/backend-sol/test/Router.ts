@@ -156,6 +156,24 @@ describe("Router", function () {
     });
   });
 
+  describe("swap", function () {
+    it.skip("generates rewards and tax persecond", async () => {
+      const { basePairContract, baseTradeToken, owner, eduPair, router } = await loadFixture(deployRouterFixture);
+
+      while ((await router.viewCurrentEpoch()) <= 3) {
+        for (let times = 1; times <= 3; times++) {
+          const sellAmt = parseEther("0.0002");
+
+          await router.swap({ amount: 0, nonce: 0, token: ZeroAddress }, basePairContract, 1000, { value: sellAmt });
+
+          await baseTradeToken.connect(owner).approve(basePairContract, sellAmt);
+          await router.connect(owner).swap({ amount: sellAmt, nonce: 0, token: baseTradeToken }, eduPair, 1000);
+        }
+        // await time.increase(1);
+      }
+    });
+  });
+
   describe("removeLiquidity", function () {
     it("returns liquidity added", async () => {
       const { user, addLiquidity, router, lpTokenContract, createPair } = await loadFixture(deployRouterFixture);

@@ -186,29 +186,32 @@ contract Router is
 	function _computeEdgeEmissions(
 		uint256 epoch,
 		uint256 lastTimestamp,
-		uint256 latestTimestamp
+		uint256 currentTimestamp
 	) internal view returns (uint256) {
+		require(
+			currentTimestamp > lastTimestamp,
+			"Router._computeEdgeEmissions: Invalid currentTimestamp"
+		);
+
 		RouterStorage storage $ = _getRouterStorage(); // Access namespaced storage
 
 		(uint256 startTimestamp, uint256 endTimestamp) = $
 			.epochs
 			.epochEdgeTimestamps(epoch);
+		require(
+			currentTimestamp <= endTimestamp && lastTimestamp < endTimestamp,
+			"Router._computeEdgeEmissions: Invalid timestamps"
+		);
 
-		uint256 upperBoundTime = 0;
+		uint256 upperBoundTime = currentTimestamp;
 		uint256 lowerBoundTime = 0;
 
-		if (
-			startTimestamp <= latestTimestamp && latestTimestamp <= endTimestamp
-		) {
-			upperBoundTime = latestTimestamp;
-			lowerBoundTime = startTimestamp;
-		} else if (
-			startTimestamp <= lastTimestamp && lastTimestamp <= endTimestamp
-		) {
-			upperBoundTime = latestTimestamp <= endTimestamp
-				? latestTimestamp
-				: endTimestamp;
+		if (startTimestamp <= lastTimestamp) {
 			lowerBoundTime = lastTimestamp;
+		} else if (
+			lastTimestamp < startTimestamp && startTimestamp < currentTimestamp
+		) {
+			lowerBoundTime = startTimestamp;
 		} else {
 			revert("Router._computeEdgeEmissions: Invalid timestamps");
 		}
@@ -276,10 +279,8 @@ contract Router is
 			}
 
 			// Tax is set at 7.5%, this can be changed by governance
-			uint256 taxRewards;
-			(generatedRewards, taxRewards) = generatedRewards.take(
-				(generatedRewards * 7_5) / 100_0
-			);
+			uint256 taxRewards = (generatedRewards * 7_5) / 100_0;
+			generatedRewards -= taxRewards;
 
 			uint256 rpsIncrease = (generatedRewards *
 				REWARDS_DIVISION_CONSTANT) / globalData.totalTradeVolume;
