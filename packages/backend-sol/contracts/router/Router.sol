@@ -21,7 +21,8 @@ import { Amm } from "../common/Amm.sol";
 import { Epochs } from "../common/Epochs.sol";
 import { Governance } from "../governance/Governance.sol";
 import { DeployGovernance } from "../governance/DeployGovernance.sol";
-import { EDUPair, DeployEduPair } from "../pair/EDUPair.sol";
+import { EDUPair } from "../pair/EDUPair.sol";
+import { DeployPair, DeployBasePair, DeployEduPair } from "../pair/Deployer.sol";
 
 import "../common/libs/Number.sol";
 import { IRouter } from "./IRouter.sol";

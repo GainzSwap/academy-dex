@@ -18,36 +18,6 @@ import { BeaconProxy } from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.so
 
 uint256 constant RPS_DIVISION_CONSTANT = 1e36;
 
-library DeployPair {
-	function newPair(
-		address pairbeacon,
-		address tradeToken,
-		address basePairAddr
-	) external returns (Pair) {
-		// Deploy the BeaconProxy and initialize it
-		BeaconProxy proxy = new BeaconProxy(
-			pairbeacon,
-			abi.encodeWithSelector(
-				Pair.initialize.selector,
-				tradeToken,
-				basePairAddr
-			)
-		);
-
-		return (Pair(address(proxy)));
-	}
-
-	function deployPairBeacon(address proxyAdmin) external returns (address) {
-		// Deploy the UpgradeableBeacon contract
-		UpgradeableBeacon beacon = new UpgradeableBeacon(
-			address(new Pair()),
-			proxyAdmin
-		);
-
-		return address(beacon);
-	}
-}
-
 /**
  * @title Pair
  * @dev This contract manages a trading pair in the DEX, handling liquidity, trading, and fee mechanisms.

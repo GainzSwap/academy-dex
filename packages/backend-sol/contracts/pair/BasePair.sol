@@ -5,34 +5,6 @@ import "./Pair.sol";
 import { ADEX } from "../ADexToken/ADEX.sol";
 import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
-/// @title DeployBasePair
-/// @notice Library to deploy new instances of the `BasePair` contract.
-library DeployBasePair {
-	/// @notice Deploys a new instance of the `BasePair` contract.
-	/// @dev Deploys a new `ADEX` token and passes its address to the `BasePair` contract.
-	/// @return A new instance of the `BasePair` contract.
-	function newBasePair(
-		address proxyAdmin,
-		address initialOwner
-	) external returns (BasePair) {
-		address adexImplementation = address(new ADEX());
-		address basePairImpl = address(new BasePair());
-
-		TransparentUpgradeableProxy adexProxy = new TransparentUpgradeableProxy(
-			adexImplementation,
-			proxyAdmin,
-			abi.encodeWithSignature("initialize(address)", initialOwner)
-		);
-		TransparentUpgradeableProxy basePairProxy = new TransparentUpgradeableProxy(
-				basePairImpl,
-				proxyAdmin,
-				abi.encodeWithSignature("initialize(address)", adexProxy)
-			);
-
-		return BasePair(address(basePairProxy));
-	}
-}
-
 /**
  * @title BasePair
  * @dev This contract represents a base pair in the DEX, implementing mintable tokens and fee burning mechanisms.

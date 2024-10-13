@@ -10,15 +10,15 @@
       "kind": "transparent"
     },
     {
+      "address": "0xB74d9ea6C7764FB7f98aB993A201feD812aF19b6",
+      "kind": "transparent"
+    },
+    {
       "address": "0x5394FB805FbED8bf8bB7263bED2CB950F1CCFA7f",
       "kind": "transparent"
     },
     {
       "address": "0xB65A2140FaAb9793d758818f5f0bfb13d71bA5fe",
-      "kind": "transparent"
-    },
-    {
-      "address": "0xB74d9ea6C7764FB7f98aB993A201feD812aF19b6",
       "kind": "transparent"
     }
   ],
@@ -17658,7 +17658,7 @@
             "label": "bool",
             "numberOfBytes": "1"
           },
-          "t_contract(Pair)4306": {
+          "t_contract(Pair)4311": {
             "label": "contract Pair",
             "numberOfBytes": "20"
           },
@@ -17680,7 +17680,7 @@
             ],
             "numberOfBytes": "32"
           },
-          "t_struct(MainStorage)4066_storage": {
+          "t_struct(MainStorage)4071_storage": {
             "label": "struct Pair.MainStorage",
             "members": [
               {
@@ -17715,7 +17715,7 @@
               },
               {
                 "label": "basePair",
-                "type": "t_contract(Pair)4306",
+                "type": "t_contract(Pair)4311",
                 "offset": 0,
                 "slot": "5"
               }
@@ -17749,7 +17749,7 @@
               "contract": "Pair",
               "label": "deposits",
               "type": "t_uint256",
-              "src": "contracts/pair/Pair.sol:60",
+              "src": "contracts/pair/Pair.sol:30",
               "offset": 0,
               "slot": "0"
             },
@@ -17757,7 +17757,7 @@
               "contract": "Pair",
               "label": "sales",
               "type": "t_uint256",
-              "src": "contracts/pair/Pair.sol:61",
+              "src": "contracts/pair/Pair.sol:31",
               "offset": 0,
               "slot": "1"
             },
@@ -17765,7 +17765,7 @@
               "contract": "Pair",
               "label": "depValuePerShare",
               "type": "t_uint256",
-              "src": "contracts/pair/Pair.sol:62",
+              "src": "contracts/pair/Pair.sol:32",
               "offset": 0,
               "slot": "2"
             },
@@ -17773,7 +17773,7 @@
               "contract": "Pair",
               "label": "lpSupply",
               "type": "t_uint256",
-              "src": "contracts/pair/Pair.sol:63",
+              "src": "contracts/pair/Pair.sol:33",
               "offset": 0,
               "slot": "3"
             },
@@ -17781,15 +17781,15 @@
               "contract": "Pair",
               "label": "tradeToken",
               "type": "t_address",
-              "src": "contracts/pair/Pair.sol:64",
+              "src": "contracts/pair/Pair.sol:34",
               "offset": 0,
               "slot": "4"
             },
             {
               "contract": "Pair",
               "label": "basePair",
-              "type": "t_contract(Pair)4306",
-              "src": "contracts/pair/Pair.sol:65",
+              "type": "t_contract(Pair)4311",
+              "src": "contracts/pair/Pair.sol:35",
               "offset": 0,
               "slot": "5"
             }
@@ -17825,7 +17825,9 @@
         }
       },
       "allAddresses": [
-        "0xE8B971AA81C056E8C862e7941f92636B4d5fe7cF"
+        "0xE8B971AA81C056E8C862e7941f92636B4d5fe7cF",
+        "0x8EA4Bb9e11E41B6Da0132644360954faF3B7CBd6",
+        "0x3e579d7ABE2876e6e9BBb1422e7168E108EcEaad"
       ]
     },
     "6f7816e9173be7b9bd9014885753e9b879eadc3bd4284a5e058fbda38688be35": {
@@ -17842,7 +17844,7 @@
             "label": "bool",
             "numberOfBytes": "1"
           },
-          "t_contract(Pair)4306": {
+          "t_contract(Pair)4311": {
             "label": "contract Pair",
             "numberOfBytes": "20"
           },
@@ -17864,7 +17866,7 @@
             ],
             "numberOfBytes": "32"
           },
-          "t_struct(MainStorage)4066_storage": {
+          "t_struct(MainStorage)4071_storage": {
             "label": "struct Pair.MainStorage",
             "members": [
               {
@@ -17899,7 +17901,7 @@
               },
               {
                 "label": "basePair",
-                "type": "t_contract(Pair)4306",
+                "type": "t_contract(Pair)4311",
                 "offset": 0,
                 "slot": "5"
               }
@@ -17933,7 +17935,7 @@
               "contract": "Pair",
               "label": "deposits",
               "type": "t_uint256",
-              "src": "contracts/pair/Pair.sol:60",
+              "src": "contracts/pair/Pair.sol:30",
               "offset": 0,
               "slot": "0"
             },
@@ -17941,7 +17943,7 @@
               "contract": "Pair",
               "label": "sales",
               "type": "t_uint256",
-              "src": "contracts/pair/Pair.sol:61",
+              "src": "contracts/pair/Pair.sol:31",
               "offset": 0,
               "slot": "1"
             },
@@ -17949,7 +17951,7 @@
               "contract": "Pair",
               "label": "depValuePerShare",
               "type": "t_uint256",
-              "src": "contracts/pair/Pair.sol:62",
+              "src": "contracts/pair/Pair.sol:32",
               "offset": 0,
               "slot": "2"
             },
@@ -17957,7 +17959,7 @@
               "contract": "Pair",
               "label": "lpSupply",
               "type": "t_uint256",
-              "src": "contracts/pair/Pair.sol:63",
+              "src": "contracts/pair/Pair.sol:33",
               "offset": 0,
               "slot": "3"
             },
@@ -17965,15 +17967,15 @@
               "contract": "Pair",
               "label": "tradeToken",
               "type": "t_address",
-              "src": "contracts/pair/Pair.sol:64",
+              "src": "contracts/pair/Pair.sol:34",
               "offset": 0,
               "slot": "4"
             },
             {
               "contract": "Pair",
               "label": "basePair",
-              "type": "t_contract(Pair)4306",
-              "src": "contracts/pair/Pair.sol:65",
+              "type": "t_contract(Pair)4311",
+              "src": "contracts/pair/Pair.sol:35",
               "offset": 0,
               "slot": "5"
             }
@@ -18009,7 +18011,9 @@
         }
       },
       "allAddresses": [
-        "0x12D33965337cCAF792dCd1EaD744A947093a51d0"
+        "0x12D33965337cCAF792dCd1EaD744A947093a51d0",
+        "0xbCb42466f4Da42a142f31A21094ec98b32DFB455",
+        "0xD00CA5BC23576f1A2Eae8A9525ef1B9987b7D3C2"
       ]
     },
     "08c1ef7072927a534918d55ff4de1d4b3b379c086bd675ef6bc88d07f464c2c5": {
@@ -18026,7 +18030,7 @@
             "label": "bool",
             "numberOfBytes": "1"
           },
-          "t_contract(Pair)4306": {
+          "t_contract(Pair)4311": {
             "label": "contract Pair",
             "numberOfBytes": "20"
           },
@@ -18048,7 +18052,7 @@
             ],
             "numberOfBytes": "32"
           },
-          "t_struct(MainStorage)4066_storage": {
+          "t_struct(MainStorage)4071_storage": {
             "label": "struct Pair.MainStorage",
             "members": [
               {
@@ -18083,7 +18087,7 @@
               },
               {
                 "label": "basePair",
-                "type": "t_contract(Pair)4306",
+                "type": "t_contract(Pair)4311",
                 "offset": 0,
                 "slot": "5"
               }
@@ -18117,7 +18121,7 @@
               "contract": "Pair",
               "label": "deposits",
               "type": "t_uint256",
-              "src": "contracts/pair/Pair.sol:60",
+              "src": "contracts/pair/Pair.sol:30",
               "offset": 0,
               "slot": "0"
             },
@@ -18125,7 +18129,7 @@
               "contract": "Pair",
               "label": "sales",
               "type": "t_uint256",
-              "src": "contracts/pair/Pair.sol:61",
+              "src": "contracts/pair/Pair.sol:31",
               "offset": 0,
               "slot": "1"
             },
@@ -18133,7 +18137,7 @@
               "contract": "Pair",
               "label": "depValuePerShare",
               "type": "t_uint256",
-              "src": "contracts/pair/Pair.sol:62",
+              "src": "contracts/pair/Pair.sol:32",
               "offset": 0,
               "slot": "2"
             },
@@ -18141,7 +18145,7 @@
               "contract": "Pair",
               "label": "lpSupply",
               "type": "t_uint256",
-              "src": "contracts/pair/Pair.sol:63",
+              "src": "contracts/pair/Pair.sol:33",
               "offset": 0,
               "slot": "3"
             },
@@ -18149,15 +18153,15 @@
               "contract": "Pair",
               "label": "tradeToken",
               "type": "t_address",
-              "src": "contracts/pair/Pair.sol:64",
+              "src": "contracts/pair/Pair.sol:34",
               "offset": 0,
               "slot": "4"
             },
             {
               "contract": "Pair",
               "label": "basePair",
-              "type": "t_contract(Pair)4306",
-              "src": "contracts/pair/Pair.sol:65",
+              "type": "t_contract(Pair)4311",
+              "src": "contracts/pair/Pair.sol:35",
               "offset": 0,
               "slot": "5"
             }
@@ -18193,7 +18197,9 @@
         }
       },
       "allAddresses": [
-        "0xCe48F7C8eBf2a200a8Af58082E843139952b9677"
+        "0xCe48F7C8eBf2a200a8Af58082E843139952b9677",
+        "0x505a751566a6C1B06b4C23612BC6b5DD5910F9C0",
+        "0xE2D782C34b7F8CA04f1A69F86cBaD456b350cdb5"
       ]
     },
     "b22c5467d3f5c400376cdeeae1ff508804fbade2e51473ae42e5d13761c5d9de": {
