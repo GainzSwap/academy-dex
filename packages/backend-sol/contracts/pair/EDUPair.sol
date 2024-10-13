@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-import { Pair, TokenPayment, AddLiquidityContext } from "./Pair.sol";
-import { WEDU } from "../common/libs/WEDU.sol";
+import { Pair } from "./Pair.sol";
 import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 /// @title EDUPair

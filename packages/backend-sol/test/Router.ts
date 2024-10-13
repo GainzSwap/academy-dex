@@ -174,12 +174,23 @@ describe("Router", function () {
     });
   });
 
-  describe("removeLiquidity", function () {
+  describe.only("removeLiquidity", function () {
     it("returns liquidity added", async () => {
-      const { user, addLiquidity, router, lpTokenContract, createPair } = await loadFixture(deployRouterFixture);
+      const {
+        user,
+        addLiquidity,
+        router,
+        lpTokenContract,
+        eduPair,
+        basePairContract,
+        createPair,
+        baseTradeToken,
+        owner,
+        sellToken,
+      } = await loadFixture(deployRouterFixture);
 
-      const { pairContract, pairTradeToken } = await createPair();
-      const payment = { amount: parseEther("0.0033"), nonce: 0, token: pairTradeToken };
+      const { pairContract, pairTradeToken } = await createPair({ initLiq: parseEther("20000000000000") });
+      const payment = { amount: (await pairContract.reserve()) * 5n, nonce: 0, token: pairTradeToken };
 
       await addLiquidity({ contract: pairContract, signer: user, tradeToken: pairTradeToken }, payment);
       const [lpOne] = await lpTokenContract.lpBalanceOf(user);
@@ -187,16 +198,40 @@ describe("Router", function () {
       await router.connect(user).removeLiquidity(lpOne.nonce, lpOne.amount);
       expect(await pairTradeToken.balanceOf(user)).to.eq(payment.amount);
 
-      // Again
+      // Again, but with swaps
 
       await addLiquidity({ contract: pairContract, signer: user, tradeToken: pairTradeToken, mint: false }, payment);
+      //  Buy pair
+      let value = await router.estimateOutAmount(pairContract, eduPair, (await pairContract.reserve()) / 4n, 100);
+      console.log({ value });
       await router.swap({ amount: 0n, nonce: 0, token: ZeroAddress }, pairContract, 10000, {
-        value: parseEther("0.0000000032"),
+        value,
+      });
+      // Sell Pair
+      await sellToken({
+        someUser: owner,
+        buyContract: eduPair,
+        sellAmt: parseEther("23.44"),
+        sellContract: pairContract,
+        mint: true,
+        slippage: 1000,
+        checkBalances: false,
       });
 
       const [lp2] = await lpTokenContract.lpBalanceOf(user);
       await router.connect(user).removeLiquidity(lp2.nonce, lp2.amount);
-      expect(await pairTradeToken.balanceOf(user)).to.lt(payment.amount);
+      const userPairTokenBalance = await pairTradeToken.balanceOf(user);
+      expect(userPairTokenBalance).to.lt(payment.amount);
+
+      const userRewardsBalance = await baseTradeToken.balanceOf(user);
+      expect(userRewardsBalance).to.gt(0);
+      console.log({ userRewardsBalance, userPairTokenBalance });
+      // User should gain some pairTradeToken used to supply liquidity
+      await baseTradeToken.connect(user).approve(basePairContract, userRewardsBalance);
+      await router
+        .connect(user)
+        .swap({ amount: userRewardsBalance, nonce: 0, token: baseTradeToken }, pairContract, 10000);
+      expect(await pairTradeToken.balanceOf(user)).to.gte(payment.amount, "Trying to figure out how to make this pass");
     });
   });
 

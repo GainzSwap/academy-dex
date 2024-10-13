@@ -273,7 +273,6 @@ contract Pair is KnowablePair {
 			inTokenReserve,
 			outTokenReserve
 		);
-		require(outTokenReserve > amountOutMin, "Pair: not enough reserve");
 
 		uint256 amountOut = 0;
 		{
@@ -395,6 +394,70 @@ contract Pair is KnowablePair {
 		emit LiquidityAdded(from, wholePayment.amount, liqAdded);
 	}
 
+	function _removeLiq(
+		MainStorage storage $,
+		LpToken.LpBalance memory liquidity,
+		uint256 liqToRemove
+	) internal returns (uint256 depositClaimed) {
+		// Calculate the total deposit that can be claimed based on the updated depValuePerShare
+		uint256 totalDepositClaimed = (liquidity.amount * reserve()) /
+			$.lpSupply;
+
+		// Calculate the deposit to be claimed based on the liquidity being removed
+		depositClaimed = (liqToRemove * totalDepositClaimed) / liquidity.amount;
+		_takeFromReserve(depositClaimed);
+	}
+
+	// function _removeLiq(
+	// 	MainStorage storage $,
+	// 	LpToken.LpBalance memory liquidity,
+	// 	uint256 liqToRemove
+	// ) internal virtual returns (uint256 depositClaimed) {
+	// 	uint256 availDeposits = $.deposits;
+	// 	uint256 depositsAtLiq = (liquidity.attributes.depValuePerShare *
+	// 		$.lpSupply) / RPS_DIVISION_CONSTANT;
+	// 	uint256 depositsAtGlobal = ($.depValuePerShare * $.lpSupply) /
+	// 		RPS_DIVISION_CONSTANT;
+
+	// 	console.log("\n availDeposits    ", availDeposits);
+	// 	console.log("depositsAtLiq      ", depositsAtLiq);
+	// 	console.log("depositsAtGlobal   ", depositsAtGlobal); // if ($.depValuePerShare < liquidity.attributes.depValuePerShare) {
+	// 	// 	uint256 depositsAtLiqDelta = (($.depValuePerShare) * liquidity.amount) /
+	// 	// 		RPS_DIVISION_CONSTANT;
+	// 	// 	console.log("depositsAtLiqDelta ", depositsAtLiqDelta);
+
+	// 	// 	if (depositsAtLiqDelta < availDeposits) {
+	// 	// 		availDeposits -= depositsAtLiqDelta;
+	// 	// 	} else {
+	// 	// 		availDeposits = 0;
+	// 	// 	}
+	// 	// }
+
+	// 	// Calculate the total deposit that can be claimed based on the updated depValuePerShare
+	// 	// uint256 computedDepositsLeft = $.deposits;
+	// 	if ($.depValuePerShare < liquidity.attributes.depValuePerShare) {
+	// 		uint256 depositsDeduction = ((liquidity
+	// 			.attributes
+	// 			.depValuePerShare - $.depValuePerShare) * $.lpSupply) /
+	// 			RPS_DIVISION_CONSTANT;
+
+	// 		console.log("depositsDeduction       ", depositsDeduction);
+	// 		// 	console.log("computedDepositsLeft    ", computedDepositsLeft);
+	// 		// 	computedDepositsLeft = depositsDeduction;
+	// 		// 	// require(
+	// 		// 	// 	depositsDeduction <= totalDeposits,
+	// 		// 	// 	"Pair: depositsDeductions too large"
+	// 		// 	// );
+	// 		// 	// totalDeposits = depositsDeduction;
+	// 	}
+	// 	uint256 totalDeposits = (liquidity.amount * availDeposits) / $.lpSupply;
+
+	// 	// Calculate the deposit to be claimed based on the liquidity being removed
+	// 	depositClaimed = (liqToRemove * totalDeposits) / liquidity.amount;
+	// 	console.log("depositClaimed", depositClaimed);
+	// 	_takeFromDeposits(depositClaimed);
+	// }
+
 	/**
 	 * @notice Removes liquidity from the pool and claims the corresponding deposit.
 	 * @dev This function updates the LP's liquidity balance and claims a proportionate amount of the deposit.
@@ -421,39 +484,11 @@ contract Pair is KnowablePair {
 			"Pair: Invalid liquidity removal amount"
 		);
 
-		// Calculate the total deposit that can be claimed based on the updated depValuePerShare
-		uint256 totalDepositClaimed = 0;
-		if (liquidity.attributes.depValuePerShare < $.depValuePerShare) {
-			totalDepositClaimed =
-				(($.depValuePerShare - liquidity.attributes.depValuePerShare) *
-					liquidity.amount) /
-				RPS_DIVISION_CONSTANT;
-		} else {
-			totalDepositClaimed = (liquidity.amount * $.deposits) / $.lpSupply;
-		}
-
-		// Update the global deposits after claiming
-		_takeFromDeposits(totalDepositClaimed);
+		depositClaimed = _removeLiq($, liquidity, liqToRemove);
 
 		// Reduce global lpSupply by the LP's total liquidity amount
-		$.lpSupply -= liquidity.amount;
-
-		// Update the LP's deposit value per share to the current depValuePerShare
-		liquidity.attributes.depValuePerShare = $.depValuePerShare;
-
-		// Calculate the deposit to be claimed based on the liquidity being removed
-		depositClaimed = (liqToRemove * totalDepositClaimed) / liquidity.amount;
+		$.lpSupply -= liqToRemove;
 		liquidity.amount -= liqToRemove;
-
-		// If there is remaining liquidity, update the pool with the remaining deposit and liquidity
-		if (liquidity.amount > 0) {
-			_insertLiqValues(
-				AddLiquidityContext({
-					deposit: totalDepositClaimed - depositClaimed,
-					liq: liquidity.amount
-				})
-			);
-		}
 
 		// Transfer the claimed deposit to the `from` address
 		if (depositClaimed > 0) {

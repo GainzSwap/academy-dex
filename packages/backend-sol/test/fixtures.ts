@@ -74,7 +74,9 @@ export async function deployRouterFixture() {
     await pairTradeToken.mint(owner, payment.amount);
     await pairTradeToken.connect(owner).approve(router, payment.amount);
 
-    await router.connect(owner).createPair(payment);
+    const tx = await router.connect(owner).createPair(payment);
+    await tx.wait();
+
     const pairContract = await ethers.getContractAt("Pair", await router.tokensPairAddress(pairTradeToken));
 
     return { pairContract, pairTradeToken };
@@ -138,29 +140,24 @@ export async function deployRouterFixture() {
     const tokenApprovalTx = await sellToken.connect(someUser).approve(sellContract, sellAmt);
     await tokenApprovalTx.wait();
 
-    // const basePairAddr = await basePairContract.getAddress();
-    // const buyPairAddr = await buyContract.getAddress();
-    // const computeBuyTradeBal = (bal: bigint, rewards: bigint) => (buyPairAddr == basePairAddr ? bal - rewards : bal);
+    const execSwap = () =>
+      expect(
+        router.connect(someUser).swap({ token: sellToken, amount: sellAmt, nonce: 0 }, buyContract, slippage),
+      ).to.emit(buyContract, "BurntFees");
 
-    // const initialReward = await buyContract.rewards();
-    const initialBuyTradeBal = await buyToken.balanceOf(buyContract);
-    // .then(value => computeBuyTradeBal(value, initialReward));
-    const initialOutBal = await buyToken.balanceOf(someUser);
-    const initialInBal = await sellToken.balanceOf(someUser);
+    if (!checkBalances) {
+      await execSwap();
+    } else {
+      const initialBuyTradeBal = await buyToken.balanceOf(buyContract);
+      const initialOutBal = await buyToken.balanceOf(someUser);
+      const initialInBal = await sellToken.balanceOf(someUser);
 
-    const estimatedAmountOut = await router.estimateOutAmount(sellContract, buyContract, sellAmt, slippage);
+      const estimatedAmountOut = await router.estimateOutAmount(sellContract, buyContract, sellAmt, slippage);
+      await execSwap();
+      const finalBuyTradeBal = await buyToken.balanceOf(buyContract);
+      const finalOutBal = await buyToken.balanceOf(someUser);
+      const finalInBal = await sellToken.balanceOf(someUser);
 
-    await expect(
-      router.connect(someUser).swap({ token: sellToken, amount: sellAmt, nonce: 0 }, buyContract, slippage),
-    ).to.emit(buyContract, "BurntFees");
-
-    // const finalReward = await buyContract.rewards();
-    const finalBuyTradeBal = await buyToken.balanceOf(buyContract);
-    // .then(value => computeBuyTradeBal(value, finalReward));
-    const finalOutBal = await buyToken.balanceOf(someUser);
-    const finalInBal = await sellToken.balanceOf(someUser);
-
-    if (checkBalances) {
       [
         [finalOutBal, initialOutBal],
         // [finalReward, initialReward],

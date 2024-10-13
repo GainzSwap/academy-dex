@@ -199,20 +199,25 @@ contract Router is
 		(uint256 startTimestamp, uint256 endTimestamp) = $
 			.epochs
 			.epochEdgeTimestamps(epoch);
-		require(
-			currentTimestamp <= endTimestamp && lastTimestamp < endTimestamp,
-			"Router._computeEdgeEmissions: Invalid timestamps"
-		);
 
-		uint256 upperBoundTime = currentTimestamp;
+		uint256 upperBoundTime = 0;
 		uint256 lowerBoundTime = 0;
 
-		if (startTimestamp <= lastTimestamp) {
-			lowerBoundTime = lastTimestamp;
-		} else if (
-			lastTimestamp < startTimestamp && startTimestamp < currentTimestamp
+		if (
+			startTimestamp <= currentTimestamp &&
+			currentTimestamp <= endTimestamp
 		) {
-			lowerBoundTime = startTimestamp;
+			upperBoundTime = currentTimestamp;
+			lowerBoundTime = lastTimestamp <= startTimestamp
+				? startTimestamp
+				: lastTimestamp;
+		} else if (
+			startTimestamp <= lastTimestamp && lastTimestamp <= endTimestamp
+		) {
+			upperBoundTime = currentTimestamp <= endTimestamp
+				? currentTimestamp
+				: endTimestamp;
+			lowerBoundTime = lastTimestamp;
 		} else {
 			revert("Router._computeEdgeEmissions: Invalid timestamps");
 		}
