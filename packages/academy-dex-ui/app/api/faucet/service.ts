@@ -116,17 +116,14 @@ export async function valueFor({
 
   let entry = await FaucetEntry.findOneBy({ ipAddress });
   if (!entry) {
-    entry = await sendSeed({ entry, address, chainId, ipAddress });
-  }
-
-  if (!entry) {
-    throw new Error("Faucet entry not created for " + address);
+    // save the entry so we will not send again
+    entry = await FaucetEntry.save(new FaucetEntry({ ipAddress }), true);
   }
 
   const maxClaim = parseEther(BigNumber(config.maxClaim).toFixed());
   const Router = deployedContracts[chainId].Router;
   const wagmiConfig = wagmiConfigServer(chainId);
-  
+
   const totalDirectReferred = (
     await readContract(wagmiConfig, {
       abi: Router.abi,
