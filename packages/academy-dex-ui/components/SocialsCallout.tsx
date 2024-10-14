@@ -37,12 +37,7 @@ export const checkShouldShowSocialsCallout = () => {
     }
 
     checkPoints.splice(0, 1);
-    if (clickCount >= 55) {
-      checkPoints = initialCheckPoints;
-      clickCount = 1;
-    } else {
-      checkPoints = [nextCheckPoint, checkPointCache, nextCheckPoint + checkPointCache];
-    }
+    checkPoints = [nextCheckPoint, checkPointCache, nextCheckPoint + checkPointCache];
   }
   setItem({ key: "socialsTxButtonClickCount", data: { clickCount, lastSocialCallout, checkPoints } });
 
