@@ -1,4 +1,3 @@
-import { ChainID, wagmiConfigServer } from "../bot/service";
 import { faucetConfig } from "../constants";
 import { getBlock, getTransactionCount, readContract, sendTransaction, writeContract } from "@wagmi/core";
 import BigNumber from "bignumber.js";
@@ -6,6 +5,7 @@ import { erc20Abi, parseEther } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import deployedContracts from "~~/contracts/deployedContracts";
 import { FaucetEntry } from "~~/drizzle/schema/models/FaucetEntry";
+import { ChainID, wagmiConfigServer } from "../helpers";
 
 const config = faucetConfig;
 const minClaim = parseEther(BigNumber(config.minClaim).toFixed());

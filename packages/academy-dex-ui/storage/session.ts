@@ -1,11 +1,14 @@
 import { getUnixTimestamp, getUnixTimestampWithAddedSeconds } from "~~/utils";
 
-export type SocialsTxButtonClickCountType = { clickCount: number; checkPoints: number[]; lastSocialCallout: "x" | "tg" };
+export type SocialsTxButtonClickCountType = {
+  clickCount: number;
+  checkPoints: number[];
+  lastSocialCallout: "x" | "tg";
+};
 export type SessionKeyData =
   | { key: "userRefBy"; data: string }
   | { key: "socialsTxButtonClickCount"; data: SocialsTxButtonClickCountType }
-  | { key: "SLIPPAGE_ADJUSTMENT"; data: number }
-  | { key: "tgLinkage"; data: string };
+  | { key: "SLIPPAGE_ADJUSTMENT"; data: number };
 
 export const setItem = ({ key, data }: SessionKeyData, secondsToExipre: number = 3600) => {
   const expires = getUnixTimestampWithAddedSeconds(secondsToExipre);

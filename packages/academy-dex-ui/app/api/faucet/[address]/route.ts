@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ChainID } from "../../bot/service";
 import * as faucet from "../service";
 import { errorMsg } from "~~/components/TransactionWaitingIcon/helpers";
+import { ChainID } from "../../helpers";
 
 export async function GET(req: NextRequest, { params: { address } }: { params: { address: string } }) {
   const searchParams = req.nextUrl.searchParams;
