@@ -10,4 +10,8 @@ import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/trans
 contract EDUPair is Pair {
 	/// @notice Fallback function to handle incoming EDU payments.
 	receive() external payable {}
+
+	function version() external pure returns (uint256) {
+		return 2;
+	}
 }

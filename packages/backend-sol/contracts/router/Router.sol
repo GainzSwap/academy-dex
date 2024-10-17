@@ -13,6 +13,8 @@ import "../pair/BasePair.sol";
 
 import "./User.sol";
 
+import "hardhat/console.sol";
+
 import { LpToken } from "../modules/LpToken.sol";
 import { ADEX } from "../ADexToken/ADEX.sol";
 import { ADexInfo } from "../ADexToken/AdexInfo.sol";
@@ -230,18 +232,7 @@ contract Router is
 			);
 	}
 
-	function _generateRewards(
-		PairData memory data
-	)
-		internal
-		view
-		returns (PairData memory newPairData, GlobalData memory newGlobalData)
-	{
-		newGlobalData = _generateGlobalRewards();
-		newPairData = _generatePairReward(data, newGlobalData);
-	}
-
-	function _generateGlobalRewards()
+	function _generateTaxRewards()
 		private
 		view
 		returns (GlobalData memory newGlobalData)
@@ -284,61 +275,24 @@ contract Router is
 				);
 			}
 
-			// Tax is set at 7.5%, this can be changed by governance
-			uint256 taxRewards = (generatedRewards * 7_5) / 100_0;
-			generatedRewards -= taxRewards;
-
-			uint256 rpsIncrease = (generatedRewards *
-				REWARDS_DIVISION_CONSTANT) / globalData.totalTradeVolume;
-
 			newGlobalData.lastTimestamp = currentTimestamp;
-			newGlobalData.rewardsPerShare += rpsIncrease;
-			newGlobalData.rewardsReserve += generatedRewards;
-			newGlobalData.taxRewards += taxRewards;
+			newGlobalData.taxRewards += generatedRewards;
 		}
 	}
 
 	function _generatePairReward(
-		PairData memory data,
-		GlobalData memory globalData_
-	) private pure returns (PairData memory newPairData) {
-		newPairData = data;
-		if (newPairData.tradeRewardsPershare < globalData_.rewardsPerShare) {
-			if (newPairData.buyVolume > 0 && newPairData.totalLiq > 0) {
-				// compute reward
-				uint256 computedReward = ((globalData_.rewardsPerShare -
-					newPairData.tradeRewardsPershare) * newPairData.buyVolume) /
-					REWARDS_DIVISION_CONSTANT;
-				// FIXME computedReward gets higher than globalData_.rewardsReserve when new pair is added after a long time
-				// Transfer rewards
-				globalData_.rewardsReserve -= computedReward;
-				newPairData.rewardsReserve += computedReward;
+		PairData storage pairData,
+		uint256 tradeVolume
+	) private {
+		if (pairData.totalLiq > 0) {
+			pairData.rewardsReserve += tradeVolume;
 
-				uint256 rpsIncrease = (computedReward *
-					REWARDS_DIVISION_CONSTANT) / newPairData.totalLiq;
-				newPairData.lpRewardsPershare += rpsIncrease;
-			}
+			uint256 rpsIncrease = (tradeVolume * REWARDS_DIVISION_CONSTANT) /
+				pairData.totalLiq;
 
-			newPairData.tradeRewardsPershare = globalData_.rewardsPerShare;
+			pairData.lpRewardsPershare += rpsIncrease;
 		}
-	}
-
-	function _computeRewardsClaimable(
-		LpToken.LpBalance memory balance
-	)
-		internal
-		view
-		returns (
-			uint256 claimable,
-			PairData memory pairData,
-			GlobalData memory newGlobalData,
-			LpToken.LpAttributes memory newAttr
-		)
-	{
-		(pairData, newGlobalData) = _generateRewards(
-			_getPairData(balance.attributes.pair)
-		);
-		(claimable, newAttr) = _computeLpClaimable(pairData, balance);
+		pairData.buyVolume += tradeVolume;
 	}
 
 	function _computeLpClaimable(
@@ -390,24 +344,6 @@ contract Router is
 
 		$.globalData = newGlobalData;
 		_sendTaxRewards();
-	}
-
-	function _updatePairData(
-		PairData storage pairData,
-		PairData memory newPairData
-	) private {
-		pairData.lpRewardsPershare = newPairData.lpRewardsPershare;
-		pairData.rewardsReserve = newPairData.rewardsReserve;
-		pairData.tradeRewardsPershare = newPairData.tradeRewardsPershare;
-	}
-
-	function _runUpdatesAfterRewardsGenerated(
-		PairData storage pairData,
-		PairData memory newPairData,
-		GlobalData memory newGlobalData
-	) internal {
-		_updatePairData(pairData, newPairData);
-		_updateGlobalData(newGlobalData);
 	}
 
 	modifier canCreatePair() {
@@ -468,7 +404,7 @@ contract Router is
 
 		require(msg.sender == address($.governance), "Router: Not allowed");
 
-		_updateGlobalData(_generateGlobalRewards());
+		_updateGlobalData(_generateTaxRewards());
 	}
 
 	/**
@@ -559,20 +495,13 @@ contract Router is
 		require(pairAddress != address(0), "Router: Invalid pair address");
 		require(wholePayment.amount > 0, "Router: Invalid liquidity payment");
 
-		PairData storage pairData = $.pairsData[pairAddress];
-		(
-			PairData memory newPairData,
-			GlobalData memory newGlobalData
-		) = _generateRewards(pairData);
-		_runUpdatesAfterRewardsGenerated(pairData, newPairData, newGlobalData);
-
-		(uint256 liqAdded, uint256 depValuePerShare) = Pair(pairAddress)
-			.addLiquidity(wholePayment, caller);
+		uint256 liqAdded = Pair(pairAddress).addLiquidity(wholePayment, caller);
 
 		// Upadte liquidity data to be used for other computations like fee
 		$.globalData.totalLiq += liqAdded;
 
 		// Update pairData
+		PairData storage pairData = $.pairsData[pairAddress];
 		pairData.totalLiq += liqAdded;
 
 		return
@@ -581,63 +510,9 @@ contract Router is
 				liqAdded,
 				pairAddress,
 				tokenAddress,
-				caller,
-				depValuePerShare
+				caller
 			);
 	}
-
-	// function claimRewards(
-	// 	uint256[] memory nonces
-	// ) external returns (uint256 totalClaimed, uint256[] memory newNonces) {
-	// 	RouterStorage storage $ = _getRouterStorage();
-
-	// 	address user = msg.sender;
-	// 	newNonces = nonces;
-
-	// 	_updateGlobalData(_generateGlobalRewards());
-
-	// 	// Claim from max of 10 lp tokens at a time
-	// 	uint256 totalToClaim = nonces.length < 10 ? nonces.length : 10;
-	// 	for (uint256 i = 0; i < totalToClaim; i++) {
-	// 		LpToken.LpBalance memory balance = $.lpToken.getBalanceAt(
-	// 			user,
-	// 			nonces[i]
-	// 		);
-
-	// 		PairData storage pairData = $.pairsData[balance.attributes.pair];
-	// 		PairData memory newPairData = _generatePairReward(
-	// 			pairData,
-	// 			$.globalData
-	// 		);
-	// 		(
-	// 			uint256 claimable,
-	// 			LpToken.LpAttributes memory newAttr
-	// 		) = _computeLpClaimable(newPairData, balance);
-	// 		_updatePairData(pairData, newPairData);
-
-	// 		// Claim the rewards if available
-	// 		if (claimable > 0) {
-	// 			totalClaimed += claimable;
-
-	// 			// Update LP attributes and data
-	// 			uint256 newNonce = $.lpToken.update(
-	// 				user,
-	// 				balance.nonce,
-	// 				balance.amount,
-	// 				abi.encode(newAttr)
-	// 			);
-	// 			newNonces[i] = newNonce;
-	// 		}
-	// 	}
-
-	// 	if (totalClaimed > 0) {
-	// 		// Transfer the claimed rewards to the user
-	// 		require(
-	// 			IERC20($.adexTokenAddress).transfer(user, totalClaimed),
-	// 			"Reward transfer failed"
-	// 		);
-	// 	}
-	// }
 
 	/**
 	 * @notice Removes liquidity from a pair and claims the corresponding rewards.
@@ -666,14 +541,11 @@ contract Router is
 		// Compute rewards claimable before removing liquidity
 		(
 			uint256 claimable,
-			PairData memory newPairData,
-			GlobalData memory newGlobalData,
 			LpToken.LpAttributes memory newAttr
-		) = _computeRewardsClaimable(liquidity);
+		) = _computeLpClaimable(pairData, liquidity);
 
 		// Update liquidity attributes and pair/global data after computing rewards
 		liquidity.attributes = newAttr;
-		_runUpdatesAfterRewardsGenerated(pairData, newPairData, newGlobalData);
 
 		// Remove liquidity and get the amount of trade tokens claimed
 		Pair pair = Pair(pairAddr);
@@ -697,11 +569,9 @@ contract Router is
 		$.globalData.totalLiq -= liqRemoval;
 
 		// Transfer rewards if any are claimable
+		console.log("claimable", claimable);
 		if (claimable > 0) {
-			require(
-				IERC20($.adexTokenAddress).transfer(msg.sender, claimable),
-				"Reward transfer failed"
-			);
+			ADEX($.adexTokenAddress).increaseSupply(msg.sender, claimable);
 		}
 
 		// Emit event for liquidity removal
@@ -722,7 +592,12 @@ contract Router is
 		LpToken.LpBalance[] memory balances = $.lpToken.lpBalanceOf(user);
 
 		for (uint256 i = 0; i < balances.length; i++) {
-			(uint256 claimable, , , ) = _computeRewardsClaimable(balances[i]);
+			LpToken.LpBalance memory balance = balances[i];
+
+			(uint256 claimable, ) = _computeLpClaimable(
+				$.pairsData[balance.attributes.pair],
+				balance
+			);
 			totalClaimable += claimable;
 		}
 	}
@@ -734,7 +609,10 @@ contract Router is
 		RouterStorage storage $ = _getRouterStorage();
 		LpToken.LpBalance memory balance = $.lpToken.getBalanceAt(user, nonce);
 
-		(claimable, , , ) = _computeRewardsClaimable(balance);
+		(claimable, ) = _computeLpClaimable(
+			$.pairsData[balance.attributes.pair],
+			balance
+		);
 	}
 
 	function registerAndSwap(
@@ -754,10 +632,10 @@ contract Router is
 		Pair outPair,
 		uint256 slippage,
 		uint256 tradeVolume
-	) private returns (uint256 feeBurnt) {
+	) private returns (uint256 feeBurnt, uint256 soldAmount) {
 		(, address referrer) = getReferrer(swapExecutor);
 
-		feeBurnt = Pair(inPairAddr).sell(
+		(feeBurnt, soldAmount) = Pair(inPairAddr).sell(
 			swapExecutor,
 			referrer,
 			inPayment,
@@ -788,11 +666,7 @@ contract Router is
 		require($.pairs.contains(inPairAddr), "Router: Input pair not found");
 		require($.pairs.contains(outPairAddr), "Router: Output pair not found");
 
-		_updateGlobalData(_generateGlobalRewards());
-		_updatePairData(
-			$.pairsData[outPairAddr],
-			_generatePairReward($.pairsData[outPairAddr], $.globalData)
-		);
+		_updateGlobalData(_generateTaxRewards());
 
 		Pair outPair = Pair(outPairAddr);
 		Pair inPair = Pair(inPairAddr);
@@ -800,37 +674,46 @@ contract Router is
 		address basePairAddr_ = basePairAddr();
 		Pair basePair = Pair(basePairAddr_);
 
-		uint256 outPairReserve = outPair.reserve();
-		uint256 basePairReserve = basePair.reserve();
-
-		uint256 tradeVolume = Amm.quote(
-			inPayment.amount,
-			inPair.reserve(),
-			basePairReserve
-		);
-
 		{
-			uint256 feeBurnt = _executeSwap(
+			uint256 tradeAmt = Amm.getAmountOut(
+				inPayment.amount,
+				inPair.reserve(),
+				basePair.reserve()
+			);
+
+			(uint256 feeBurnt, uint256 soldAmount) = _executeSwap(
 				msg.sender,
 				inPayment,
 				inPairAddr,
 				outPair,
 				slippage,
-				tradeVolume
+				tradeAmt
 			);
-			uint256 feeCollected = Amm.quote(
-				feeBurnt,
-				outPairReserve,
-				basePairReserve
+
+			(uint256 tradeVolume, uint256 feeCollected) = _computeTradeVolume(
+				soldAmount,
+				outPair.reserve(),
+				basePair.reserve(),
+				feeBurnt
 			);
-			tradeVolume -= feeCollected;
 
 			// Update reward computation data
 			$.pairsData[inPairAddr].sellVolume += tradeVolume;
-			$.pairsData[outPairAddr].buyVolume += tradeVolume;
-			$.pairsData[basePairAddr_].buyVolume += feeCollected;
+			_generatePairReward($.pairsData[outPairAddr], tradeVolume);
+			_generatePairReward($.pairsData[basePairAddr_], feeCollected);
 			$.globalData.totalTradeVolume += tradeVolume + feeCollected;
 		}
+	}
+
+	function _computeTradeVolume(
+		uint256 soldAmount,
+		uint256 outPairReserve,
+		uint256 basePairReserve,
+		uint256 feeBurnt
+	) internal pure returns (uint256 tradeVolume, uint256 feeCollected) {
+		tradeVolume = Amm.quote(soldAmount, outPairReserve, basePairReserve);
+		feeCollected = Amm.quote(feeBurnt, outPairReserve, basePairReserve);
+		tradeVolume -= feeCollected;
 	}
 
 	/**
@@ -975,7 +858,10 @@ contract Router is
 				nonces[i]
 			);
 
-			(uint256 claimable, , , ) = _computeRewardsClaimable(balance);
+			(uint256 claimable, ) = _computeLpClaimable(
+				$.pairsData[balance.attributes.pair],
+				balance
+			);
 
 			totalClaimable += claimable;
 		}

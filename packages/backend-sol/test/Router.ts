@@ -174,7 +174,7 @@ describe("Router", function () {
     });
   });
 
-  describe.only("removeLiquidity", function () {
+  describe("removeLiquidity", function () {
     it("returns liquidity added", async () => {
       const {
         user,
@@ -203,7 +203,6 @@ describe("Router", function () {
       await addLiquidity({ contract: pairContract, signer: user, tradeToken: pairTradeToken, mint: false }, payment);
       //  Buy pair
       let value = await router.estimateOutAmount(pairContract, eduPair, (await pairContract.reserve()) / 4n, 100);
-      console.log({ value });
       await router.swap({ amount: 0n, nonce: 0, token: ZeroAddress }, pairContract, 10000, {
         value,
       });
@@ -228,9 +227,11 @@ describe("Router", function () {
       console.log({ userRewardsBalance, userPairTokenBalance });
       // User should gain some pairTradeToken used to supply liquidity
       await baseTradeToken.connect(user).approve(basePairContract, userRewardsBalance);
+      // while ((await baseTradeToken.balanceOf(user)) > 0n) {
       await router
         .connect(user)
         .swap({ amount: userRewardsBalance, nonce: 0, token: baseTradeToken }, pairContract, 10000);
+      // }
       expect(await pairTradeToken.balanceOf(user)).to.gte(payment.amount, "Trying to figure out how to make this pass");
     });
   });
@@ -400,8 +401,8 @@ describe("Router", function () {
       const { pairContract: pair2Contract, pairTradeToken: pair2Token } = await createPair();
 
       // Investors add liquidity to the pairs
-      const investor1PairAmount = parseEther("0.0000534");
-      const investor2PairAmount = parseEther("0.0000453");
+      const investor1PairAmount = parseEther("0.0534");
+      const investor2PairAmount = parseEther("0.0453");
 
       await pair1Token.mint(investor1, investor1PairAmount);
       await addLiquidity(

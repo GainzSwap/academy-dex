@@ -18,6 +18,9 @@ import "./scripts/upgradeLaunchpair";
 import "./scripts/upgradeGovernance";
 import "./scripts/createPair";
 import "./scripts/takeProtocolFees";
+import "./scripts/upgradeADEX";
+import "./scripts/upgradeLPToken";
+import "./scripts/verifyAllContracts";
 
 import "hardhat-contract-sizer";
 import "@openzeppelin/hardhat-upgrades";

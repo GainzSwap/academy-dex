@@ -31,4 +31,18 @@ contract BasePair is Pair {
 	function _setBasePair(address basePairAddr) internal override {
 		// This is the base pair, no action needed
 	}
+
+	function _addToSales(uint256 addition) internal override {
+		MainStorage storage $ = _getMainStorage();
+
+		ADEX adex = ADEX($.tradeToken);
+
+		uint256 excessTokens = adex.extraSupply();
+		if (excessTokens >= addition) {
+			ADEX($.tradeToken).burn(addition);
+		} else {
+			$.sales += addition - excessTokens;
+			ADEX($.tradeToken).burn(excessTokens);
+		}
+	}
 }

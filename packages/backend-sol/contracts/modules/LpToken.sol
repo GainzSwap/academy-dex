@@ -48,8 +48,7 @@ contract LpToken is SFT {
 		uint256 lpAmount,
 		address pair,
 		address tradeToken,
-		address to,
-		uint256 depValuePerShare
+		address to
 	) external onlyOwner returns (uint256) {
 		require(lpAmount > 0, "LpToken: LP Amount must be greater than 0");
 
@@ -58,7 +57,7 @@ contract LpToken is SFT {
 				rewardPerShare: rewardPerShare,
 				pair: pair,
 				tradeToken: tradeToken,
-				depValuePerShare: depValuePerShare
+				depValuePerShare: 0
 			})
 		);
 

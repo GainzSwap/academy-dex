@@ -28,4 +28,12 @@ contract ADEX is
 		// Mint the maximum supply to the contract owner.
 		_mint(owner(), ADexInfo.MAX_SUPPLY);
 	}
+
+	function increaseSupply(address account, uint256 value) external onlyOwner {
+		_mint(account, value);
+	}
+
+	function extraSupply() external view returns (uint256) {
+		return totalSupply() - ADexInfo.MAX_SUPPLY;
+	}
 }

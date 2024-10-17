@@ -24,7 +24,7 @@ describe("Governance Contract", function () {
     await adexToken.waitForDeployment();
 
     // Mint tokens to the user
-    await lpToken.mint(0, 10_000, ZeroAddress, adexToken, user, 0);
+    await lpToken.mint(0, 10_000, ZeroAddress, adexToken, user);
 
     // Deploy the Governance contract
     const GovernanceFactory = await ethers.getContractFactory("Governance", {

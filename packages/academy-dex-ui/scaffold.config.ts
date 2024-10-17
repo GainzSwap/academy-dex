@@ -1,7 +1,7 @@
 import * as chains from "viem/chains";
 
 export type ScaffoldConfig = {
-  targetNetworks: readonly chains.Chain[];
+  targetNetworks: chains.Chain[];
   defaultTargetNetwork: number;
   pollingInterval: number;
   alchemyApiKey: string;
@@ -22,20 +22,9 @@ const scaffoldConfig = {
       },
       testnet: true,
     },
-    {
-      id: 12227332,
-      name: "NeoX T4",
-      nativeCurrency: { decimals: 18, name: "NeoX Coin", symbol: "GAS" },
-      rpcUrls: {
-        default: { http: ["https://neoxt4seed1.ngd.network"], webSocket: ["wss://neoxt4wss1.ngd.network"] },
-        public: { http: ["https://neoxt4seed1.ngd.network"], webSocket: ["wss://neoxt4wss1.ngd.network"] },
-      },
-      blockExplorers: { default: { url: "https://xt4scan.ngd.network/", name: "NEOX Chain explorer" } },
-      testnet: true,
-    },
   ],
 
-  defaultTargetNetwork: Number(process.env.NEXT_PUBLIC_DEFAULT_TARGET_NETWORK ?? 0),
+  defaultTargetNetwork: 0,
 
   // The interval at which your front-end polls the RPC servers for new data
   // it has no effect if you only target the local network (default is 4000)
@@ -56,5 +45,12 @@ const scaffoldConfig = {
   // Only show the Burner Wallet when running on hardhat network
   onlyLocalBurnerWallet: true,
 } as const satisfies ScaffoldConfig;
+
+if (process.env.NEXT_PUBLIC_SHOW_LOCAL_NETWORK) {
+  scaffoldConfig.targetNetworks.unshift({
+    ...chains.hardhat,
+    nativeCurrency: { decimals: 18, name: "EDU Coin", symbol: "dEDU" },
+  } as any);
+}
 
 export default scaffoldConfig;

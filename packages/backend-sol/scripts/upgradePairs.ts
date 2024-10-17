@@ -33,7 +33,7 @@ task("upgradePairs", "Upgrades all pairs, remember to edit script with new facto
   console.log("Upgrading EDUPair proxy...");
   await hre.upgrades.upgradeProxy(eduPairProxy, await eduPairFactory(), { redeployImplementation: "always" });
   console.log("EDUPair upgraded successfully.");
-  
+
   // Upgrade the Beacon with the new implementation of Pair
   console.log("Upgrading Pair beacon...");
   await hre.upgrades.upgradeBeacon(pairBeacon, await pairFactory(), { redeployImplementation: "always" });
