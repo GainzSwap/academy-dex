@@ -24,7 +24,7 @@ export const checkShouldShowSocialsCallout = () => {
   }
   const [lastCheckPoint, nextCheckPoint, checkPointCache] = checkPoints;
   if (clickCount > lastCheckPoint) {
-    shouldCallout = true;
+    if (clickCount <= 10) shouldCallout = true;
 
     // Update checkpoints
     switch (lastSocialCallout) {
