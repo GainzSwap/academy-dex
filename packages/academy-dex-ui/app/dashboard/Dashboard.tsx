@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import AddLiquidity from "./AddLiquidity";
 import NewPair from "./NewPair";
 import CreateNewListing from "./NewPair/CreateNewListing";
@@ -71,6 +72,14 @@ export default function Dashboard() {
             <div className="col-sm-12 col-lg-6">
               <div className="justify-content-between mobile-full-width">
                 <Swap />
+                <Link
+                  target="_blank"
+                  href="https://t.me/AcademyDEX"
+                  className={`btn btn-success w-100 btn-lg`}
+                  style={{ color: "white", marginBottom: "5px" }}
+                >
+                  join us on Telegram
+                </Link>
               </div>
               <div className="element-wrapper pb-4 mb-4 border-bottom">
                 <div className="element-box-tp">

@@ -41,6 +41,7 @@ export const checkShouldShowSocialsCallout = () => {
   }
   setItem({ key: "socialsTxButtonClickCount", data: { clickCount, lastSocialCallout, checkPoints } });
 
+  shouldCallout = false;
   return shouldCallout;
 };
 
