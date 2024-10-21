@@ -44,7 +44,6 @@ contract LpToken is SFT {
 	}
 
 	function mint(
-		uint256 rewardPerShare,
 		uint256 lpAmount,
 		address pair,
 		address tradeToken,
@@ -54,7 +53,7 @@ contract LpToken is SFT {
 
 		bytes memory attributes = abi.encode(
 			LpAttributes({
-				rewardPerShare: rewardPerShare,
+				rewardPerShare: 0,
 				pair: pair,
 				tradeToken: tradeToken,
 				depValuePerShare: 0

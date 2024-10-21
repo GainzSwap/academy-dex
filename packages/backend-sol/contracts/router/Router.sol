@@ -13,8 +13,6 @@ import "../pair/BasePair.sol";
 
 import "./User.sol";
 
-import "hardhat/console.sol";
-
 import { LpToken } from "../modules/LpToken.sol";
 import { ADEX } from "../ADexToken/ADEX.sol";
 import { ADexInfo } from "../ADexToken/AdexInfo.sol";
@@ -286,11 +284,6 @@ contract Router is
 	) private {
 		if (pairData.totalLiq > 0) {
 			pairData.rewardsReserve += tradeVolume;
-
-			uint256 rpsIncrease = (tradeVolume * REWARDS_DIVISION_CONSTANT) /
-				pairData.totalLiq;
-
-			pairData.lpRewardsPershare += rpsIncrease;
 		}
 		pairData.buyVolume += tradeVolume;
 	}
@@ -305,16 +298,12 @@ contract Router is
 	{
 		newAttr = balance.attributes;
 
-		if (newAttr.rewardPerShare < pairData.lpRewardsPershare) {
-			// compute reward
-			claimable =
-				((pairData.lpRewardsPershare - newAttr.rewardPerShare) *
-					balance.amount) /
-				REWARDS_DIVISION_CONSTANT;
+		// compute reward
+		claimable =
+			(balance.amount * pairData.rewardsReserve) /
+			pairData.totalLiq;
 
-			pairData.rewardsReserve -= claimable;
-			newAttr.rewardPerShare = pairData.lpRewardsPershare;
-		}
+		pairData.rewardsReserve -= claimable;
 	}
 
 	function _sendTaxRewards() private {
@@ -504,14 +493,7 @@ contract Router is
 		PairData storage pairData = $.pairsData[pairAddress];
 		pairData.totalLiq += liqAdded;
 
-		return
-			$.lpToken.mint(
-				pairData.lpRewardsPershare,
-				liqAdded,
-				pairAddress,
-				tokenAddress,
-				caller
-			);
+		return $.lpToken.mint(liqAdded, pairAddress, tokenAddress, caller);
 	}
 
 	/**
@@ -569,7 +551,6 @@ contract Router is
 		$.globalData.totalLiq -= liqRemoval;
 
 		// Transfer rewards if any are claimable
-		console.log("claimable", claimable);
 		if (claimable > 0) {
 			ADEX($.adexTokenAddress).increaseSupply(msg.sender, claimable);
 		}

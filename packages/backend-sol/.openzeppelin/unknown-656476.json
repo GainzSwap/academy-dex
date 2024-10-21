@@ -22,11 +22,11 @@
       "kind": "transparent"
     },
     {
-      "address": "0xB74d9ea6C7764FB7f98aB993A201feD812aF19b6",
+      "address": "0x599a63bc88ef9F920b503F2E96B5947228134420",
       "kind": "transparent"
     },
     {
-      "address": "0x599a63bc88ef9F920b503F2E96B5947228134420",
+      "address": "0xB74d9ea6C7764FB7f98aB993A201feD812aF19b6",
       "kind": "transparent"
     }
   ],
@@ -24668,6 +24668,1324 @@
         "0x6A8aA9C338EaBCB5e4Fe36AfabFb01F8C24C5b08",
         "0x5461e82eFD882F420dA32fa369296Bb3f949baf4"
       ]
+    },
+    "e5a0b46cf170fbd331362df496b2e9e05e185504fdd169668e11ab5deba5fb0a": {
+      "address": "0x5461e82eFD882F420dA32fa369296Bb3f949baf4",
+      "layout": {
+        "solcVersion": "0.8.20",
+        "storage": [],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_bytes32)dyn_storage": {
+            "label": "bytes32[]",
+            "numberOfBytes": "32"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_bytes_storage": {
+            "label": "bytes",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_mapping(t_address,t_bool))": {
+            "label": "mapping(address => mapping(address => bool))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_struct(UintSet)2139_storage)": {
+            "label": "mapping(address => struct EnumerableSet.UintSet)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_uint256)": {
+            "label": "mapping(bytes32 => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_bytes_storage)": {
+            "label": "mapping(uint256 => bytes)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_address,t_uint256))": {
+            "label": "mapping(uint256 => mapping(address => uint256))",
+            "numberOfBytes": "32"
+          },
+          "t_string_storage": {
+            "label": "string",
+            "numberOfBytes": "32"
+          },
+          "t_struct(ERC1155Storage)177_storage": {
+            "label": "struct ERC1155Upgradeable.ERC1155Storage",
+            "members": [
+              {
+                "label": "_balances",
+                "type": "t_mapping(t_uint256,t_mapping(t_address,t_uint256))",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_operatorApprovals",
+                "type": "t_mapping(t_address,t_mapping(t_address,t_bool))",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "_uri",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "2"
+              }
+            ],
+            "numberOfBytes": "96"
+          },
+          "t_struct(InitializableStorage)80_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)13_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(SFTStorage)3821_storage": {
+            "label": "struct SFT.SFTStorage",
+            "members": [
+              {
+                "label": "nonceCounter",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "name",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "symbol",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "tokenAttributes",
+                "type": "t_mapping(t_uint256,t_bytes_storage)",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "addressToNonces",
+                "type": "t_mapping(t_address,t_struct(UintSet)2139_storage)",
+                "offset": 0,
+                "slot": "4"
+              }
+            ],
+            "numberOfBytes": "160"
+          },
+          "t_struct(Set)1941_storage": {
+            "label": "struct EnumerableSet.Set",
+            "members": [
+              {
+                "label": "_values",
+                "type": "t_array(t_bytes32)dyn_storage",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_positions",
+                "type": "t_mapping(t_bytes32,t_uint256)",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(UintSet)2139_storage": {
+            "label": "struct EnumerableSet.UintSet",
+            "members": [
+              {
+                "label": "_inner",
+                "type": "t_struct(Set)1941_storage",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          }
+        },
+        "namespaces": {
+          "erc7201:adex.sft.storage": [
+            {
+              "contract": "SFT",
+              "label": "nonceCounter",
+              "type": "t_uint256",
+              "src": "contracts/modules/SFT.sol:19",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "SFT",
+              "label": "name",
+              "type": "t_string_storage",
+              "src": "contracts/modules/SFT.sol:20",
+              "offset": 0,
+              "slot": "1"
+            },
+            {
+              "contract": "SFT",
+              "label": "symbol",
+              "type": "t_string_storage",
+              "src": "contracts/modules/SFT.sol:21",
+              "offset": 0,
+              "slot": "2"
+            },
+            {
+              "contract": "SFT",
+              "label": "tokenAttributes",
+              "type": "t_mapping(t_uint256,t_bytes_storage)",
+              "src": "contracts/modules/SFT.sol:22",
+              "offset": 0,
+              "slot": "3"
+            },
+            {
+              "contract": "SFT",
+              "label": "addressToNonces",
+              "type": "t_mapping(t_address,t_struct(UintSet)2139_storage)",
+              "src": "contracts/modules/SFT.sol:23",
+              "offset": 0,
+              "slot": "4"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.ERC1155": [
+            {
+              "contract": "ERC1155Upgradeable",
+              "label": "_balances",
+              "type": "t_mapping(t_uint256,t_mapping(t_address,t_uint256))",
+              "src": "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol:27",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "ERC1155Upgradeable",
+              "label": "_operatorApprovals",
+              "type": "t_mapping(t_address,t_mapping(t_address,t_bool))",
+              "src": "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol:29",
+              "offset": 0,
+              "slot": "1"
+            },
+            {
+              "contract": "ERC1155Upgradeable",
+              "label": "_uri",
+              "type": "t_string_storage",
+              "src": "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol:32",
+              "offset": 0,
+              "slot": "2"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      },
+      "allAddresses": [
+        "0x5461e82eFD882F420dA32fa369296Bb3f949baf4",
+        "0x0e2b411bE4412FA7298f11bFdA4Ff32da6d85a33"
+      ]
+    },
+    "5daf9c54878dfd92222d29f07e1d0624540df61a8bb51cd3c80721c6f6fb9505": {
+      "address": "0x5d7A6bb59358549099e324c1bBA1dECC6573eF9f",
+      "layout": {
+        "solcVersion": "0.8.20",
+        "storage": [],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_bytes32)dyn_storage": {
+            "label": "bytes32[]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_uint256)dyn_storage": {
+            "label": "uint256[]",
+            "numberOfBytes": "32"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_contract(Governance)3486": {
+            "label": "contract Governance",
+            "numberOfBytes": "20"
+          },
+          "t_contract(LpToken)3784": {
+            "label": "contract LpToken",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_address)": {
+            "label": "mapping(address => address)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_struct(PairData)4473_storage)": {
+            "label": "mapping(address => struct Router.PairData)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_struct(User)4913_storage)": {
+            "label": "mapping(address => struct UserModule.User)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_uint256)": {
+            "label": "mapping(bytes32 => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_address)": {
+            "label": "mapping(uint256 => address)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(AddressSet)2073_storage": {
+            "label": "struct EnumerableSet.AddressSet",
+            "members": [
+              {
+                "label": "_inner",
+                "type": "t_struct(Set)1941_storage",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(GlobalData)4486_storage": {
+            "label": "struct Router.GlobalData",
+            "members": [
+              {
+                "label": "rewardsReserve",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "taxRewards",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "rewardsPerShare",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "totalTradeVolume",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "lastTimestamp",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "totalLiq",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "5"
+              }
+            ],
+            "numberOfBytes": "192"
+          },
+          "t_struct(InitializableStorage)80_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)13_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(PairData)4473_storage": {
+            "label": "struct Router.PairData",
+            "members": [
+              {
+                "label": "sellVolume",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "buyVolume",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "lpRewardsPershare",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "tradeRewardsPershare",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "totalLiq",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "rewardsReserve",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "5"
+              }
+            ],
+            "numberOfBytes": "192"
+          },
+          "t_struct(RouterStorage)4523_storage": {
+            "label": "struct Router.RouterStorage",
+            "members": [
+              {
+                "label": "epochs",
+                "type": "t_struct(Storage)2389_storage",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "pairs",
+                "type": "t_struct(AddressSet)2073_storage",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "tradeTokens",
+                "type": "t_struct(AddressSet)2073_storage",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "_wEduAddress",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "6"
+              },
+              {
+                "label": "tokensPairAddress",
+                "type": "t_mapping(t_address,t_address)",
+                "offset": 0,
+                "slot": "7"
+              },
+              {
+                "label": "pairsData",
+                "type": "t_mapping(t_address,t_struct(PairData)4473_storage)",
+                "offset": 0,
+                "slot": "8"
+              },
+              {
+                "label": "globalData",
+                "type": "t_struct(GlobalData)4486_storage",
+                "offset": 0,
+                "slot": "9"
+              },
+              {
+                "label": "lpToken",
+                "type": "t_contract(LpToken)3784",
+                "offset": 0,
+                "slot": "15"
+              },
+              {
+                "label": "governance",
+                "type": "t_contract(Governance)3486",
+                "offset": 0,
+                "slot": "16"
+              },
+              {
+                "label": "adexTokenAddress",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "17"
+              },
+              {
+                "label": "proxyAdmin",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "18"
+              },
+              {
+                "label": "pairBeacon",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "19"
+              }
+            ],
+            "numberOfBytes": "640"
+          },
+          "t_struct(Set)1941_storage": {
+            "label": "struct EnumerableSet.Set",
+            "members": [
+              {
+                "label": "_values",
+                "type": "t_array(t_bytes32)dyn_storage",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_positions",
+                "type": "t_mapping(t_bytes32,t_uint256)",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(Storage)2389_storage": {
+            "label": "struct Epochs.Storage",
+            "members": [
+              {
+                "label": "genesis",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "epochLength",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(User)4913_storage": {
+            "label": "struct UserModule.User",
+            "members": [
+              {
+                "label": "id",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "addr",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "referrerId",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "referrals",
+                "type": "t_array(t_uint256)dyn_storage",
+                "offset": 0,
+                "slot": "3"
+              }
+            ],
+            "numberOfBytes": "128"
+          },
+          "t_struct(UserStorage)4895_storage": {
+            "label": "struct UserModule.UserStorage",
+            "members": [
+              {
+                "label": "userCount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "users",
+                "type": "t_mapping(t_address,t_struct(User)4913_storage)",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "userIdToAddress",
+                "type": "t_mapping(t_uint256,t_address)",
+                "offset": 0,
+                "slot": "2"
+              }
+            ],
+            "numberOfBytes": "96"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          }
+        },
+        "namespaces": {
+          "erc7201:router.storage": [
+            {
+              "contract": "Router",
+              "label": "epochs",
+              "type": "t_struct(Storage)2389_storage",
+              "src": "contracts/router/Router.sol:85",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Router",
+              "label": "pairs",
+              "type": "t_struct(AddressSet)2073_storage",
+              "src": "contracts/router/Router.sol:86",
+              "offset": 0,
+              "slot": "2"
+            },
+            {
+              "contract": "Router",
+              "label": "tradeTokens",
+              "type": "t_struct(AddressSet)2073_storage",
+              "src": "contracts/router/Router.sol:87",
+              "offset": 0,
+              "slot": "4"
+            },
+            {
+              "contract": "Router",
+              "label": "_wEduAddress",
+              "type": "t_address",
+              "src": "contracts/router/Router.sol:88",
+              "offset": 0,
+              "slot": "6"
+            },
+            {
+              "contract": "Router",
+              "label": "tokensPairAddress",
+              "type": "t_mapping(t_address,t_address)",
+              "src": "contracts/router/Router.sol:89",
+              "offset": 0,
+              "slot": "7"
+            },
+            {
+              "contract": "Router",
+              "label": "pairsData",
+              "type": "t_mapping(t_address,t_struct(PairData)4473_storage)",
+              "src": "contracts/router/Router.sol:90",
+              "offset": 0,
+              "slot": "8"
+            },
+            {
+              "contract": "Router",
+              "label": "globalData",
+              "type": "t_struct(GlobalData)4486_storage",
+              "src": "contracts/router/Router.sol:91",
+              "offset": 0,
+              "slot": "9"
+            },
+            {
+              "contract": "Router",
+              "label": "lpToken",
+              "type": "t_contract(LpToken)3784",
+              "src": "contracts/router/Router.sol:92",
+              "offset": 0,
+              "slot": "15"
+            },
+            {
+              "contract": "Router",
+              "label": "governance",
+              "type": "t_contract(Governance)3486",
+              "src": "contracts/router/Router.sol:93",
+              "offset": 0,
+              "slot": "16"
+            },
+            {
+              "contract": "Router",
+              "label": "adexTokenAddress",
+              "type": "t_address",
+              "src": "contracts/router/Router.sol:94",
+              "offset": 0,
+              "slot": "17"
+            },
+            {
+              "contract": "Router",
+              "label": "proxyAdmin",
+              "type": "t_address",
+              "src": "contracts/router/Router.sol:95",
+              "offset": 0,
+              "slot": "18"
+            },
+            {
+              "contract": "Router",
+              "label": "pairBeacon",
+              "type": "t_address",
+              "src": "contracts/router/Router.sol:96",
+              "offset": 0,
+              "slot": "19"
+            }
+          ],
+          "erc7201:userModule.storage": [
+            {
+              "contract": "UserModule",
+              "label": "userCount",
+              "type": "t_uint256",
+              "src": "contracts/router/User.sol:7",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "UserModule",
+              "label": "users",
+              "type": "t_mapping(t_address,t_struct(User)4913_storage)",
+              "src": "contracts/router/User.sol:8",
+              "offset": 0,
+              "slot": "1"
+            },
+            {
+              "contract": "UserModule",
+              "label": "userIdToAddress",
+              "type": "t_mapping(t_uint256,t_address)",
+              "src": "contracts/router/User.sol:9",
+              "offset": 0,
+              "slot": "2"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "0a48b02a2bf8a07a7a81915338509b958b688b1837f9c598b1526eabd33ae2c6": {
+      "address": "0x92F3aE172759c29ef920826F1F4Cd4380dB6C8c2",
+      "txHash": "0x0d563cf3ce001d4a46adbeaee416d4dabd3e7d8bb96002e018b5a8621820d666",
+      "layout": {
+        "solcVersion": "0.8.20",
+        "storage": [],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_bytes32)dyn_storage": {
+            "label": "bytes32[]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_uint256)dyn_storage": {
+            "label": "uint256[]",
+            "numberOfBytes": "32"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_contract(Governance)3486": {
+            "label": "contract Governance",
+            "numberOfBytes": "20"
+          },
+          "t_contract(LpToken)3784": {
+            "label": "contract LpToken",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_address)": {
+            "label": "mapping(address => address)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_struct(PairData)4473_storage)": {
+            "label": "mapping(address => struct Router.PairData)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_struct(User)4913_storage)": {
+            "label": "mapping(address => struct UserModule.User)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_uint256)": {
+            "label": "mapping(bytes32 => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_address)": {
+            "label": "mapping(uint256 => address)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(AddressSet)2073_storage": {
+            "label": "struct EnumerableSet.AddressSet",
+            "members": [
+              {
+                "label": "_inner",
+                "type": "t_struct(Set)1941_storage",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(GlobalData)4486_storage": {
+            "label": "struct Router.GlobalData",
+            "members": [
+              {
+                "label": "rewardsReserve",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "taxRewards",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "rewardsPerShare",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "totalTradeVolume",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "lastTimestamp",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "totalLiq",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "5"
+              }
+            ],
+            "numberOfBytes": "192"
+          },
+          "t_struct(InitializableStorage)80_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)13_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(PairData)4473_storage": {
+            "label": "struct Router.PairData",
+            "members": [
+              {
+                "label": "sellVolume",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "buyVolume",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "lpRewardsPershare",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "tradeRewardsPershare",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "totalLiq",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "rewardsReserve",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "5"
+              }
+            ],
+            "numberOfBytes": "192"
+          },
+          "t_struct(RouterStorage)4523_storage": {
+            "label": "struct Router.RouterStorage",
+            "members": [
+              {
+                "label": "epochs",
+                "type": "t_struct(Storage)2389_storage",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "pairs",
+                "type": "t_struct(AddressSet)2073_storage",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "tradeTokens",
+                "type": "t_struct(AddressSet)2073_storage",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "_wEduAddress",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "6"
+              },
+              {
+                "label": "tokensPairAddress",
+                "type": "t_mapping(t_address,t_address)",
+                "offset": 0,
+                "slot": "7"
+              },
+              {
+                "label": "pairsData",
+                "type": "t_mapping(t_address,t_struct(PairData)4473_storage)",
+                "offset": 0,
+                "slot": "8"
+              },
+              {
+                "label": "globalData",
+                "type": "t_struct(GlobalData)4486_storage",
+                "offset": 0,
+                "slot": "9"
+              },
+              {
+                "label": "lpToken",
+                "type": "t_contract(LpToken)3784",
+                "offset": 0,
+                "slot": "15"
+              },
+              {
+                "label": "governance",
+                "type": "t_contract(Governance)3486",
+                "offset": 0,
+                "slot": "16"
+              },
+              {
+                "label": "adexTokenAddress",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "17"
+              },
+              {
+                "label": "proxyAdmin",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "18"
+              },
+              {
+                "label": "pairBeacon",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "19"
+              }
+            ],
+            "numberOfBytes": "640"
+          },
+          "t_struct(Set)1941_storage": {
+            "label": "struct EnumerableSet.Set",
+            "members": [
+              {
+                "label": "_values",
+                "type": "t_array(t_bytes32)dyn_storage",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_positions",
+                "type": "t_mapping(t_bytes32,t_uint256)",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(Storage)2389_storage": {
+            "label": "struct Epochs.Storage",
+            "members": [
+              {
+                "label": "genesis",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "epochLength",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(User)4913_storage": {
+            "label": "struct UserModule.User",
+            "members": [
+              {
+                "label": "id",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "addr",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "referrerId",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "referrals",
+                "type": "t_array(t_uint256)dyn_storage",
+                "offset": 0,
+                "slot": "3"
+              }
+            ],
+            "numberOfBytes": "128"
+          },
+          "t_struct(UserStorage)4895_storage": {
+            "label": "struct UserModule.UserStorage",
+            "members": [
+              {
+                "label": "userCount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "users",
+                "type": "t_mapping(t_address,t_struct(User)4913_storage)",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "userIdToAddress",
+                "type": "t_mapping(t_uint256,t_address)",
+                "offset": 0,
+                "slot": "2"
+              }
+            ],
+            "numberOfBytes": "96"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          }
+        },
+        "namespaces": {
+          "erc7201:router.storage": [
+            {
+              "contract": "Router",
+              "label": "epochs",
+              "type": "t_struct(Storage)2389_storage",
+              "src": "contracts/router/Router.sol:85",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Router",
+              "label": "pairs",
+              "type": "t_struct(AddressSet)2073_storage",
+              "src": "contracts/router/Router.sol:86",
+              "offset": 0,
+              "slot": "2"
+            },
+            {
+              "contract": "Router",
+              "label": "tradeTokens",
+              "type": "t_struct(AddressSet)2073_storage",
+              "src": "contracts/router/Router.sol:87",
+              "offset": 0,
+              "slot": "4"
+            },
+            {
+              "contract": "Router",
+              "label": "_wEduAddress",
+              "type": "t_address",
+              "src": "contracts/router/Router.sol:88",
+              "offset": 0,
+              "slot": "6"
+            },
+            {
+              "contract": "Router",
+              "label": "tokensPairAddress",
+              "type": "t_mapping(t_address,t_address)",
+              "src": "contracts/router/Router.sol:89",
+              "offset": 0,
+              "slot": "7"
+            },
+            {
+              "contract": "Router",
+              "label": "pairsData",
+              "type": "t_mapping(t_address,t_struct(PairData)4473_storage)",
+              "src": "contracts/router/Router.sol:90",
+              "offset": 0,
+              "slot": "8"
+            },
+            {
+              "contract": "Router",
+              "label": "globalData",
+              "type": "t_struct(GlobalData)4486_storage",
+              "src": "contracts/router/Router.sol:91",
+              "offset": 0,
+              "slot": "9"
+            },
+            {
+              "contract": "Router",
+              "label": "lpToken",
+              "type": "t_contract(LpToken)3784",
+              "src": "contracts/router/Router.sol:92",
+              "offset": 0,
+              "slot": "15"
+            },
+            {
+              "contract": "Router",
+              "label": "governance",
+              "type": "t_contract(Governance)3486",
+              "src": "contracts/router/Router.sol:93",
+              "offset": 0,
+              "slot": "16"
+            },
+            {
+              "contract": "Router",
+              "label": "adexTokenAddress",
+              "type": "t_address",
+              "src": "contracts/router/Router.sol:94",
+              "offset": 0,
+              "slot": "17"
+            },
+            {
+              "contract": "Router",
+              "label": "proxyAdmin",
+              "type": "t_address",
+              "src": "contracts/router/Router.sol:95",
+              "offset": 0,
+              "slot": "18"
+            },
+            {
+              "contract": "Router",
+              "label": "pairBeacon",
+              "type": "t_address",
+              "src": "contracts/router/Router.sol:96",
+              "offset": 0,
+              "slot": "19"
+            }
+          ],
+          "erc7201:userModule.storage": [
+            {
+              "contract": "UserModule",
+              "label": "userCount",
+              "type": "t_uint256",
+              "src": "contracts/router/User.sol:7",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "UserModule",
+              "label": "users",
+              "type": "t_mapping(t_address,t_struct(User)4913_storage)",
+              "src": "contracts/router/User.sol:8",
+              "offset": 0,
+              "slot": "1"
+            },
+            {
+              "contract": "UserModule",
+              "label": "userIdToAddress",
+              "type": "t_mapping(t_uint256,t_address)",
+              "src": "contracts/router/User.sol:9",
+              "offset": 0,
+              "slot": "2"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
     }
   }
 }
