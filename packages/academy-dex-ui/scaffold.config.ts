@@ -12,6 +12,7 @@ export type ScaffoldConfig = {
 const scaffoldConfig = {
   // The networks on which your DApp is live
   targetNetworks: [
+    chains.hardhat,
     {
       id: 656476,
       name: "opencampus",

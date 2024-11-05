@@ -70,7 +70,7 @@ const deployPairs: DeployFunction = async function (hre: HardhatRuntimeEnvironme
 
         payment.token = tradeTokenAddr = await tradeToken.getAddress();
         payment.amount = ethers.parseEther(
-          (Math.random() * 10)
+          (Math.random() * 3_000_000)
             .toString()
             .split(".")
             .reduce((acc, cur, index) => {
